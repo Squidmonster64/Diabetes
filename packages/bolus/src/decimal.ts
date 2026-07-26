@@ -85,7 +85,20 @@ export class Decimal {
     return this.numerator % this.denominator === 0n;
   }
 
-  toCanonicalString(maxScale = 12): string {
+  /**
+   * Default maxScale is 6, matching Decimal.parse's own format regex
+   * (`\.\d{1,6}`) exactly, so that `Decimal.parse(x.toCanonicalString())`
+   * is always a safe, lossless-enough round-trip. A larger default here
+   * previously let toCanonicalString emit more fraction digits than
+   * Decimal.parse would accept back - calculateBolusPreview's max-dose
+   * check does exactly that round-trip on every calculation, so any
+   * exact division that didn't terminate within 6 digits (e.g. 37/12)
+   * threw "Invalid decimal format" there, surfacing as a misleading
+   * ARITHMETIC_FAILURE refusal instead of a computed dose. See
+   * packages/bolus/test/parity/cases.ts's "tight-dose-increment-pump"
+   * golden case and docs/UPGRADE-bolus-calc.md's PR-1 report.
+   */
+  toCanonicalString(maxScale = 6): string {
     const negative = this.numerator < 0n;
     const numerator = abs(this.numerator);
     const whole = numerator / this.denominator;

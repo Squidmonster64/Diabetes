@@ -448,12 +448,12 @@ export const PARITY_CASES: readonly ParityCase[] = [
     id: "tight-dose-increment-pump",
     description:
       "Pump-style 0.05 U increment with an ICR (12) that yields a non-terminating exact fraction (37/12). " +
-      "Captures a pre-existing, previously-undetected bug this harness discovered: the max-dose check " +
-      "re-parses core.unroundedTotalUnits (a toCanonicalString(12)-formatted string, up to 12 fraction " +
-      "digits) via Decimal.parse, whose format regex only accepts up to 6 fraction digits - so this refuses " +
-      "with a misleading ARITHMETIC_FAILURE instead of computing a valid dose. See " +
-      "docs/UPGRADE-bolus-calc.md's PR-1 report: not fixed here (frozen, zero-user-visible-change scope) - " +
-      "filed as a follow-up. This golden case intentionally freezes CURRENT (buggy) behaviour.",
+      "Previously refused with a misleading ARITHMETIC_FAILURE (see git history / FROZEN.md changelog for " +
+      "this case's original golden snapshot): the max-dose check re-parses core.unroundedTotalUnits via " +
+      "Decimal.parse after it was formatted via toCanonicalString(), and the two disagreed on how many " +
+      "fraction digits are valid. Fixed by making toCanonicalString's default maxScale 6, matching " +
+      "Decimal.parse's own format regex exactly, so that round-trip is always safe. This case's snapshot " +
+      "was updated in the same golden-case: commit as that fix - it now correctly computes 3.6 U.",
     settings: makeSettings({ doseIncrementUnits: "0.05", icr: "12" }),
     request: makeRequest({ carbohydrateGrams: "37", currentGlucose: "7" }),
     context: withContext(),

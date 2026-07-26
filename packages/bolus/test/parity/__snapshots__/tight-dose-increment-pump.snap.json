@@ -1,8 +1,18 @@
 {
-  "status": "REFUSED",
-  "refusalCode": "ARITHMETIC_FAILURE",
-  "refusalCategory": "INTEGRITY",
-  "userFacingMessage": "The calculation could not be completed safely. No dose was produced.",
-  "blockingReason": "An unexpected arithmetic or parsing failure occurred during calculation.",
-  "safeNextStep": "Try again. If the problem continues, contact support."
+  "status": "CALCULATED",
+  "mealComponentUnits": "3.083333",
+  "correctionComponentUnits": "0.5",
+  "activeInsulinAdjustmentUnits": "0",
+  "unroundedTotalUnits": "3.583333",
+  "roundedTotalUnits": "3.6",
+  "doseIncrementUnits": "0.05",
+  "maximumDoseUnits": "20",
+  "warnings": [],
+  "explanation": [
+    "Meal component: 12 g/U divides confirmed carbohydrate grams = 3.083333 U",
+    "Correction component: (current glucose - 6) / 2 = 0.5 U",
+    "No active-insulin subtraction is permitted in this scope.",
+    "Unrounded total: max(0, combined) = 3.583333 U",
+    "Rounded once to 0.05 U increment: 3.6 U"
+  ]
 }
