@@ -86,3 +86,91 @@ export interface ConfirmedCarbohydrateInput {
   readonly confirmedByUser: true;
   readonly confirmedAt: string;
 }
+
+/**
+ * User-created foods (feature/custom-foods-saved-meals). Distinct from the
+ * read-only AUSNUT/AFCD database - see FOOD_ADAPTER.md and
+ * supabase/migrations/0008_custom_foods.sql. `mealId` above refers to a
+ * single eating-occasion identifier at the bolus boundary and is unrelated
+ * to `SavedMealRecord` below (a reusable named recipe).
+ */
+export type CustomFoodType = "PACKET_LABEL" | "MANUAL";
+
+export interface CustomFoodRecord {
+  readonly id: string;
+  readonly patientId: string;
+  readonly foodType: CustomFoodType;
+  readonly name: string;
+  readonly brand: string | null;
+  readonly servingDescription: string | null;
+  readonly servingGrams: string | null;
+  readonly carbohydratePerServingGrams: string | null;
+  readonly carbohydratePer100gGrams: string | null;
+  readonly archivedAt: string | null;
+  readonly createdAt: string;
+  readonly updatedAt: string;
+}
+
+/** A single ingredient/food line within a saved meal recipe. */
+export type MealComponentSource = "AUSNUT" | "AFCD" | "CUSTOM";
+export type MealComponentQuantityKind = "GRAMS" | "MILLILITRES" | "MEASURE";
+
+export interface SavedMealComponentRecord {
+  readonly id: string;
+  readonly mealId: string;
+  readonly position: number;
+  readonly componentSource: MealComponentSource;
+  readonly sourceDataset: SourceDataset | null;
+  readonly sourceFoodId: string | null;
+  readonly customFoodId: string | null;
+  readonly label: string;
+  readonly quantityKind: MealComponentQuantityKind;
+  readonly quantityGrams: string | null;
+  readonly quantityMillilitres: string | null;
+  readonly measureId: string | null;
+  readonly measureMultiplier: string | null;
+}
+
+/** A saved, reusable, named recipe of multiple food components. */
+export interface SavedMealRecord {
+  readonly id: string;
+  readonly patientId: string;
+  readonly name: string;
+  readonly duplicatedFromMealId: string | null;
+  readonly archivedAt: string | null;
+  readonly createdAt: string;
+  readonly updatedAt: string;
+  readonly components: readonly SavedMealComponentRecord[];
+}
+
+/** Carbohydrate result for one meal component, computed at use-time. */
+export interface MealComponentCarbohydrateResult {
+  readonly componentId: string;
+  readonly label: string;
+  readonly portionDescription: string;
+  readonly portionQuantity: number;
+  readonly carbohydrateGrams: number;
+  readonly carbohydrateDefinition: CarbohydrateDefinition;
+}
+
+/**
+ * Total carbohydrate for a saved meal, computed fresh from current
+ * component quantities and current food-composition data every time - never
+ * a stored, potentially-stale snapshot.
+ */
+export interface MealCarbohydrateCalculationResult {
+  readonly mealId: string;
+  readonly mealName: string;
+  readonly components: readonly MealComponentCarbohydrateResult[];
+  readonly totalCarbohydrateGrams: number;
+}
+
+/** Per-instance quantity override when using a saved meal - not persisted
+ * to the recipe unless the caller separately edits the component. */
+export interface MealComponentQuantityOverride {
+  readonly componentId: string;
+  readonly quantityKind: MealComponentQuantityKind;
+  readonly quantityGrams?: string;
+  readonly quantityMillilitres?: string;
+  readonly measureMultiplier?: string;
+}

@@ -50,6 +50,20 @@ union (and a matching Postgres `enum` at the database layer), not the
 Stage 5 reference's `readonly string[]`. Any value outside the closed set is
 a type error at the API boundary, not a runtime surprise.
 
+## Custom foods and saved meals did not touch the bolus module
+
+`feature/custom-foods-saved-meals` (packet-label/manual custom foods,
+reusable multi-food meals with editable quantities, duplication, and
+archiving) is a food-side extension only. `packages/bolus/src/` has zero
+changed lines from that work - verified by re-running its full 102-test
+suite unmodified, and by an explicit integration test
+(`apps/api/test/integration/custom-foods-and-meals.test.ts`, "feeds a
+meal's confirmed carbohydrate total into the unmodified bolus module") that
+creates a meal, computes its total, and feeds that single confirmed number
+into `POST /api/v1/bolus/preview` exactly as a single food's carbohydrate
+figure would be - the bolus module has no model of "meals," "components," or
+"custom foods" at all, matching the boundary described above.
+
 ## Known release blockers
 
 This build closes every gap the handoff marked as a release blocker (glucose

@@ -8,6 +8,10 @@ import {
   SupabaseCalculationRepository,
   SupabaseSettingsRepository,
 } from "./repositories/supabase.js";
+import { MemoryCustomFoodsRepository, type CustomFoodsRepository } from "./customFoods/repository.js";
+import { SupabaseCustomFoodsRepository } from "./customFoods/supabaseRepository.js";
+import { MemorySavedMealsRepository, type SavedMealsRepository } from "./meals/repository.js";
+import { SupabaseSavedMealsRepository } from "./meals/supabaseRepository.js";
 
 export interface AppState {
   readonly config: AppConfig;
@@ -18,6 +22,8 @@ export interface AppState {
     listByPatient(patientId: string): Promise<readonly CalculationRecord[]>;
   };
   readonly auditStore: AuditStore;
+  readonly customFoodsRepository: CustomFoodsRepository;
+  readonly savedMealsRepository: SavedMealsRepository;
 }
 
 /**
@@ -36,6 +42,8 @@ export function createAppState(config: AppConfig, db: InstanceType<typeof Databa
       settingsRepository: new SupabaseSettingsRepository(client),
       calculationRepository: new SupabaseCalculationRepository(client),
       auditStore: new SupabaseAuditStore(client),
+      customFoodsRepository: new SupabaseCustomFoodsRepository(client),
+      savedMealsRepository: new SupabaseSavedMealsRepository(client),
     };
   }
 
@@ -46,5 +54,7 @@ export function createAppState(config: AppConfig, db: InstanceType<typeof Databa
     settingsRepository: new MemorySettingsRepository(),
     calculationRepository: new MemoryCalculationRepository(),
     auditStore: new InMemoryAuditStore(),
+    customFoodsRepository: new MemoryCustomFoodsRepository(),
+    savedMealsRepository: new MemorySavedMealsRepository(),
   };
 }

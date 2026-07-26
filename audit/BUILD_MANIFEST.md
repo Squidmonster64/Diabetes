@@ -14,7 +14,7 @@
 ## Test commands and results
 
 ```bash
-npm run test          # 156 tests, 0 failures (bolus 102 + api 52 + web 2)
+npm run test          # 164 tests, 0 failures (bolus 102 + api 60 + web 2)
 npm run test:e2e       # 8 tests, 0 failures
 npm run typecheck        # 0 errors across 5 workspaces
 ```

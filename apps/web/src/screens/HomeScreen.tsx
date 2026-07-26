@@ -16,8 +16,23 @@ export function HomeScreen() {
         </Link>
       </div>
       <div className="field">
+        <Link to="/meals" onClick={reset}>
+          <button className="btn-secondary">Use a saved meal</button>
+        </Link>
+      </div>
+      <div className="field">
         <Link to="/history">
           <button className="btn-secondary">View history</button>
+        </Link>
+      </div>
+      <div className="field">
+        <Link to="/custom-foods">
+          <button className="btn-secondary">My custom foods</button>
+        </Link>
+      </div>
+      <div className="field">
+        <Link to="/meals">
+          <button className="btn-secondary">Manage saved meals</button>
         </Link>
       </div>
       <div className="field">

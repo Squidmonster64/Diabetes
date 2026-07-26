@@ -5,10 +5,7 @@ import type {
   SourceDataset,
 } from "@diabetes-companion/food-contracts";
 import { FoodModuleError } from "./errors.js";
-
-const MAX_GRAMS = 5000;
-const MAX_MILLILITRES = 5000;
-const MAX_MEASURE_MULTIPLIER = 100;
+import { requireFiniteQuantity, round1dp, MAX_GRAMS, MAX_MILLILITRES, MAX_MEASURE_MULTIPLIER } from "./shared.js";
 
 export type CalculateCarbohydrateRequest =
   | { readonly kind: "GRAMS"; readonly sourceDataset: SourceDataset; readonly sourceFoodId: string; readonly grams: number }
@@ -33,18 +30,6 @@ interface MeasureRow {
   measure_description: string;
   quantity: number;
   gram_amount: number | null;
-}
-
-function requireFiniteQuantity(value: number, max: number): void {
-  if (typeof value !== "number" || !Number.isFinite(value)) {
-    throw new FoodModuleError("INVALID_QUANTITY", "Quantity must be a finite number.");
-  }
-  if (value <= 0) throw new FoodModuleError("INVALID_QUANTITY", "Quantity must be greater than zero.");
-  if (value > max) throw new FoodModuleError("QUANTITY_TOO_LARGE", `Quantity must not exceed ${max}.`);
-}
-
-function round1dp(value: number): number {
-  return Math.round(value * 10) / 10;
 }
 
 function pickCarbohydrate(

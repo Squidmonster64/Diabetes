@@ -66,10 +66,43 @@ searchable foods" count), so the adapter additionally scans
   has no AFCD measures); millilitre entry is only offered for AFCD liquid
   items.
 
+## User-created foods and saved meals
+
+`apps/api/src/customFoods/` and `apps/api/src/meals/` (added in
+`feature/custom-foods-saved-meals`) extend the food side of the app - not
+the bolus side - with:
+
+- **Packet-label foods**: transcribed from a nutrition information panel.
+  `validateCustomFoodInput` (`apps/api/src/customFoods/validation.ts`)
+  derives a per-100g carbohydrate figure from serving-size arithmetic when
+  the patient enters per-serving values instead of a direct per-100g
+  figure - simple portion scaling, the same kind of arithmetic as the
+  official-database gram/measure conversion, not a clinical formula.
+- **Manual custom foods**: a direct carbohydrate-per-100g estimate with no
+  serving-size structure required.
+- **Saved, reusable multi-food meals**: a named recipe of components (mixing
+  official AUSNUT/AFCD foods and custom foods), each with an **editable
+  quantity**. `calculateMealCarbohydrate`
+  (`apps/api/src/meals/calculate.ts`) sums each component's carbohydrate
+  fresh every time - never a stored snapshot - and accepts optional
+  per-instance quantity overrides (e.g. "usual breakfast, but a bigger
+  serving today") that are not persisted to the saved recipe.
+- **Meal duplication and archiving**: duplication deep-copies all
+  components as a new independent recipe (editing the copy never affects
+  the original); archiving hides a food or meal from selection lists
+  without deleting it or breaking anything that already references it.
+
+These additions are still governed by the same boundary rule below - a
+saved meal's *computed total* crosses into the bolus module exactly like a
+single food's carbohydrate figure does, and the bolus module has no
+awareness that custom foods or saved meals exist.
+
 ## Boundary with the bolus module
 
 **The bolus module never receives food names, brands, search results, or
 provenance** - only a confirmed numeric carbohydrate-gram string crosses
 that boundary (`ConfirmedCarbohydrateInput` in
 `packages/food-contracts/src/index.ts`). See
-`BOLUS_CALCULATOR_IMPLEMENTATION_HANDOFF.md` section 14.
+`BOLUS_CALCULATOR_IMPLEMENTATION_HANDOFF.md` section 14. This is unchanged
+by the custom-foods/saved-meals feature: `packages/bolus` was not modified
+to build it.
