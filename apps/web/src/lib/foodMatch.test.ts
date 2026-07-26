@@ -69,6 +69,53 @@ describe("resolveFoodComponent", () => {
     );
   });
 
+  it("skips AUSNUT's '1 density' reference measure and uses the real per-slice measure for a COUNT quantity", async () => {
+    // Reproduces a real production bug: AUSNUT lists a "1 density" measure
+    // (a grams-per-millilitre coefficient, gram_amount ~0.2) ahead of the
+    // real "1 slice" measure for the same food, both with quantity === 1.
+    // Picking the first quantity===1 match without excluding density
+    // measures previously produced ~100x-too-small carbohydrate totals.
+    const deps = baseDeps({
+      searchFoods: vi.fn().mockResolvedValue({
+        results: [
+          {
+            sourceDataset: "AUSNUT_2023",
+            sourceFoodId: "12201011",
+            publicFoodKey: "12201011",
+            foodName: "Bread, white, commercial",
+            foodDescription: "Bread, white, commercial",
+            classification: null,
+            matchType: "WHOLE_WORD",
+            rank: 1,
+            hasGramData: true,
+            hasMillilitreData: false,
+          },
+        ],
+        totalMatches: 1,
+      }),
+      getMeasures: vi.fn().mockResolvedValue({
+        measures: [
+          { measureId: "41482", measureDescription: "1 density", quantity: 1, gramAmount: 0.2 },
+          { measureId: "41483", measureDescription: "1 slice regular", quantity: 1, gramAmount: 33.0 },
+          {
+            measureId: "41484",
+            measureDescription: "1 slice thick Abbotts Village, Helgas, Lawson's & Woolworth's Country Loaf",
+            quantity: 1,
+            gramAmount: 45.0,
+          },
+        ],
+      }),
+      calculateCarbohydrate: vi.fn().mockResolvedValue({ carbohydrateGrams: 30.5 }),
+    });
+
+    const result = await resolveFoodComponent(component(), deps);
+
+    expect(deps.calculateCarbohydrate).toHaveBeenCalledWith(
+      expect.objectContaining({ sourceDataset: "AUSNUT_2023", sourceFoodId: "12201011", kind: "MEASURE", measureId: "41483", measureMultiplier: 2 }),
+    );
+    expect(result.carbohydrateGrams).toBe(30.5);
+  });
+
   it("marks a low-confidence match as ambiguous and does not auto-calculate", async () => {
     const deps = baseDeps({
       searchFoods: vi.fn().mockResolvedValue({

@@ -57,6 +57,19 @@ const CONFIDENCE_BY_MATCH_TYPE: Record<FoodSearchResult["matchType"], number> = 
 /** A best match at or above this confidence is auto-surfaced as the provisional match; below it, treated as ambiguous. */
 const AUTO_ACCEPT_CONFIDENCE = 0.7;
 
+/**
+ * AUSNUT records a "1 density" household measure on almost every food -
+ * a grams-per-millilitre density coefficient for volume conversions, not a
+ * real single-item portion (its gram_amount is typically well under 1g).
+ * It also has quantity === 1 like a genuine "1 slice"/"1 biscuit" measure,
+ * so it must be explicitly excluded before picking a per-unit measure for
+ * a COUNT quantity, or a food's true per-slice/per-item weight gets
+ * replaced by this coefficient and the calculated carbohydrate ends up
+ * roughly 100x too small.
+ */
+const DENSITY_MEASURE_PATTERN = /density/i;
+const COUNTABLE_MEASURE_HINT = /\b(slice|piece|biscuit|item|roll|unit|each|bar|disc|round|rasher)\b/i;
+
 function customFoodConfidence(food: CustomFoodRecord, phrase: string): number {
   const name = food.name.trim().toLowerCase();
   const query = phrase.trim().toLowerCase();
@@ -141,7 +154,13 @@ async function computeCarbohydrate(
 
     if (component.quantityKind === "COUNT") {
       const { measures } = await deps.getMeasures(bestMatch.sourceDataset, bestMatch.sourceFoodId);
-      const perUnitMeasure = measures.find((measure) => measure.quantity === 1 && measure.gramAmount !== null);
+      const quantityOneMeasures = measures.filter(
+        (measure) => measure.quantity === 1 && measure.gramAmount !== null && !DENSITY_MEASURE_PATTERN.test(measure.measureDescription),
+      );
+      const perUnitMeasure =
+        quantityOneMeasures.find((measure) => COUNTABLE_MEASURE_HINT.test(measure.measureDescription)) ??
+        quantityOneMeasures[0] ??
+        null;
       if (perUnitMeasure) {
         const result = await deps.calculateCarbohydrate({
           sourceDataset: bestMatch.sourceDataset,
