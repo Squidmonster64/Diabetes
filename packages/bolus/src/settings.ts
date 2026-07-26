@@ -50,12 +50,22 @@ export function computeConfigurationChecksum(
     insulinDurationEntrySource: settings.insulinDurationEntrySource,
     insulinDurationSourceDate: settings.insulinDurationSourceDate ?? null,
     insulinDurationSourceReference: settings.insulinDurationSourceReference ?? null,
-    insulinDurationEnteredAt: settings.insulinDurationEnteredAt,
+    // Normalised to a canonical ISO-8601 string (millisecond precision,
+    // "Z" suffix): Postgres round-trips timestamptz values with a "+00:00"
+    // suffix rather than the "Z" suffix used when the value was first
+    // written, which otherwise makes the checksum recomputed after a
+    // database read never match the one computed at write time - even
+    // though both represent the exact same instant.
+    insulinDurationEnteredAt: normalizeTimestamp(settings.insulinDurationEnteredAt),
     insulinDurationPatientConfirmedAccurate: settings.insulinDurationPatientConfirmedAccurate,
-    insulinDurationPatientConfirmedAt: settings.insulinDurationPatientConfirmedAt,
+    insulinDurationPatientConfirmedAt: normalizeTimestamp(settings.insulinDurationPatientConfirmedAt),
     schemaVersion: settings.schemaVersion,
   };
   return createHash("sha256").update(JSON.stringify(canonical)).digest("hex");
+}
+
+function normalizeTimestamp(value: string): string {
+  return new Date(value).toISOString();
 }
 
 export interface ParsedClinicianSettings {

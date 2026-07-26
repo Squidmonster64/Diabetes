@@ -33,7 +33,11 @@ export function createAuthHook(config: AppConfig) {
     }
 
     try {
-      const identity = await verifySupabaseAccessToken(request.headers.authorization, config.supabaseJwtSecret!);
+      const identity = await verifySupabaseAccessToken(
+        request.headers.authorization,
+        config.supabaseUrl!,
+        config.supabaseJwtSecret,
+      );
       request.patientId = identity.patientId;
       request.accessToken = identity.accessToken;
     } catch (error) {

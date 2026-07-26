@@ -1,5 +1,6 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import { computeConfigurationChecksum, sha256 } from "@diabetes-companion/bolus";
+import { computeConfigurationChecksum, sha256, REFUSAL_TEMPLATES } from "@diabetes-companion/bolus";
+import type { RefusalCode } from "@diabetes-companion/bolus";
 import type {
   AuditStore,
   CalculationRecord,
@@ -188,17 +189,21 @@ function rowToCalculationRecord(row: Record<string, unknown>): CalculationRecord
     administeredUnits: (row.administered_units as string) ?? undefined,
     administeredAt: (row.administered_at as string) ?? undefined,
     result: isRefused
-      ? {
-          status: "REFUSED",
-          refusalCode: row.refusal_code as never,
-          refusalCategory: "CONFIGURATION",
-          userFacingMessage: "",
-          blockingReason: "",
-          safeNextStep: "",
-          calculationVersion: row.calculator_version as string,
-          safetyPolicyVersion: row.safety_policy_version as string,
-          timestamp: row.created_at as string,
-        }
+      ? (() => {
+          const refusalCode = row.refusal_code as RefusalCode;
+          const template = REFUSAL_TEMPLATES[refusalCode];
+          return {
+            status: "REFUSED" as const,
+            refusalCode,
+            refusalCategory: template.refusalCategory,
+            userFacingMessage: template.userFacingMessage,
+            blockingReason: template.blockingReason,
+            safeNextStep: template.safeNextStep,
+            calculationVersion: row.calculator_version as string,
+            safetyPolicyVersion: row.safety_policy_version as string,
+            timestamp: row.created_at as string,
+          };
+        })()
       : {
           status: status as "CALCULATED" | "CALCULATED_ZERO",
           calculationId: row.id as string,
