@@ -1,0 +1,8 @@
+{
+  "status": "REFUSED",
+  "refusalCode": "UNCONFIRMED_CARBOHYDRATES",
+  "refusalCategory": "INPUT",
+  "userFacingMessage": "Confirm the carbohydrate grams before calculating.",
+  "blockingReason": "The carbohydrate amount was not explicitly confirmed by the user.",
+  "safeNextStep": "Review and confirm the carbohydrate amount."
+}

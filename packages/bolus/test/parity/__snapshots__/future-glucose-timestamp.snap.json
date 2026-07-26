@@ -1,0 +1,8 @@
+{
+  "status": "REFUSED",
+  "refusalCode": "FUTURE_GLUCOSE_TIMESTAMP",
+  "refusalCategory": "INPUT",
+  "userFacingMessage": "The glucose timestamp is in the future. Check the device time and measurement.",
+  "blockingReason": "The glucose measurement timestamp is later than the calculation time.",
+  "safeNextStep": "Check device time and obtain a current glucose reading."
+}

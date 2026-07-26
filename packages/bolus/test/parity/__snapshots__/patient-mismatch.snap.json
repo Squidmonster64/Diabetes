@@ -1,0 +1,8 @@
+{
+  "status": "REFUSED",
+  "refusalCode": "PATIENT_MISMATCH",
+  "refusalCategory": "INTEGRITY",
+  "userFacingMessage": "This calculation is not available for this account.",
+  "blockingReason": "The authenticated identity does not match the requested patient record.",
+  "safeNextStep": "Sign in again and retry."
+}

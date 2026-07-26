@@ -1,0 +1,8 @@
+{
+  "status": "REFUSED",
+  "refusalCode": "CONFIGURATION_INTEGRITY_FAILURE",
+  "refusalCategory": "CONFIGURATION",
+  "userFacingMessage": "The clinical settings cannot be verified. No calculation was produced.",
+  "blockingReason": "The stored settings checksum does not match the recomputed checksum.",
+  "safeNextStep": "Re-enter and confirm current settings from your clinician-approved plan."
+}

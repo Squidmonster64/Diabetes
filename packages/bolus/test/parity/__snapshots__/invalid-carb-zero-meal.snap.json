@@ -1,0 +1,8 @@
+{
+  "status": "REFUSED",
+  "refusalCode": "INVALID_INPUT",
+  "refusalCategory": "INPUT",
+  "userFacingMessage": "One or more required values are missing or invalid.",
+  "blockingReason": "A calculation input failed format or range validation.",
+  "safeNextStep": "Enter and confirm all required values, then try again."
+}

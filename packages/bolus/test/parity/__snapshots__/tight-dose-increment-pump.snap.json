@@ -1,0 +1,8 @@
+{
+  "status": "REFUSED",
+  "refusalCode": "ARITHMETIC_FAILURE",
+  "refusalCategory": "INTEGRITY",
+  "userFacingMessage": "The calculation could not be completed safely. No dose was produced.",
+  "blockingReason": "An unexpected arithmetic or parsing failure occurred during calculation.",
+  "safeNextStep": "Try again. If the problem continues, contact support."
+}

@@ -1,0 +1,8 @@
+{
+  "status": "REFUSED",
+  "refusalCode": "NO_ACTIVE_CONFIGURATION",
+  "refusalCategory": "CONFIGURATION",
+  "userFacingMessage": "No active clinician-supplied calculator settings are available.",
+  "blockingReason": "No settings version with status ACTIVE was found for this patient.",
+  "safeNextStep": "Enter patient-entered settings copied from your current clinician-approved plan."
+}

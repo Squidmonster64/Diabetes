@@ -1,0 +1,6 @@
+# Dose arithmetic, safety gates, and plain-language output - see packages/bolus/FROZEN.md
+/packages/bolus/  @Squidmonster64
+
+# Food database integrity - see docs/data-source/ and packages/bolus/FROZEN.md
+/data/australian_foods.sqlite  @Squidmonster64
+/docs/data-source/  @Squidmonster64

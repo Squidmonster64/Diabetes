@@ -1,0 +1,8 @@
+{
+  "status": "REFUSED",
+  "refusalCode": "MAXIMUM_DOSE_EXCEEDED",
+  "refusalCategory": "MAXIMUM_DOSE",
+  "userFacingMessage": "The calculated amount exceeds the clinician-configured maximum. No dose was produced.",
+  "blockingReason": "The raw or rounded dose exceeds the clinician-configured maximum dose.",
+  "safeNextStep": "Follow the clinician-approved plan or contact the treating team."
+}

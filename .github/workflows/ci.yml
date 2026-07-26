@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  build-test-guard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Test (includes the packages/bolus parity harness)
+        run: npm run test
+
+      - name: Coverage (packages/bolus frozen modules)
+        run: npm run coverage --workspace packages/bolus
+
+      - name: Build
+        run: npm run build
+
+      - name: Frozen-path guard
+        run: node scripts/check-frozen-paths.mjs
+
+      - name: Food database integrity
+        run: node scripts/check-food-db-hash.mjs

@@ -1,0 +1,8 @@
+{
+  "status": "REFUSED",
+  "refusalCode": "ACTIVE_PRIOR_BOLUS",
+  "refusalCategory": "ACTIVE_INSULIN",
+  "userFacingMessage": "Calculation unavailable because a previous rapid-acting dose may still be active.",
+  "blockingReason": "A prior rapid-acting dose occurred within the clinician-configured insulin duration. This calculator does not estimate insulin-on-board.",
+  "safeNextStep": "Follow the clinician-approved plan or contact the treating team."
+}

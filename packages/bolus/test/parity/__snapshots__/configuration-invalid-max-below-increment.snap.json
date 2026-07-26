@@ -1,0 +1,8 @@
+{
+  "status": "REFUSED",
+  "refusalCode": "INVALID_CONFIGURATION",
+  "refusalCategory": "CONFIGURATION",
+  "userFacingMessage": "The calculator settings are incomplete, invalid, or not confirmed from current clinician advice.",
+  "blockingReason": "One or more clinician-supplied settings values failed validation.",
+  "safeNextStep": "Re-enter and confirm current settings from your clinician-approved plan."
+}

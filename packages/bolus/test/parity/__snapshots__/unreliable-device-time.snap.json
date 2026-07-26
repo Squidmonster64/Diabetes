@@ -1,0 +1,8 @@
+{
+  "status": "REFUSED",
+  "refusalCode": "UNRELIABLE_DEVICE_TIME",
+  "refusalCategory": "INPUT",
+  "userFacingMessage": "The device time cannot be verified. No calculation was produced.",
+  "blockingReason": "The device clock could not be validated against the trusted server clock.",
+  "safeNextStep": "Check the device date, time and timezone, then try again."
+}

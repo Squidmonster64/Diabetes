@@ -1,0 +1,8 @@
+{
+  "status": "REFUSED",
+  "refusalCode": "UNCONFIRMED_GLUCOSE",
+  "refusalCategory": "INPUT",
+  "userFacingMessage": "Confirm the current glucose value before calculating.",
+  "blockingReason": "The glucose value was not explicitly confirmed by the user.",
+  "safeNextStep": "Review and confirm the glucose value."
+}

@@ -1,0 +1,8 @@
+{
+  "status": "REFUSED",
+  "refusalCode": "HYPO_SYMPTOMS",
+  "refusalCategory": "GLUCOSE_SAFETY",
+  "userFacingMessage": "No bolus calculation was provided. Follow the established hypo plan.",
+  "blockingReason": "The user declared hypoglycaemia symptoms or an inability to safely proceed.",
+  "safeNextStep": "Follow your established hypo plan. If this is an emergency, seek urgent assistance or contact local emergency services."
+}

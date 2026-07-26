@@ -1,0 +1,8 @@
+{
+  "status": "REFUSED",
+  "refusalCode": "STALE_GLUCOSE",
+  "refusalCategory": "INPUT",
+  "userFacingMessage": "The glucose value is too old for this calculation. Obtain and confirm a current reading.",
+  "blockingReason": "The glucose measurement is older than the configured freshness limit.",
+  "safeNextStep": "Obtain and confirm a current glucose reading."
+}

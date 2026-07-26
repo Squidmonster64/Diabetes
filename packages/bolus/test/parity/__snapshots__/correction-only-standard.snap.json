@@ -1,0 +1,17 @@
+{
+  "status": "CALCULATED",
+  "mealComponentUnits": "0",
+  "correctionComponentUnits": "2",
+  "activeInsulinAdjustmentUnits": "0",
+  "unroundedTotalUnits": "2",
+  "roundedTotalUnits": "2",
+  "doseIncrementUnits": "0.5",
+  "maximumDoseUnits": "20",
+  "warnings": [],
+  "explanation": [
+    "Correction component: (current glucose - 6) / 2 = 2 U",
+    "No active-insulin subtraction is permitted in this scope.",
+    "Unrounded total: max(0, combined) = 2 U",
+    "Rounded once to 0.5 U increment: 2 U"
+  ]
+}
