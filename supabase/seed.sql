@@ -1,0 +1,21 @@
+-- Non-clinical development fixtures only. Do not use in production.
+-- This seed does not create any auth.users rows (Supabase Auth manages
+-- those); it is safe to run against an empty local/dev database and is a
+-- no-op until a matching auth.users row exists for the referenced patient id.
+
+-- Example: after creating a test user via Supabase Auth locally, you may
+-- manually insert a settings version for smoke testing:
+--
+-- insert into public.clinician_configurations (
+--   patient_id, version, icr, isf, target_glucose, insulin_duration_hours,
+--   dose_increment_units, maximum_dose_units, low_glucose_threshold, glucose_unit,
+--   insulin_duration_entry_source, insulin_duration_entered_at,
+--   insulin_duration_patient_confirmed_accurate, insulin_duration_patient_confirmed_at,
+--   configuration_checksum
+-- ) values (
+--   '00000000-0000-0000-0000-000000000000', 1, '10', '2', '6', '4',
+--   '0.5', '20', '4', 'MMOL_L',
+--   'PATIENT_ENTERED_FROM_CLINICIAN_REPORT', now(),
+--   true, now(),
+--   'dev-fixture-checksum-placeholder'
+-- );

@@ -1,0 +1,29 @@
+{
+  "name": "diabetes-companion-app",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Australian-first Diabetes Companion PWA - monorepo root",
+  "workspaces": [
+    "packages/*",
+    "apps/*",
+    "tests/e2e"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace apps/api & npm run dev --workspace apps/web",
+    "dev:api": "npm run dev --workspace apps/api",
+    "dev:web": "npm run dev --workspace apps/web",
+    "build": "npm run build --workspace packages/shared-types && npm run build --workspace packages/food-contracts && npm run build --workspace packages/bolus && npm run build --workspace apps/api && npm run build --workspace apps/web",
+    "start": "npm run start --workspace apps/api",
+    "test": "npm run test --workspace packages/bolus && npm run test --workspace packages/food-contracts --if-present && npm run test --workspace apps/api && npm run test --workspace apps/web --if-present",
+    "test:e2e": "npm run test:e2e --workspace @diabetes-companion/e2e",
+    "lint": "npm run typecheck",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "audit": "node scripts/generate-audit.mjs"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

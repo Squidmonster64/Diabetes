@@ -1,0 +1,14 @@
+# Nixpacks build plan for Railway. better-sqlite3 needs a native build
+# toolchain (python3, make, gcc) available during `npm ci` - Nixpacks' default
+# Node provider does not always include these, so they are pinned explicitly.
+[phases.setup]
+nixPkgs = ["nodejs_20", "python3", "gcc", "gnumake"]
+
+[phases.install]
+cmds = ["npm ci"]
+
+[phases.build]
+cmds = ["npm run build"]
+
+[start]
+cmd = "npm run start"
