@@ -1,6 +1,9 @@
 import { supabase } from "./supabase.js";
 import type {
+  CarbohydrateCalculationResult,
   CustomFoodRecord,
+  FoodMeasure,
+  FoodSearchResult,
   MealCarbohydrateCalculationResult,
   SavedMealRecord,
 } from "@diabetes-companion/food-contracts";
@@ -38,15 +41,15 @@ export const api = {
   health: () => request<{ status: string; databaseSha256: string; calculatorVersion: string }>("/health"),
 
   searchFoods: (query: string, sourceDataset?: string) =>
-    request<{ results: unknown[]; totalMatches: number }>(
+    request<{ results: FoodSearchResult[]; totalMatches: number }>(
       `/foods/search?q=${encodeURIComponent(query)}${sourceDataset ? `&sourceDataset=${sourceDataset}` : ""}`,
     ),
 
   getMeasures: (sourceDataset: string, sourceFoodId: string) =>
-    request<{ measures: unknown[] }>(`/foods/${sourceDataset}/${encodeURIComponent(sourceFoodId)}/measures`),
+    request<{ measures: FoodMeasure[] }>(`/foods/${sourceDataset}/${encodeURIComponent(sourceFoodId)}/measures`),
 
   calculateCarbohydrate: (body: Record<string, unknown>) =>
-    request("/foods/calculate-carbohydrate", { method: "POST", body: JSON.stringify(body) }),
+    request<CarbohydrateCalculationResult>("/foods/calculate-carbohydrate", { method: "POST", body: JSON.stringify(body) }),
 
   getCurrentSettings: () => request("/settings/current"),
   getSettingsHistory: () => request<{ history: unknown[] }>("/settings/history"),
@@ -73,6 +76,11 @@ export const api = {
     request<CustomFoodRecord>(`/custom-foods/${id}`, { method: "PATCH", body: JSON.stringify(body) }),
   archiveCustomFood: (id: string) => request<CustomFoodRecord>(`/custom-foods/${id}/archive`, { method: "POST" }),
   unarchiveCustomFood: (id: string) => request<CustomFoodRecord>(`/custom-foods/${id}/unarchive`, { method: "POST" }),
+  calculateCustomFoodCarbohydrate: (id: string, grams: number) =>
+    request<{ carbohydrateGrams: number }>(`/custom-foods/${id}/calculate-carbohydrate`, {
+      method: "POST",
+      body: JSON.stringify({ grams }),
+    }),
 
   // Saved reusable meals
   listMeals: (includeArchived = false) =>
