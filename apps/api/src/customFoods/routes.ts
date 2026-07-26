@@ -3,6 +3,7 @@ import type { AppState } from "../appState.js";
 import { HttpError } from "../httpError.js";
 import { FoodModuleError } from "../food/errors.js";
 import { validateCustomFoodInput } from "./validation.js";
+import { calculateCustomFoodCarbohydrateGrams } from "./calculate.js";
 
 export function registerCustomFoodRoutes(app: FastifyInstance, state: AppState): void {
   app.post("/api/v1/custom-foods", { preHandler: app.requireAuth }, async (request, reply) => {
@@ -105,5 +106,22 @@ export function registerCustomFoodRoutes(app: FastifyInstance, state: AppState):
       throw new HttpError(404, "CUSTOM_FOOD_NOT_FOUND", "The requested custom food was not found.");
     }
     return state.customFoodsRepository.setArchived(id, false);
+  });
+
+  app.post("/api/v1/custom-foods/:id/calculate-carbohydrate", { preHandler: app.requireAuth }, async (request) => {
+    const patientId = request.patientId!;
+    const { id } = request.params as { id: string };
+    const existing = await state.customFoodsRepository.getById(id);
+    if (!existing || existing.patientId !== patientId) {
+      throw new HttpError(404, "CUSTOM_FOOD_NOT_FOUND", "The requested custom food was not found.");
+    }
+    const body = request.body as Record<string, unknown>;
+    try {
+      const carbohydrateGrams = calculateCustomFoodCarbohydrateGrams(existing, Number(body.grams));
+      return { carbohydrateGrams };
+    } catch (error) {
+      if (error instanceof FoodModuleError) throw new HttpError(400, error.code, error.message);
+      throw error;
+    }
   });
 }

@@ -140,6 +140,49 @@ not only the test suites.
     flow - the patient must go to "Edit meal" separately to persist a
     lasting change.
 
+## Natural-language event entry (`packages/natural-language`, `feature/natural-language-entry`)
+
+20. **Deterministic regex extraction, not a language model.** The parser
+    handles the phrasing patterns exercised by its acceptance tests (stated
+    number/word quantities, common relative and clock times, "with"/"and"/
+    comma-separated food lists, vague qualifiers like "a little"/"some", a
+    small set of hypoglycaemia/special-situation keywords). Phrasing outside
+    those patterns degrades to a "not stated" / missing clarification rather
+    than a wrong guess, but it also means less common phrasings simply
+    aren't extracted yet rather than being extracted incorrectly. No
+    language-model fallback is wired up (the spec permits one only as an
+    optional, schema-validated, never-auto-trusted extra path; none is
+    configured in this build).
+21. **Single-clause time attribution.** Relative/absolute time phrases are
+    resolved per sentence-clause (split on `.`/`;`/"while", with decimal
+    points protected from being read as clause breaks). A clause containing
+    two independent time references (e.g. an insulin time and an unrelated
+    food time in the same clause with no punctuation between them) could
+    misattribute the second time phrase - not exercised by any current
+    example, but a known sharp edge of the clause-scoped design in
+    `segment-event.ts`.
+22. **Food-quantity-to-database-measure matching is best-effort for counts.**
+    Gram and millilitre quantities map directly onto the existing
+    `calculateCarbohydrate` endpoint. A count quantity ("two Weet-Bix") only
+    auto-resolves when the matched AUSNUT/AFCD food happens to expose a
+    measure with `quantity === 1`; otherwise the review screen falls back to
+    manual gram entry for that component. Custom-food count quantities only
+    auto-resolve when the custom food has a recorded `servingGrams`.
+23. **The negligible-carbohydrate allow-list is small and fixed**
+    (`NEGLIGIBLE_CARB_FOODS` in `extract-foods.ts`: ham, chicken, turkey,
+    beef, bacon, egg(s), cheese, lettuce, mayo, mayonnaise, mustard). A food
+    outside that list with no stated quantity always blocks with a
+    clarification question rather than being silently treated as
+    negligible - a deliberate conservative bias, but the list itself has not
+    been clinically reviewed.
+24. **The confirmed carbohydrate total for a natural-language meal is
+    packaged as a single synthetic `CarbohydrateCalculationResult`**
+    (`sourceFoodId: "natural-language-entry"`) rather than a persisted
+    multi-component meal record - unlike saved meals, a described meal is
+    not itself retained as a reusable recipe; the patient would need to
+    separately save it via the existing "saved meals" flow if they want to
+    reuse it.
+
 ## What is *not* a limitation (deliberately out of scope per the handoff)
 
 Basal/premixed/IV/pump dosing, split/extended/dual-wave boluses, paediatric

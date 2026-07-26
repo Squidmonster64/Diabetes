@@ -64,6 +64,52 @@ into `POST /api/v1/bolus/preview` exactly as a single food's carbohydrate
 figure would be - the bolus module has no model of "meals," "components," or
 "custom foods" at all, matching the boundary described above.
 
+## Natural-language event entry did not touch the bolus module
+
+`packages/natural-language/` (the primary "describe what's happening" entry
+screen) is a text -> structured-draft transformer only. It performs
+deterministic, regex-based extraction of glucose, recent insulin, food/drink
+components, symptoms, and timing from typed or dictated text - Apple keyboard
+Dictation inserts recognised text into the same native `<textarea>` used for
+typed input, so it is indistinguishable from typing; there is no microphone
+API, audio recording, or speech-recognition service anywhere in the app.
+
+This package **never calculates a bolus, never infers an insulin amount or
+active-insulin value, and never confirms a value on the user's behalf**:
+
+- Every extracted field carries `{rawSpan, value, confidence, status,
+  requiresConfirmation}` and is rendered on `NaturalLanguageReviewScreen.tsx`
+  for the user to change or confirm before anything downstream runs.
+- A missing or ambiguous required value (an insulin amount stated as bare
+  "units", a food quantity that would materially affect carbohydrate, an
+  unstated glucose unit, a concentrated-insulin cue) produces a **blocking**
+  clarification question; the confirm button is disabled until every
+  blocking clarification is resolved (`hasBlockingClarifications`).
+- Parsed prior-insulin dose and timestamp only ever populate the *existing*
+  `priorRapidActingDoses` array on the bolus preview request
+  (`GlucoseEntryScreen.tsx`) - the unmodified `ACTIVE_PRIOR_BOLUS` gate in
+  `packages/bolus/src/safety.ts` (gates 18-20) is the only thing that decides
+  whether that prior dose blocks a new calculation. The package has zero
+  runtime dependency on `packages/bolus` (a single type-only import of the
+  closed `SpecialSituation` union in `types.ts`/`detect-symptoms.ts`, erased
+  at compile time - confirmed by grepping the compiled output for the
+  package name).
+- Food/drink components are resolved against custom foods and the
+  AUSNUT/AFCD search index (`apps/web/src/lib/foodMatch.ts`) using the same
+  confirmed-numeric-carbohydrate boundary described in
+  `packages/food-contracts/src/index.ts` - the review screen never displays
+  a raw database row, only a name, brand, confidence-derived match reason,
+  and a computed carbohydrate figure the user can change.
+- `packages/bolus/src/` has zero changed lines from this work - verified by
+  re-running its full 102-test suite unmodified alongside the new package's
+  own 24 acceptance tests (`packages/natural-language/test/segment-event.test.ts`),
+  which include an explicit source-scan test asserting the package's source
+  never references `calculateMealBolus`, `calculateCorrectionBolus`,
+  `calculateBolusPreview`, or `confirmBolus`.
+- The pre-existing manual food-search flow (`/food/search`) is retained
+  unchanged as a fallback, reachable from the home screen and from the new
+  entry screen.
+
 ## Known release blockers
 
 This build closes every gap the handoff marked as a release blocker (glucose

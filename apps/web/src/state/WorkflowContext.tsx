@@ -1,6 +1,11 @@
 import { createContext, useContext, useState, type ReactNode } from "react";
 import type { CarbohydrateCalculationResult, FoodSearchResult } from "@diabetes-companion/food-contracts";
 
+export interface PriorRapidActingDoseEntry {
+  readonly units: string;
+  readonly administeredAt: string;
+}
+
 export interface GlucoseEntry {
   readonly currentGlucose: string;
   readonly glucoseUnit: "MMOL_L" | "MG_DL";
@@ -11,6 +16,13 @@ export interface GlucoseEntry {
   readonly hypoSymptoms: boolean;
   readonly duplicateDose: boolean;
   readonly concentratedInsulinConfirmed: boolean;
+  /** Prior rapid-acting doses known at entry time - populated by the natural-language
+   * review flow so the existing ACTIVE_PRIOR_BOLUS gate in packages/bolus (unmodified)
+   * can evaluate them; empty when entering a bolus manually with no known prior dose. */
+  readonly priorRapidActingDoses?: readonly PriorRapidActingDoseEntry[];
+  /** Special-situation cues carried over from natural-language parsing, still just a
+   * pre-fill - the user must still review and can add/remove before confirming. */
+  readonly specialSituations?: readonly string[];
 }
 
 interface WorkflowState {

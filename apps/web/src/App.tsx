@@ -1,8 +1,11 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import { useAuth } from "./state/AuthContext.js";
 import { WorkflowProvider } from "./state/WorkflowContext.js";
+import { NaturalLanguageProvider } from "./state/NaturalLanguageContext.js";
 import { AuthScreen } from "./screens/AuthScreen.js";
 import { HomeScreen } from "./screens/HomeScreen.js";
+import { NaturalLanguageEntryScreen } from "./screens/NaturalLanguageEntryScreen.js";
+import { NaturalLanguageReviewScreen } from "./screens/NaturalLanguageReviewScreen.js";
 import { FoodSearchScreen } from "./screens/FoodSearchScreen.js";
 import { FoodResultsScreen } from "./screens/FoodResultsScreen.js";
 import { FoodDetailsScreen } from "./screens/FoodDetailsScreen.js";
@@ -36,35 +39,39 @@ export function App() {
 
   return (
     <WorkflowProvider>
-      <Routes>
-        <Route path="/" element={<HomeScreen />} />
-        <Route path="/food/search" element={<FoodSearchScreen />} />
-        <Route path="/food/results" element={<FoodResultsScreen />} />
-        <Route path="/food/:sourceDataset/:sourceFoodId" element={<FoodDetailsScreen />} />
-        <Route path="/food/:sourceDataset/:sourceFoodId/portion" element={<PortionSelectionScreen />} />
-        <Route path="/carb-summary" element={<CarbSummaryScreen />} />
-        <Route path="/glucose-entry" element={<GlucoseEntryScreen />} />
-        <Route path="/bolus-preview" element={<BolusPreviewScreen />} />
-        <Route path="/safety-warning" element={<SafetyWarningScreen />} />
-        <Route path="/safety-refusal" element={<SafetyRefusalScreen />} />
-        <Route path="/confirm" element={<ConfirmationScreen />} />
-        <Route path="/confirm-result" element={<ConfirmationResultScreen />} />
-        <Route path="/history" element={<HistoryScreen />} />
-        <Route path="/history/:eventId" element={<HistoryEventDetailsScreen />} />
-        <Route path="/settings" element={<SettingsScreen />} />
-        <Route path="/settings/confirm" element={<SettingsConfirmationScreen />} />
-        <Route path="/settings/history" element={<SettingsHistoryScreen />} />
-        <Route path="/data-provenance" element={<DataProvenanceScreen />} />
-        <Route path="/about" element={<AboutScreen />} />
-        <Route path="/custom-foods" element={<CustomFoodsListScreen />} />
-        <Route path="/custom-foods/new" element={<CustomFoodFormScreen />} />
-        <Route path="/custom-foods/:id/edit" element={<CustomFoodFormScreen />} />
-        <Route path="/meals" element={<MealsListScreen />} />
-        <Route path="/meals/new" element={<MealCreateScreen />} />
-        <Route path="/meals/:id/edit" element={<MealEditScreen />} />
-        <Route path="/meals/:id/use" element={<MealUseScreen />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+      <NaturalLanguageProvider>
+        <Routes>
+          <Route path="/" element={<HomeScreen />} />
+          <Route path="/describe" element={<NaturalLanguageEntryScreen />} />
+          <Route path="/describe/review" element={<NaturalLanguageReviewScreen />} />
+          <Route path="/food/search" element={<FoodSearchScreen />} />
+          <Route path="/food/results" element={<FoodResultsScreen />} />
+          <Route path="/food/:sourceDataset/:sourceFoodId" element={<FoodDetailsScreen />} />
+          <Route path="/food/:sourceDataset/:sourceFoodId/portion" element={<PortionSelectionScreen />} />
+          <Route path="/carb-summary" element={<CarbSummaryScreen />} />
+          <Route path="/glucose-entry" element={<GlucoseEntryScreen />} />
+          <Route path="/bolus-preview" element={<BolusPreviewScreen />} />
+          <Route path="/safety-warning" element={<SafetyWarningScreen />} />
+          <Route path="/safety-refusal" element={<SafetyRefusalScreen />} />
+          <Route path="/confirm" element={<ConfirmationScreen />} />
+          <Route path="/confirm-result" element={<ConfirmationResultScreen />} />
+          <Route path="/history" element={<HistoryScreen />} />
+          <Route path="/history/:eventId" element={<HistoryEventDetailsScreen />} />
+          <Route path="/settings" element={<SettingsScreen />} />
+          <Route path="/settings/confirm" element={<SettingsConfirmationScreen />} />
+          <Route path="/settings/history" element={<SettingsHistoryScreen />} />
+          <Route path="/data-provenance" element={<DataProvenanceScreen />} />
+          <Route path="/about" element={<AboutScreen />} />
+          <Route path="/custom-foods" element={<CustomFoodsListScreen />} />
+          <Route path="/custom-foods/new" element={<CustomFoodFormScreen />} />
+          <Route path="/custom-foods/:id/edit" element={<CustomFoodFormScreen />} />
+          <Route path="/meals" element={<MealsListScreen />} />
+          <Route path="/meals/new" element={<MealCreateScreen />} />
+          <Route path="/meals/:id/edit" element={<MealEditScreen />} />
+          <Route path="/meals/:id/use" element={<MealUseScreen />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </NaturalLanguageProvider>
     </WorkflowProvider>
   );
 }

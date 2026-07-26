@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@diabetes-companion/food-contracts": "0.1.0",
+    "@diabetes-companion/natural-language": "0.1.0",
     "@supabase/supabase-js": "^2.58.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",

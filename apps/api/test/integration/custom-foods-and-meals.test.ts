@@ -70,6 +70,38 @@ describe("custom foods", () => {
     expect(response.json().error.code).toBe("INVALID_CUSTOM_FOOD");
   });
 
+  it("calculate-carbohydrate scales a custom food's per-100g figure by the requested grams", async () => {
+    const patient = devAuthHeader("cf_patient_calc");
+    const created = await createManualFood(patient, { name: "Rice", carbohydratePer100gGrams: 28 });
+    const foodId = created.json().id;
+
+    const response = await app.inject({
+      method: "POST",
+      url: `/api/v1/custom-foods/${foodId}/calculate-carbohydrate`,
+      headers: patient,
+      payload: { grams: 150 },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json().carbohydrateGrams).toBe(42);
+  });
+
+  it("calculate-carbohydrate refuses another patient's custom food", async () => {
+    const owner = devAuthHeader("cf_patient_calc_owner");
+    const intruder = devAuthHeader("cf_patient_calc_intruder");
+    const created = await createManualFood(owner, { name: "Owner's soup" });
+    const foodId = created.json().id;
+
+    const response = await app.inject({
+      method: "POST",
+      url: `/api/v1/custom-foods/${foodId}/calculate-carbohydrate`,
+      headers: intruder,
+      payload: { grams: 100 },
+    });
+
+    expect(response.statusCode).toBe(404);
+  });
+
   it("archiving hides a food from the default list but keeps it retrievable", async () => {
     const patient = devAuthHeader("cf_patient_archive");
     const created = await createManualFood(patient, { name: "Old snack" });

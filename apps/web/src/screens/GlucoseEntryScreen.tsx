@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api, ApiError } from "../lib/apiClient.js";
-import { useWorkflow } from "../state/WorkflowContext.js";
+import { useWorkflow, type PriorRapidActingDoseEntry } from "../state/WorkflowContext.js";
 import { Screen } from "../components/Screen.js";
 
 const SPECIAL_SITUATIONS = [
@@ -27,20 +27,23 @@ function nowIso(): string {
 }
 
 export function GlucoseEntryScreen() {
-  const { carbResult, setPreviewResult } = useWorkflow();
+  const { carbResult, glucoseEntry, setPreviewResult } = useWorkflow();
   const navigate = useNavigate();
 
-  const [glucoseUnit, setGlucoseUnit] = useState<"MMOL_L" | "MG_DL">("MMOL_L");
-  const [currentGlucose, setCurrentGlucose] = useState("");
+  const [glucoseUnit, setGlucoseUnit] = useState<"MMOL_L" | "MG_DL">(glucoseEntry?.glucoseUnit ?? "MMOL_L");
+  const [currentGlucose, setCurrentGlucose] = useState(glucoseEntry?.currentGlucose ?? "");
   const [glucoseConfirmed, setGlucoseConfirmed] = useState(false);
   const [carbsConfirmed, setCarbsConfirmed] = useState(false);
   const [noActiveInsulin, setNoActiveInsulin] = useState(true);
   const [activeInsulinUnits, setActiveInsulinUnits] = useState("");
+  const [priorRapidActingDoses, setPriorRapidActingDoses] = useState<PriorRapidActingDoseEntry[]>(
+    glucoseEntry?.priorRapidActingDoses ? [...glucoseEntry.priorRapidActingDoses] : [],
+  );
   const [recentHistoryComplete, setRecentHistoryComplete] = useState(false);
-  const [hypoSymptoms, setHypoSymptoms] = useState(false);
+  const [hypoSymptoms, setHypoSymptoms] = useState(glucoseEntry?.hypoSymptoms ?? false);
   const [duplicateDose, setDuplicateDose] = useState(false);
   const [concentratedInsulinConfirmed, setConcentratedInsulinConfirmed] = useState(false);
-  const [situations, setSituations] = useState<Set<string>>(new Set());
+  const [situations, setSituations] = useState<Set<string>>(new Set(glucoseEntry?.specialSituations ?? []));
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -85,7 +88,7 @@ export function GlucoseEntryScreen() {
         carbohydratesConfirmed: carbsConfirmed,
         activeInsulinUnits: noActiveInsulin ? "0" : activeInsulinUnits || null,
         recentHistoryComplete,
-        priorRapidActingDoses: [],
+        priorRapidActingDoses,
         hypoSymptoms,
         duplicateDose,
         specialSituations: Array.from(situations),
@@ -151,6 +154,26 @@ export function GlucoseEntryScreen() {
               value={activeInsulinUnits}
               onChange={(event) => setActiveInsulinUnits(event.target.value)}
             />
+          </div>
+        ) : null}
+
+        {priorRapidActingDoses.length > 0 ? (
+          <div className="card">
+            <div className="muted">Recent rapid-acting doses on record for this event</div>
+            {priorRapidActingDoses.map((dose, index) => (
+              <div className="checkbox-row" key={`${dose.administeredAt}-${index}`}>
+                <span>
+                  {dose.units} units at {new Date(dose.administeredAt).toLocaleString()}
+                </span>
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  onClick={() => setPriorRapidActingDoses((prev) => prev.filter((_, i) => i !== index))}
+                >
+                  Remove
+                </button>
+              </div>
+            ))}
           </div>
         ) : null}
 

@@ -16,21 +16,74 @@ npm run typecheck      # TypeScript --noEmit, every workspace
 
 | Suite | Files | Tests | Passed | Failed |
 |---|---:|---:|---:|---:|
-| `packages/bolus` (unit, **unchanged by the custom-foods/saved-meals feature**) | 6 | 102 | 102 | 0 |
+| `packages/bolus` (unit, **unchanged by the custom-foods/saved-meals or natural-language feature**) | 6 | 102 | 102 | 0 |
+| `packages/natural-language` (unit, new) | 1 | 24 | 24 | 0 |
 | `apps/api` (unit: food adapter) | 2 | 20 | 20 | 0 |
 | `apps/api` (unit: custom-foods validation/calculation) | 1 | 14 | 14 | 0 |
 | `apps/api` (integration: full API, pre-existing) | 5 | 12 | 12 | 0 |
-| `apps/api` (integration: custom foods + saved meals) | 1 | 14 | 14 | 0 |
-| `apps/web` (unit) | 1 | 2 | 2 | 0 |
+| `apps/api` (integration: custom foods + saved meals + custom-food single-item calculate) | 1 | 16 | 16 | 0 |
+| `apps/web` (unit: apiClient + food-match resolver) | 2 | 7 | 7 | 0 |
 | `tests/e2e` (Playwright, black-box HTTP) | 1 | 8 | 8 | 0 |
-| **Total** | **17** | **172** | **172** | **0** |
+| **Total** | **19** | **203** | **203** | **0** |
 
 (The `apps/api` rows all run under `npm run test --workspace apps/api`,
-which vitest reports as a single 9-file, 60-test run - split above for
+which vitest reports as a single 9-file, 62-test run - split above for
 clarity between the pure unit tests and the full-server integration tests.
 An earlier version of this table mislabelled the pre-existing integration
 row as 32 tests; the correct figure, reconciled against the actual vitest
 output below, is 12.)
+
+## Natural-language event entry (`feature/natural-language-entry`) - 31 tests
+
+`packages/natural-language/test/segment-event.test.ts` (24 acceptance tests,
+one per scenario in the feature's specification): the full combined
+statement (glucose + prior insulin + a three-component meal); a bare
+"units" mention never read as a numeric insulin amount; a missing bread
+quantity producing the exact required clarification wording ("How many
+slices of white bread are in the sandwich?"); an alternate phrasing with a
+drink component; explicit mg/dL detection (never guessed from magnitude);
+relative ("an hour ago") and absolute ("at 3pm") time resolution; a
+low-glucose statement with hypoglycaemia symptom detection; a spoken
+self-correction ("I meant three slices, not two") actually rewriting the
+matching quantity; multiple foods plus a drink with no blocking
+clarifications; a concentrated-insulin ambiguity cue producing a blocking
+clarification; a source-scan test asserting the package never references
+`calculateMealBolus`/`calculateCorrectionBolus`/`calculateBolusPreview`/
+`confirmBolus`; a test that no extracted status is ever `"confirmed"` by the
+parser itself; a test that a food component only ever exposes the fixed
+review-safe field set (no raw database row shape); and a pure-function
+property test proving identical input text (dictated or typed) always
+produces identical output.
+
+`apps/web/src/lib/foodMatch.test.ts` (5 unit tests, stubbed API
+dependencies): unmatched when no source has a candidate; auto-calculation
+for a high-confidence AUSNUT match with a gram quantity; a low-confidence
+match marked ambiguous with no auto-calculation; zero carbohydrate
+contributed (not guessed) for a negligible-carbohydrate food with no stated
+quantity; a custom food's exact-name match preferred over a lower-confidence
+database match, using the custom food's `servingGrams` to convert a count
+quantity to grams.
+
+`apps/api/test/integration/custom-foods-and-meals.test.ts` (+2 tests): the
+new `POST /custom-foods/:id/calculate-carbohydrate` route scales a custom
+food's per-100g figure by requested grams, and refuses another patient's
+custom food with `404` (same patient-isolation pattern as every other
+custom-food/meal route).
+
+`npm run typecheck` passes with zero errors across every workspace,
+including the new `packages/natural-language` and its dependents.
+`npm run build --workspace apps/web` (a real Vite/Rollup production bundle,
+not just `tsc --noEmit`) also passes - this caught a real bug during
+development: `detect-symptoms.ts` initially did a runtime (value) import of
+`SPECIAL_SITUATIONS` from `packages/bolus` purely for a redundant defensive
+filter, which pulled bolus's Node-only `settings.ts` (`node:crypto`) into
+the browser bundle and broke the production build. Fixed by removing the
+redundant runtime check (TypeScript already guarantees every literal in
+`detect-symptoms.ts`'s keyword table is a valid `SpecialSituation` at
+compile time) and keeping only a type-only import, which is erased
+entirely at compile time - confirmed by grepping the compiled
+`dist/src/*.js` output for the string `"bolus"` and finding it only in
+comments, never in an import statement.
 
 ## Custom foods and saved meals (`feature/custom-foods-saved-meals`) - 28 tests
 
