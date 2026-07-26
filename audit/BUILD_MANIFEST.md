@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| Commit hash | `dec544af89fba8ab639e6149c215ea7d5b04c67b` (initial commit) |
+| Commit hash | `dec544af89fba8ab639e6149c215ea7d5b04c67b` (initial commit); `5d75bbb` deployed to production (see below) |
 | Build timestamp | 2026-07-26 (Australia/Perth build session) |
 | Node.js / npm | v24.18.0 / 11.16.0 |
 | Calculator version | `0.6.0` (`packages/bolus/package.json`, `CALCULATOR_VERSION` in `packages/bolus/src/types.ts`) |
@@ -28,16 +28,24 @@ Full inventory: [`SOURCE_HASHES.txt`](SOURCE_HASHES.txt).
 
 ## Deployment state
 
-Not yet deployed - see [`DEPLOYMENT_RECORD.md`](DEPLOYMENT_RECORD.md).
-Supabase migrations are written and reviewed but not applied to a live
-project - see [`RLS_REVIEW.md`](RLS_REVIEW.md) and `SUPABASE_SETUP.md`.
+**Live**: https://diabetes-companion-app-production.up.railway.app - see
+[`DEPLOYMENT_RECORD.md`](DEPLOYMENT_RECORD.md) for the full smoke-test
+results. All 7 Supabase migrations applied to the live project
+(`nzhqqhgjjtzozjbzvsaq`); RLS verified live - see
+[`RLS_REVIEW.md`](RLS_REVIEW.md). Outstanding: Supabase Auth URL
+Configuration (Site URL/redirect URLs) still needs to be set to the
+production URL in the dashboard - not reachable via any key/token used
+elsewhere in this deployment.
 
 ## Known limitations and unresolved risks
 
 Full list: [`KNOWN_LIMITATIONS.md`](KNOWN_LIMITATIONS.md). Headline items:
 no independent clinician golden dataset, time-window boundaries pending
-clinician approval, no formal risk-management file, RLS not yet exercised
-against a live project, no true browser-DOM e2e coverage.
+clinician approval, no formal risk-management file, no true browser-DOM
+e2e coverage. Also documented: four production-only bugs found and fixed
+during live deployment validation (JWT algorithm mismatch, an audit-trail
+foreign-key ordering conflict, a checksum timestamp round-trip issue, and
+blank refusal messages in history) - all fixed and re-verified live.
 
 ## Clinical disposition
 

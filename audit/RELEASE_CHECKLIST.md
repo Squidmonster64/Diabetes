@@ -17,8 +17,11 @@ before any real-world release; do not check an item without evidence.
       confirmation (conflicts C-03/C-10).
 - [x] Glucose freshness and clock-integrity gates (conflict C-02).
 - [x] Durable repository interfaces with a Supabase-backed implementation
-      (conflict C-05) - not yet exercised against a live project.
-- [x] Row Level Security policies for every user-owned table.
+      (conflict C-05) - exercised live against the connected production
+      project, including a full authenticated create/preview/confirm/
+      history flow with real Supabase-issued tokens.
+- [x] Row Level Security policies for every user-owned table - verified
+      live (anon reads correctly filtered, anon writes correctly rejected).
 - [x] Audit-tamper detection (`verifyChain()`, tested against a tampered
       and a reordered event).
 - [x] Fault-injection test for audit-persistence failure (no dose shown).
@@ -42,14 +45,20 @@ before any real-world release; do not check an item without evidence.
 
 ## Deployment (requires the repository owner's action)
 
-- [ ] GitHub repository created and this branch pushed.
-- [ ] Supabase project created, migrations applied (`supabase db push`),
-      auth URLs configured.
-- [ ] Railway project created, connected to the GitHub repository,
-      environment variables set.
-- [ ] Production smoke-test checklist (`DEPLOYMENT_RECORD.md`) completed
-      against the live URL with synthetic test data only.
-- [ ] Production database checksum verified to match
+- [x] GitHub repository created and this branch pushed
+      (`Squidmonster64/Diabetes`, `main`).
+- [x] Supabase project created, migrations applied (`supabase db push`,
+      7 migrations).
+- [ ] Supabase auth URLs configured (Site URL/redirect URLs still need to
+      be set to the production URL in the dashboard - see
+      `DEPLOYMENT_RECORD.md`).
+- [x] Railway project created, connected to the GitHub repository,
+      environment variables set
+      (https://diabetes-companion-app-production.up.railway.app).
+- [x] Production smoke-test checklist (`DEPLOYMENT_RECORD.md`) completed
+      against the live URL with synthetic test data only (created and
+      deleted after testing).
+- [x] Production database checksum verified to match
       `af42f35e7c9c565ae0f0b348d74d92128273498b095baf96cd7a8b8d4be23b4c`.
 
 ## Release gate

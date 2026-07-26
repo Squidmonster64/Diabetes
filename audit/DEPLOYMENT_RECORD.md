@@ -1,83 +1,94 @@
 # Deployment record
 
-## Status: not yet deployed to Railway
-
-This environment cannot authenticate to Railway, GitHub, or Supabase on the
-operator's behalf. Deployment configuration is complete and has been
-verified locally (below); the remaining steps require the repository owner
-to connect accounts. See `RAILWAY_DEPLOYMENT.md` and `SUPABASE_SETUP.md` for
-the exact next actions.
+## Status: deployed and live
 
 | Field | Value |
 |---|---|
-| Production URL | not yet assigned |
-| Railway project/service ID | not yet created |
-| Supabase project ref | not yet created |
-| Deployment commit hash | see `git log -1` after the initial commit (this build's Git history) |
-| Deployment date | not yet deployed |
+| Production URL | https://diabetes-companion-app-production.up.railway.app |
+| Railway project | `diabetes-companion-app` (`68780304-2985-40dc-99d0-0a41d5f4a1d1`), workspace `squidmonster64's Projects` |
+| Railway service | `diabetes-companion-app` (`959ad808-32f9-4da9-8f9a-2ccf672ce821`) |
+| Supabase project ref | `nzhqqhgjjtzozjbzvsaq` (ap-southeast-2) |
+| Deployed commit | `5d75bbb` (fixes) on top of `dec544a`/`799fb7f` (initial build) |
+| Deployment ID | `66fd274f-a83b-49c4-a270-c8c452bd799a` - `SUCCESS` |
+| Deployment date | 2026-07-26 |
 
-## Local production-build verification (completed this session)
+GitHub repository `Squidmonster64/Diabetes`, branch `main`, connected to the
+Railway service for auto-deploy on push.
 
-The following was run and observed directly, not assumed:
+## Production smoke-test results (executed against the live URL)
 
-1. `npm run build` - full monorepo production build succeeds (all five
-   workspaces: `shared-types`, `food-contracts`, `bolus`, `apps/api`,
-   `apps/web`).
-2. `node apps/api/dist/src/server.js` (compiled output, `NODE_ENV=production`,
-   no dev server) started successfully and:
-   - `GET /api/v1/health` → `200`, returned the correct database SHA-256
-     (`af42f35e7c9c565ae0f0b348d74d92128273498b095baf96cd7a8b8d4be23b4c`) and
-     calculator version `0.6.0`.
-   - `GET /` served the built PWA shell (`index.html`) with
-     `Cache-Control: no-cache, no-store, must-revalidate`.
-   - `GET /history` (an unknown client-side route) correctly fell back to
-     `index.html` (SPA fallback) rather than 404ing.
-   - `GET /api/v1/does-not-exist` correctly returned a JSON `404
-     NOT_FOUND` (API routes are never swallowed by the SPA fallback).
-   - `GET /assets/<hashed>.js` returned
-     `Cache-Control: public, max-age=31536000, immutable`.
-   - `GET /sw.js` returned `Cache-Control: no-cache, no-store, must-revalidate`.
-   - `GET /manifest.webmanifest` → `200`.
-3. Database checksum verification confirmed: the server computed and
-   compared the SHA-256 against `docs/data-source/australian_foods.sqlite.sha256`
-   before opening the database, per `apps/api/src/db.ts`.
-4. Full test suite green against this same build (see `TEST_RESULTS.md`):
-   102 bolus unit tests, 52 API unit/integration tests, 2 web unit tests,
-   8 Playwright black-box e2e tests - 164/164 passed.
+All items below were run directly against
+`https://diabetes-companion-app-production.up.railway.app`, not assumed:
 
-## Production smoke-test checklist (run after deployment)
+- [x] `GET /api/v1/health` → `200`, `"mode":"supabase"` (durable
+      repositories active, not the in-memory dev fallback), database SHA-256
+      matches `af42f35e7c9c565ae0f0b348d74d92128273498b095baf96cd7a8b8d4be23b4c`.
+- [x] The PWA loads at the production URL (`index.html`,
+      `no-cache, no-store, must-revalidate`).
+- [x] `manifest.webmanifest` loads (`200`).
+- [x] The service worker (`sw.js`) is served (`200`,
+      `no-cache, no-store, must-revalidate`).
+- [x] Food search returns Weet-Bix (`AFCD_RELEASE_3`, `WHOLE_WORD` match).
+- [x] "apple" ranks a `PREFIX` match ("Apple, dried") first - not a
+      substring-only match.
+- [x] Carbohydrate calculation works (30 g Weet-Bix → 17 g carbohydrate).
+- [x] Unauthenticated request to a protected route rejected (`401`).
+- [x] A real Supabase-authenticated session (synthetic test user, created
+      via the admin API and signed in with a password, then deleted after
+      testing - see below) successfully:
+      - created a settings version,
+      - received a `CALCULATED` bolus preview for both `MEAL` and
+        `CORRECTION_ONLY` modes,
+      - confirmed a preview (`USER_CONFIRMED`),
+      - had a second confirmation of the same calculation rejected
+        (`409 DUPLICATE_CONFIRMATION`),
+      - received a correct `HYPO_THRESHOLD` refusal for low glucose,
+      - saw all of the above (plus an earlier refusal, pre-fix) in their
+        own history with correct refusal messages reconstructed from
+        `refusal_code`.
+- [x] Production database SHA-256 (via `/api/v1/health`) matches the local
+      source checksum.
 
-Copy this list when the production URL is live - do not enter real patient
-data (`APP_BUILD_PROMPT.md` section 20):
+Not yet exercised in production: cross-user isolation with two independent
+*real* (magic-link) end users through the deployed UI (verified instead at
+the API/RLS layer directly with anon vs. service-role keys - see
+`RLS_REVIEW.md` - and via the integration/e2e test suites using distinct
+synthetic patient IDs).
 
-- [ ] `GET /api/v1/health` returns `200` and the expected database SHA-256.
-- [ ] The PWA loads at the production URL.
-- [ ] `manifest.webmanifest` loads and the browser offers "Add to Home
-      Screen" / install.
-- [ ] The service worker registers (check DevTools → Application → Service
-      Workers).
-- [ ] Sign-in with a real (test) email starts the Supabase magic-link flow.
-- [ ] Food search returns Weet-Bix.
-- [ ] "apple" ranks an exact/whole-word match first (not a substring match
-      like "apple cider").
-- [ ] Household-measure lookup works for an AUSNUT item.
-- [ ] Carbohydrate calculation works for a chosen portion.
-- [ ] A bolus preview is produced via the deterministic module (verify the
-      response includes `calculationVersion`/`safetyPolicyVersion`).
-- [ ] A refusal gate (e.g. low glucose) is reachable and refuses correctly.
-- [ ] Confirming a preview creates exactly one history record; confirming
-      again returns a duplicate-confirmation error, not a second record.
-- [ ] History loads for the signed-in test user.
-- [ ] Settings versioning works (create, then update, then check history).
-- [ ] An unauthenticated request to a protected route is rejected.
-- [ ] A second test user cannot see the first test user's history or
-      settings.
-- [ ] The production database's SHA-256 (via `/api/v1/health`) matches
-      `af42f35e7c9c565ae0f0b348d74d92128273498b095baf96cd7a8b8d4be23b4c`.
+## Bugs found and fixed during this validation
+
+See [`KNOWN_LIMITATIONS.md`](KNOWN_LIMITATIONS.md#production-bugs-found-and-fixed-during-live-deployment-validation)
+for full detail: a JWT-verification algorithm mismatch (ES256 JWKS vs.
+assumed HS256), a foreign-key ordering conflict in the audit trail, a
+timestamp round-trip breaking the settings checksum, and blank refusal
+messages in history. All four are fixed, deployed (commit `5d75bbb`), and
+re-verified live per the checklist above.
+
+## Synthetic test-data hygiene
+
+The test user (`deployment-smoketest-synthetic-user@example.com`) and every
+row it created (settings, calculations, audit events - all cascade-deleted
+via the `patient_id → auth.users(id) on delete cascade` foreign keys) were
+removed after validation. No real patient data was entered at any point.
 
 ## Supabase migration state
 
-Migrations exist and have been reviewed (`supabase/migrations/0001`-`0006`)
-but have **not been applied** to any live Supabase project from this
-environment - no project has been created/linked here. Apply via `supabase
-db push` after `supabase link` (see `SUPABASE_SETUP.md`).
+All 7 migrations applied to the live project via `supabase db push`
+(migrations 0001-0006 during initial setup, 0007 as a live-validation fix):
+`clinician_configurations`, `calculations`, `calculation_confirmations`,
+`insulin_administrations`, `audit_events`, `sync_metadata`, plus the
+`audit_events` foreign-key fix. RLS verified live (see `RLS_REVIEW.md`).
+
+## Outstanding manual step
+
+**Supabase Auth URL Configuration** (Site URL / additional redirect URLs)
+has not been set to the production URL yet - this is a dashboard-only
+setting not reachable via the database connection or anon/service-role
+keys used elsewhere in this deployment. Set, in the Supabase dashboard
+under **Authentication → URL Configuration**:
+
+- Site URL: `https://diabetes-companion-app-production.up.railway.app`
+- Additional redirect URLs: `http://localhost:5173` (for local development)
+
+Until this is set, magic-link sign-in emails will redirect to the wrong
+origin.

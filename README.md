@@ -9,6 +9,11 @@ preview from patient-entered clinician-report settings.
 > See [`CLINICIAN_REVIEW.md`](CLINICIAN_REVIEW.md) and
 > [`audit/KNOWN_LIMITATIONS.md`](audit/KNOWN_LIMITATIONS.md).
 
+**Live deployment**: https://diabetes-companion-app-production.up.railway.app
+(see [`audit/DEPLOYMENT_RECORD.md`](audit/DEPLOYMENT_RECORD.md) for smoke-test
+results; sign-in is not yet usable until Supabase's Auth URL Configuration is
+set to this URL - see `SUPABASE_SETUP.md`).
+
 ## What this is
 
 1. A patient searches for an Australian food (AUSNUT 2023 / AFCD Release 3).

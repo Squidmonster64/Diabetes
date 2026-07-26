@@ -5,6 +5,12 @@ protected storage of settings versions, calculations, confirmations, and
 audit events. Migrations live in [`supabase/migrations/`](supabase/migrations)
 and are the source of truth for the schema.
 
+> **Current deployment**: project `nzhqqhgjjtzozjbzvsaq` (ap-southeast-2) is
+> live, all 7 migrations are applied, and RLS is verified (see
+> `audit/DEPLOYMENT_RECORD.md` and `audit/RLS_REVIEW.md`). **One step is
+> still outstanding**: Authentication → URL Configuration (step 3 below)
+> has not been set to the production URL yet.
+
 ## 1. Create a Supabase project
 
 If you do not already have one: sign in at https://supabase.com, create a new
@@ -34,6 +40,10 @@ This applies, in order:
    administration events
 5. `0005_audit_events.sql` - immutable, hash-chained audit trail
 6. `0006_sync_metadata.sql` - offline sync bookkeeping for the PWA
+7. `0007_audit_events_drop_calculation_fk.sql` - drops a foreign key that,
+   found during live deployment validation, incorrectly rejected the
+   audit trail's required write-before-calculation-exists ordering (see
+   `audit/KNOWN_LIMITATIONS.md`)
 
 Every user-owned table has Row Level Security enabled with a `select`
 policy scoped to `auth.uid() = patient_id`. No `insert`/`update`/`delete`
@@ -49,7 +59,10 @@ The app uses Supabase's email magic-link / OTP sign-in
 
 - **Authentication → URL Configuration**: set the Site URL to your deployed
   web app origin (and add `http://localhost:5173` as an additional redirect
-  URL for local development).
+  URL for local development). **Outstanding for the current deployment**:
+  set this to `https://diabetes-companion-app-production.up.railway.app`
+  - not reachable via any API key or database connection used elsewhere in
+  this setup; it must be set in the dashboard.
 - **Authentication → Email Templates**: the default magic-link template is
   sufficient; customise wording if desired.
 
@@ -68,7 +81,12 @@ Backend (`apps/api`, server-side only):
 
 - `SUPABASE_URL`
 - `SUPABASE_ANON_KEY`
-- `SUPABASE_JWT_SECRET` (Project Settings → API → JWT Settings)
+- `SUPABASE_JWT_SECRET` (Project Settings → API → JWT Settings) - the
+  legacy shared secret. Token verification tries the project's JWKS
+  endpoint first (for projects using the newer asymmetric JWT signing
+  keys, which issue `ES256` tokens - discovered live in this deployment,
+  see `audit/KNOWN_LIMITATIONS.md`) and falls back to this secret, so it's
+  needed only for older/non-rotated projects.
 - `SUPABASE_SERVICE_ROLE_KEY` - **never** put this in the frontend or commit
   it to git
 

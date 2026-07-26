@@ -37,10 +37,10 @@ any real-world use - see [`CLINICIAN_REVIEW_CHECKLIST.md`](CLINICIAN_REVIEW_CHEC
    transaction. A partial unique index prevents two `ACTIVE` configurations
    from silently coexisting under a race, but a race surfaces as an insert
    error rather than being prevented outright. See `SUPABASE_SETUP.md`.
-8. **RLS has not been exercised against a live Supabase project.** Policies
-   are written and reviewed (`audit/RLS_REVIEW.md`) but no Supabase project
-   has been connected in this build environment to verify them end-to-end
-   against real authenticated sessions.
+8. **RLS has been exercised against the live connected Supabase project**
+   using the anon and service-role keys directly (see `RLS_REVIEW.md`), but
+   not yet with two independently signed-in (magic-link) end users through
+   the deployed UI. Do this once real users are onboarded.
 9. **No offline queue yet.** The PWA's service worker caches only the
    static app shell; there is no client-side write-behind queue for
    non-clinical sync operations, and no locally cached history for offline
@@ -77,6 +77,45 @@ any real-world use - see [`CLINICIAN_REVIEW_CHECKLIST.md`](CLINICIAN_REVIEW_CHEC
     (no RSC/server actions are used; the ReDoS path is a build-time-only
     tool), but no patched version was available without a breaking major
     upgrade at build time - tracked here rather than silently ignored.
+
+## Production bugs found and fixed during live deployment validation
+
+Three defects existed in the Supabase-backed code path that unit and
+integration tests (which use in-memory or directly-scripted repositories)
+did not catch, because they only manifest against a real Postgres instance
+and a real Supabase-issued token. All three were found by authenticating
+with a real (synthetic) Supabase session against the deployed production API
+and are now fixed and verified live:
+
+- **Auth verification assumed a static HS256 JWT secret.** This project
+  issues `ES256`-signed tokens via Supabase's newer JWT signing keys
+  feature; every real login would have failed authentication with `401`.
+  Fixed by verifying against the project's JWKS endpoint first
+  (`apps/api/src/auth/verifyJwt.ts`), falling back to the legacy HS256
+  secret for projects that still use one.
+- **`audit_events.calculation_id` had a hard foreign key to
+  `calculations(id)`**, but the audit trail correctly writes
+  `CALCULATION_STARTED` before any `calculations` row exists (required
+  fail-closed ordering per handoff section 9.1). Every calculation attempt
+  refused with `AUDIT_PERSISTENCE_FAILURE`. Fixed by
+  `supabase/migrations/0007_audit_events_drop_calculation_fk.sql`, which
+  drops the FK; the column remains as a plain correlating UUID.
+- **`computeConfigurationChecksum` compared timestamps as raw strings**, but
+  Postgres round-trips `timestamptz` values with a `+00:00` suffix instead
+  of the original `Z` suffix used at write time. Every calculation after a
+  settings reload refused with `CONFIGURATION_INTEGRITY_FAILURE`. Fixed by
+  normalizing timestamps via `Date.toISOString()` before hashing on both
+  sides (`packages/bolus/src/settings.ts`).
+- **Refused calculations read back from history had blank
+  `userFacingMessage`/`blockingReason`/`safeNextStep`** (hardcoded empty
+  strings in `rowToCalculationRecord`); now reconstructed from the stored
+  `refusal_code` via `REFUSAL_TEMPLATES`.
+
+This is recorded as a limitation, not just a changelog entry, because it
+demonstrates that **in-memory/mocked-repository test coverage alone does
+not validate the Supabase-backed persistence path** - a lesson for the next
+schema or repository change: verify it against a real connected project,
+not only the test suites.
 
 ## What is *not* a limitation (deliberately out of scope per the handoff)
 
