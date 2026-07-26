@@ -1,11 +1,16 @@
 # Nixpacks build plan for Railway. better-sqlite3 needs a native build
 # toolchain (python3, make, gcc) available during `npm ci` - Nixpacks' default
 # Node provider does not always include these, so they are pinned explicitly.
+# Node 22 is required by @supabase/supabase-js's engines field.
 [phases.setup]
-nixPkgs = ["nodejs_20", "python3", "gcc", "gnumake"]
+nixPkgs = ["nodejs_22", "python3", "gcc", "gnumake"]
 
 [phases.install]
-cmds = ["npm ci"]
+# `npm ci` deletes node_modules wholesale before installing, which conflicts
+# with Railway's persistent node_modules/.cache mount (EBUSY: resource busy
+# or locked). `npm install` respects the committed package-lock.json without
+# that destructive step.
+cmds = ["npm install"]
 
 [phases.build]
 cmds = ["npm run build"]

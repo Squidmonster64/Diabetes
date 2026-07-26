@@ -14,14 +14,19 @@ for this to work in a standard Railway build.
 
 Configured in [`railway.json`](railway.json) and [`nixpacks.toml`](nixpacks.toml):
 
-- **Build**: `npm ci && npm run build` - installs all workspace dependencies
-  and builds every package/app (`packages/*` → `apps/api` → `apps/web`).
+- **Build**: `npm install && npm run build` - installs all workspace
+  dependencies and builds every package/app (`packages/*` → `apps/api` →
+  `apps/web`). Deliberately `npm install`, not `npm ci`: Railway mounts a
+  persistent `node_modules/.cache` build cache, and `npm ci`'s wholesale
+  deletion of `node_modules` before installing conflicts with that mount
+  (`EBUSY: resource busy or locked`) - encountered and fixed during this
+  build's first deploy attempt.
 - **Start**: `npm run start` → `node apps/api/dist/src/server.js`. This is
   the production build's compiled server - the app is never started with a
   dev server (`tsx watch`) in production.
-- `nixpacks.toml` pins `python3`, `gcc`, and `gnumake` in the build
-  environment because `better-sqlite3` compiles a native addon during
-  `npm ci`.
+- `nixpacks.toml` pins Node 22 (required by `@supabase/supabase-js`'s
+  `engines` field) plus `python3`, `gcc`, and `gnumake`, since
+  `better-sqlite3` compiles a native addon during install.
 
 ## The Australian food database in production
 
