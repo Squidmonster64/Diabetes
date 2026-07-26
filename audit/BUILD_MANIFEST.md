@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| Commit hash | see `git log -1 --format=%H` (recorded after the initial commit - this file predates it) |
+| Commit hash | `dec544af89fba8ab639e6149c215ea7d5b04c67b` (initial commit) |
 | Build timestamp | 2026-07-26 (Australia/Perth build session) |
 | Node.js / npm | v24.18.0 / 11.16.0 |
 | Calculator version | `0.6.0` (`packages/bolus/package.json`, `CALCULATOR_VERSION` in `packages/bolus/src/types.ts`) |
