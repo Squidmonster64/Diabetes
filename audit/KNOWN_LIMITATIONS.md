@@ -117,6 +117,29 @@ not validate the Supabase-backed persistence path** - a lesson for the next
 schema or repository change: verify it against a real connected project,
 not only the test suites.
 
+## Custom foods and saved meals (`feature/custom-foods-saved-meals`)
+
+16. **No hard-delete for custom foods or meals.** Both are archive-only by
+    design, so a saved meal can never end up referencing a deleted food -
+    the `custom_foods` → `saved_meal_components` foreign key uses `on delete
+    restrict` rather than allowing removal. A patient who wants a food or
+    meal fully gone only gets "archived, hidden from lists," not erased.
+17. **No packet-photo/OCR label scanning.** Packet-label entry is manual
+    text/number entry transcribed by the patient from the nutrition panel,
+    not a camera/OCR capture flow.
+18. **Meal component search UI is grams-only.** The API supports
+    millilitre- and household-measure-based quantities for official-food
+    meal components (`quantityKind: "MILLILITRES" | "MEASURE"`), but
+    `MealEditScreen.tsx` only exposes gram entry for simplicity. Adding
+    measure/millilitre pickers to that screen is a UI-only gap, not an API
+    limitation.
+19. **Editable-quantity overrides apply to the whole meal, not partial
+    saves.** `MealUseScreen.tsx`'s "Recalculate" step lets a patient adjust
+    every component's quantity for one use without persisting anything;
+    there is no partial "save some of these changes back to the recipe"
+    flow - the patient must go to "Edit meal" separately to persist a
+    lasting change.
+
 ## What is *not* a limitation (deliberately out of scope per the handoff)
 
 Basal/premixed/IV/pump dosing, split/extended/dual-wave boluses, paediatric

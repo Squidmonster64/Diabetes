@@ -1,4 +1,9 @@
 import { supabase } from "./supabase.js";
+import type {
+  CustomFoodRecord,
+  MealCarbohydrateCalculationResult,
+  SavedMealRecord,
+} from "@diabetes-companion/food-contracts";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "/api/v1";
 
@@ -57,4 +62,42 @@ export const api = {
 
   getHistory: () => request<{ events: unknown[] }>("/history"),
   getHistoryEvent: (eventId: string) => request(`/history/${eventId}`),
+
+  // Custom foods (packet-label / manual entries)
+  listCustomFoods: (includeArchived = false) =>
+    request<{ foods: CustomFoodRecord[] }>(`/custom-foods${includeArchived ? "?includeArchived=true" : ""}`),
+  getCustomFood: (id: string) => request<CustomFoodRecord>(`/custom-foods/${id}`),
+  createCustomFood: (body: Record<string, unknown>) =>
+    request<CustomFoodRecord>("/custom-foods", { method: "POST", body: JSON.stringify(body) }),
+  updateCustomFood: (id: string, body: Record<string, unknown>) =>
+    request<CustomFoodRecord>(`/custom-foods/${id}`, { method: "PATCH", body: JSON.stringify(body) }),
+  archiveCustomFood: (id: string) => request<CustomFoodRecord>(`/custom-foods/${id}/archive`, { method: "POST" }),
+  unarchiveCustomFood: (id: string) => request<CustomFoodRecord>(`/custom-foods/${id}/unarchive`, { method: "POST" }),
+
+  // Saved reusable meals
+  listMeals: (includeArchived = false) =>
+    request<{ meals: SavedMealRecord[] }>(`/meals${includeArchived ? "?includeArchived=true" : ""}`),
+  getMeal: (id: string) =>
+    request<{ meal: SavedMealRecord; calculation: MealCarbohydrateCalculationResult }>(`/meals/${id}`),
+  createMeal: (body: Record<string, unknown>) => request<SavedMealRecord>("/meals", { method: "POST", body: JSON.stringify(body) }),
+  renameMeal: (id: string, name: string) =>
+    request<SavedMealRecord>(`/meals/${id}`, { method: "PATCH", body: JSON.stringify({ name }) }),
+  addMealComponent: (mealId: string, body: Record<string, unknown>) =>
+    request<SavedMealRecord>(`/meals/${mealId}/components`, { method: "POST", body: JSON.stringify(body) }),
+  updateMealComponent: (mealId: string, componentId: string, body: Record<string, unknown>) =>
+    request<SavedMealRecord>(`/meals/${mealId}/components/${componentId}`, {
+      method: "PATCH",
+      body: JSON.stringify(body),
+    }),
+  removeMealComponent: (mealId: string, componentId: string) =>
+    request<SavedMealRecord>(`/meals/${mealId}/components/${componentId}`, { method: "DELETE" }),
+  duplicateMeal: (id: string, name?: string) =>
+    request<SavedMealRecord>(`/meals/${id}/duplicate`, { method: "POST", body: JSON.stringify({ name }) }),
+  archiveMeal: (id: string) => request<SavedMealRecord>(`/meals/${id}/archive`, { method: "POST" }),
+  unarchiveMeal: (id: string) => request<SavedMealRecord>(`/meals/${id}/unarchive`, { method: "POST" }),
+  calculateMealCarbohydrate: (id: string, overrides: Record<string, unknown>[] = []) =>
+    request<MealCarbohydrateCalculationResult>(`/meals/${id}/calculate-carbohydrate`, {
+      method: "POST",
+      body: JSON.stringify({ overrides }),
+    }),
 };

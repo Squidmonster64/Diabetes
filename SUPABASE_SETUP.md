@@ -44,6 +44,8 @@ This applies, in order:
    found during live deployment validation, incorrectly rejected the
    audit trail's required write-before-calculation-exists ordering (see
    `audit/KNOWN_LIMITATIONS.md`)
+8. `0008_custom_foods.sql` - user-created packet-label and manual foods
+9. `0009_saved_meals.sql` - reusable multi-food meals and their components
 
 Every user-owned table has Row Level Security enabled with a `select`
 policy scoped to `auth.uid() = patient_id`. No `insert`/`update`/`delete`

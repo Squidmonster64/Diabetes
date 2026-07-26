@@ -21,6 +21,12 @@ import { SettingsConfirmationScreen } from "./screens/SettingsConfirmationScreen
 import { SettingsHistoryScreen } from "./screens/SettingsHistoryScreen.js";
 import { DataProvenanceScreen } from "./screens/DataProvenanceScreen.js";
 import { AboutScreen } from "./screens/AboutScreen.js";
+import { CustomFoodsListScreen } from "./screens/CustomFoodsListScreen.js";
+import { CustomFoodFormScreen } from "./screens/CustomFoodFormScreen.js";
+import { MealsListScreen } from "./screens/MealsListScreen.js";
+import { MealCreateScreen } from "./screens/MealCreateScreen.js";
+import { MealEditScreen } from "./screens/MealEditScreen.js";
+import { MealUseScreen } from "./screens/MealUseScreen.js";
 
 export function App() {
   const { session, loading } = useAuth();
@@ -50,6 +56,13 @@ export function App() {
         <Route path="/settings/history" element={<SettingsHistoryScreen />} />
         <Route path="/data-provenance" element={<DataProvenanceScreen />} />
         <Route path="/about" element={<AboutScreen />} />
+        <Route path="/custom-foods" element={<CustomFoodsListScreen />} />
+        <Route path="/custom-foods/new" element={<CustomFoodFormScreen />} />
+        <Route path="/custom-foods/:id/edit" element={<CustomFoodFormScreen />} />
+        <Route path="/meals" element={<MealsListScreen />} />
+        <Route path="/meals/new" element={<MealCreateScreen />} />
+        <Route path="/meals/:id/edit" element={<MealEditScreen />} />
+        <Route path="/meals/:id/use" element={<MealUseScreen />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </WorkflowProvider>

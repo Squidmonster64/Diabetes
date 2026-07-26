@@ -16,17 +16,45 @@ npm run typecheck      # TypeScript --noEmit, every workspace
 
 | Suite | Files | Tests | Passed | Failed |
 |---|---:|---:|---:|---:|
-| `packages/bolus` (unit) | 6 | 102 | 102 | 0 |
+| `packages/bolus` (unit, **unchanged by the custom-foods/saved-meals feature**) | 6 | 102 | 102 | 0 |
 | `apps/api` (unit: food adapter) | 2 | 20 | 20 | 0 |
-| `apps/api` (integration: full API) | 5 | 32 | 32 | 0 |
+| `apps/api` (unit: custom-foods validation/calculation) | 1 | 14 | 14 | 0 |
+| `apps/api` (integration: full API, pre-existing) | 5 | 12 | 12 | 0 |
+| `apps/api` (integration: custom foods + saved meals) | 1 | 14 | 14 | 0 |
 | `apps/web` (unit) | 1 | 2 | 2 | 0 |
 | `tests/e2e` (Playwright, black-box HTTP) | 1 | 8 | 8 | 0 |
-| **Total** | **15** | **164** | **164** | **0** |
+| **Total** | **17** | **172** | **172** | **0** |
 
-(The `apps/api` "unit" and "integration" rows both run under
-`npm run test --workspace apps/api`, which vitest reports as a single 7-file,
-52-test run - split above for clarity between the pure food-adapter tests
-and the full-server integration tests.)
+(The `apps/api` rows all run under `npm run test --workspace apps/api`,
+which vitest reports as a single 9-file, 60-test run - split above for
+clarity between the pure unit tests and the full-server integration tests.
+An earlier version of this table mislabelled the pre-existing integration
+row as 32 tests; the correct figure, reconciled against the actual vitest
+output below, is 12.)
+
+## Custom foods and saved meals (`feature/custom-foods-saved-meals`) - 28 tests
+
+`apps/api/test/customFoods.validation.test.ts` (14 unit tests): packet-label
+per-100g derivation from serving size, manual direct-entry, zero-carbohydrate
+servings (e.g. water), rejection of foods with no carbohydrate basis at all,
+blank names, non-positive serving weights, out-of-range per-100g figures,
+and unrecognised food types; carbohydrate scaling by grams, archived foods
+still calculating correctly (archiving only affects picker visibility),
+and rejection of non-positive/oversized quantities.
+
+`apps/api/test/integration/custom-foods-and-meals.test.ts` (14 integration
+tests): full CRUD and archive/unarchive for custom foods; creating a meal
+that mixes an official AUSNUT food and a custom food with a correctly
+computed total; editing a component's quantity and confirming the total
+recalculates; adding and removing components; duplicating a meal (confirming
+edits to the duplicate never affect the original); archiving/unarchiving a
+meal; per-instance quantity overrides via `calculate-carbohydrate` that do
+not persist to the saved recipe; rejecting a meal component that references
+another patient's custom food; patient-isolation for both custom foods and
+meals; and - critically - **feeding a meal's computed total into
+`POST /api/v1/bolus/preview` unmodified**, confirming the feature integrates
+through the existing food→bolus boundary without any change to
+`packages/bolus` (the same 102 bolus tests above still pass unmodified).
 
 `npm run typecheck` passes with zero errors across `packages/shared-types`,
 `packages/food-contracts`, `packages/bolus`, `apps/api`, and `apps/web`.
@@ -63,7 +91,7 @@ matches - the "apple/cider" regression), an AFCD solid food, an AFCD liquid,
 an AUSNUT household measure, no-result search, a malformed (control-character
 and overlong) query, and zero/negative/very-large quantities.
 
-## API integration (`apps/api/test/integration/*.test.ts`) - 32 tests
+## API integration (`apps/api/test/integration/*.test.ts`, pre-existing) - 12 tests
 
 Food selection → carbohydrate calculation → bolus preview → confirmation;
 refusal path (missing settings, low glucose, stale glucose, active

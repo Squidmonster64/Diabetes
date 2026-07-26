@@ -70,6 +70,42 @@ distinct from both the user-visible `calculations` history and from
 operational application logs (see [`PRIVACY_MODEL.md`](PRIVACY_MODEL.md)).
 No `update`/`delete` policy exists for any role.
 
+### `custom_foods`
+
+User-created foods (`feature/custom-foods-saved-meals`): packet-label
+entries (transcribed from a nutrition information panel; a per-100g figure
+is derived deterministically from serving-size arithmetic if not entered
+directly) and manual entries (a direct carbohydrate-per-100g estimate).
+Distinct from the read-only AUSNUT/AFCD database - see
+[`FOOD_ADAPTER.md`](FOOD_ADAPTER.md). Archiving (`archived_at`) only hides a
+food from selection pickers; it does not delete the row or block
+calculation for a meal that already references it (`on delete restrict` on
+the referencing foreign key prevents hard-deleting a food still in use).
+
+### `saved_meals` / `saved_meal_components`
+
+A saved meal is a named, reusable recipe of components, each referencing
+either an official AUSNUT/AFCD food or a `custom_foods` row, with an
+editable quantity. **Total carbohydrate is always computed fresh** from
+current component quantities and current food-composition data at use-time
+- never stored as a snapshot, so an edit to a custom food's figures is
+reflected the next time a meal using it is calculated. `duplicated_from_meal_id`
+records meal-duplication provenance. Archiving works identically to custom
+foods (hides from lists, does not delete).
+
+```text
+auth.users
+   ├──< custom_foods                          archived_at soft-delete
+   │        ▲
+   │        │ on delete restrict
+   └──< saved_meals                           duplicated_from_meal_id self-ref
+            └──< saved_meal_components ───────┘ (component_source AUSNUT|AFCD|CUSTOM)
+```
+
+Like every other user-owned table, both have RLS enabled with a
+`select`-only policy scoped to `auth.uid() = patient_id`; all writes go
+through the API using the service-role key.
+
 ## Australian food database views
 
 See [`docs/data-source/application_views_report.md`](docs/data-source/application_views_report.md)
