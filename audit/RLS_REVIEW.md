@@ -44,14 +44,26 @@ independent enforcement layer at the database level. This is exercised by:
 
 ## Verification status
 
-RLS policies have been **written and code-reviewed** as part of this build
-but have **not yet been exercised against a live Supabase project** (no
-Supabase project has been connected in this environment - see
-`SUPABASE_SETUP.md`). Before production use, run the isolation tests again
-against the connected project using two real Supabase-authenticated test
-users, and additionally verify directly in the Supabase SQL editor that
-`select * from clinician_configurations` as the `anon` role (without a
-matching JWT) returns zero rows.
+All 6 migrations have been applied to the live Supabase project
+(`nzhqqhgjjtzozjbzvsaq`, ap-southeast-2) via `supabase db push`. Verified
+directly against the live REST API using both keys:
+
+- **anon key, `select * from clinician_configurations`**: returns `200` with
+  `data: []` (RLS filters to zero rows for an unauthenticated/no-`auth.uid()`
+  request, rather than erroring - correct behaviour).
+- **service-role key, same query**: returns `200` with `data: []` (RLS
+  bypassed as expected; table is genuinely empty - no data seeded).
+- **anon key, `insert into clinician_configurations`**: returns `401` /
+  Postgres error `42501` - *"new row violates row-level security policy"* -
+  confirming no client-writable policy exists on this table, exactly as
+  designed.
+
+This confirms the read-isolation and write-lockout behaviour this document
+describes is live in production, not just reviewed in code. Still
+outstanding: exercising the isolation tests with two real
+Supabase-authenticated (magic-link) end users rather than the anon/
+service-role keys directly - do this once Railway/auth redirect URLs are
+configured (see `SUPABASE_SETUP.md`).
 
 ## Known limitation
 
