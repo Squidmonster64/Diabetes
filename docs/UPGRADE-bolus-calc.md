@@ -290,10 +290,21 @@ No CI currently exists in this repository at all (confirmed in §13.4) - PR
 single workflow, `.github/workflows/ci.yml`, runs on every PR:
 
 1. `npm ci`
-2. `npm run typecheck` (existing script, every workspace)
-3. `npm run test` (existing script; now includes the parity harness as
+2. `npm run build` - **must run before typecheck/test**, not after: several
+   workspace packages (`shared-types`, `food-contracts`, `bolus`,
+   `natural-language`) are consumed by their dependents via plain
+   `node_modules` resolution against each package's built `dist/` output
+   (no TypeScript project references/composite builds are configured
+   here), and `dist/` is gitignored - a fresh CI checkout has none of it
+   until this step runs. An earlier draft of this workflow ran typecheck
+   first and failed every downstream package with "Cannot find module
+   '@diabetes-companion/food-contracts' or its corresponding type
+   declarations" on its first real PR run - never caught locally, since a
+   local checkout always has leftover `dist/` output from an earlier
+   build. Fixed by reordering; see the CI workflow file's own comment.
+3. `npm run typecheck` (existing script, every workspace)
+4. `npm run test` (existing script; now includes the parity harness as
    part of `packages/bolus`'s test run - no new top-level script needed)
-4. `npm run build`
 5. **Frozen-path guard**: a small script
    (`scripts/check-frozen-paths.mjs`) that runs `git diff --name-only
    origin/main...HEAD`, checks whether any changed path matches an entry in

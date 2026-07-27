@@ -22,6 +22,21 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # Build must run before typecheck/test: packages/shared-types,
+      # food-contracts, bolus and natural-language are consumed by
+      # apps/api, apps/web (and each other) via plain node_modules
+      # resolution against each package's built dist/ output (no
+      # TypeScript project references/composite builds are configured
+      # here) - and dist/ is gitignored, so a fresh checkout has none of
+      # it until this step runs. Running typecheck/test first previously
+      # failed every downstream package with "Cannot find module
+      # '@diabetes-companion/food-contracts' or its corresponding type
+      # declarations" (a bug caught on this workflow's first real PR run,
+      # never seen locally because a local checkout always had leftover
+      # dist/ output from an earlier build).
+      - name: Build
+        run: npm run build
+
       - name: Typecheck
         run: npm run typecheck
 
@@ -30,9 +45,6 @@ jobs:
 
       - name: Coverage (packages/bolus frozen modules)
         run: npm run coverage --workspace packages/bolus
-
-      - name: Build
-        run: npm run build
 
       - name: Frozen-path guard
         run: node scripts/check-frozen-paths.mjs
