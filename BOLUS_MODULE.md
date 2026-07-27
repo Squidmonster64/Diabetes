@@ -18,13 +18,20 @@ access - see `BOLUS_CALCULATOR_IMPLEMENTATION_HANDOFF.md` section 11.
 |---|---|
 | `decimal.ts` | Exact rational arithmetic (`bigint` numerator/denominator) - no `number`/`parseFloat`/`Math.round` |
 | `types.ts` | `ClinicianSettingsRecord`, `BolusCalculationRequest`, result contracts, closed `SpecialSituation` enum |
-| `errors.ts` | Refusal-code → user-facing message/category/next-step templates (verbatim from the handoff) |
+| `errors.ts` | **Plain-language generation, refusal path**: `REFUSAL_TEMPLATES`, a fixed `RefusalCode` → `{userFacingMessage, refusalCategory, blockingReason, safeNextStep}` map (verbatim from the handoff) |
 | `settings.ts` | `validateSettings` - gates 3-5 (missing/expired/revoked/invalid configuration, DIA provenance) |
 | `safety.ts` | `runSafetyGates` - gates 1-30, in order, fail-closed |
-| `calculations.ts` | `calculateMealBolus`/`calculateCorrectionBolus` (pure formulas) and `calculateBolusPreview` (full orchestration incl. gates 31-35) |
+| `calculations.ts` | **Dose algorithm** (`calculateMealBolus`/`calculateCorrectionBolus`, pure formulas, and `calculateBolusPreview`, full orchestration incl. gates 31-35) **and plain-language generation, successful-calculation path** (`explanationFor()`, the per-line breakdown shown in `BolusPreviewScreen.tsx`'s "Calculation trace") - both live in this one file; there is no separate language module (see `packages/bolus/FROZEN.md`) |
 | `confirmation.ts` | `confirmBolus`/`rejectBolusPreview`/`logConfirmedBolus` - gates 36-42 |
 | `repositories.ts` | `AuditStore`/`SettingsRepository`/`CalculationRepository` interfaces + an in-memory reference implementation (test/dev only) |
 | `logging.ts` | Redaction helpers for operational logs (distinct from the clinical audit trail) |
+
+For an audit or a post-beta fix, `packages/bolus/FROZEN.md` is the
+canonical map of which file owns which responsibility (dose algorithm vs.
+plain-language vs. the food database in `apps/api/src/food/` +
+`data/australian_foods.sqlite`), what regression protection exists
+(`packages/bolus/test/parity/`, a golden-case suite run on every CI build),
+and what a change to any of them requires before merging.
 
 ## Formulas (handoff section 4)
 

@@ -81,6 +81,8 @@ npm run audit              # regenerate the audit package under audit/
 - [`API_CONTRACT.md`](API_CONTRACT.md) - HTTP API reference
 - [`FOOD_ADAPTER.md`](FOOD_ADAPTER.md) - Australian food database adapter
 - [`BOLUS_MODULE.md`](BOLUS_MODULE.md) - the deterministic calculator
+- [`packages/bolus/FROZEN.md`](packages/bolus/FROZEN.md) - **audit map**: exactly which files hold the dose algorithm, the plain-language generation, and the food database, and what reviewing a change to any of them requires
+- [`docs/UPGRADE-bolus-calc.md`](docs/UPGRADE-bolus-calc.md) - engineering plan for extending the calculator, and the parity-harness/CI mechanics that protect it
 - [`SAFETY_MODEL.md`](SAFETY_MODEL.md) - safety gates and refusal behaviour
 - [`PRIVACY_MODEL.md`](PRIVACY_MODEL.md) - logging and data minimisation
 - [`OFFLINE_BEHAVIOR.md`](OFFLINE_BEHAVIOR.md) - PWA offline behaviour

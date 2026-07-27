@@ -1,10 +1,18 @@
 # Frozen paths
 
+**This is the audit map.** If you're checking, after beta, exactly which
+code owns the dose algorithm, the plain-language generation, or the food
+database - or reviewing/reverting a change to any of them - start here.
+The narrative docs for each area are [`../../BOLUS_MODULE.md`](../../BOLUS_MODULE.md)
+(dose algorithm + plain-language, file-by-file) and
+[`../../FOOD_ADAPTER.md`](../../FOOD_ADAPTER.md) (food database); this file
+is the shorter, enforcement-focused version of the same map.
+
 This package implements the deterministic bolus dose arithmetic, the
 42-gate fail-closed safety sequence, and the plain-language explanation and
 refusal wording shown to the user. All three live inside these same files
 (there is no separate "language" module to freeze independently - see
-`docs/UPGRADE-bolus-calc.md` §13.2/§2 for why) and are frozen as a single
+[`../../docs/UPGRADE-bolus-calc.md`](../../docs/UPGRADE-bolus-calc.md) §13.2/§2 for why) and are frozen as a single
 unit: `packages/bolus/src/` in its entirety, excluding `repositories.ts`'s
 `InMemory*` reference implementations (test/dev scaffolding, never
 deployed - see that file's own doc comment).
@@ -20,10 +28,10 @@ arithmetic it feeds.
    snapshot diffs, **or** include at least one commit prefixed
    `golden-case:` that updates the affected snapshot(s) deliberately, with
    the clinical/engineering reason in that commit's body.
-2. Be approved by a CODEOWNERS reviewer for the path (see `/CODEOWNERS`).
+2. Be approved by a CODEOWNERS reviewer for the path (see [`../../.github/CODEOWNERS`](../../.github/CODEOWNERS)).
 3. Not drop branch coverage below the threshold enforced in
    `packages/bolus/vitest.config.ts` (currently the measured baseline
-   captured at PR-1 time - see `docs/UPGRADE-bolus-calc.md`'s PR-1 report
+   captured at PR-1 time - see [`../../docs/UPGRADE-bolus-calc.md`](../../docs/UPGRADE-bolus-calc.md)'s PR-1 report
    for what's covered and what isn't, and why).
 4. If the change touches `data/australian_foods.sqlite`, also update
    `docs/data-source/australian_foods.sqlite.sha256` in the same PR (see
