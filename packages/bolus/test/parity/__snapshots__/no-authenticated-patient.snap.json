@@ -1,0 +1,8 @@
+{
+  "status": "REFUSED",
+  "refusalCode": "UNAUTHENTICATED",
+  "refusalCategory": "INTEGRITY",
+  "userFacingMessage": "This calculation is not available for this account.",
+  "blockingReason": "No authenticated patient identity was supplied.",
+  "safeNextStep": "Sign in again and retry."
+}

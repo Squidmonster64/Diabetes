@@ -1,0 +1,8 @@
+{
+  "status": "REFUSED",
+  "refusalCode": "SPECIAL_CLINICAL_SITUATION",
+  "refusalCategory": "CLINICAL_CONTEXT",
+  "userFacingMessage": "This calculation is outside the configured scope. Follow the established clinical plan.",
+  "blockingReason": "A declared special clinical situation is outside this calculator's scope.",
+  "safeNextStep": "Follow the clinician-approved plan or contact the treating team."
+}

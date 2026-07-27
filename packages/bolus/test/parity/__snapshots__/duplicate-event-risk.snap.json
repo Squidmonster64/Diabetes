@@ -1,0 +1,8 @@
+{
+  "status": "REFUSED",
+  "refusalCode": "DUPLICATE_EVENT_RISK",
+  "refusalCategory": "INPUT",
+  "userFacingMessage": "A dose may already have been taken for this event. No calculation was produced.",
+  "blockingReason": "The user indicated a dose may already have been taken for this event.",
+  "safeNextStep": "Follow the clinician-approved plan or contact the treating team."
+}

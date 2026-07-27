@@ -1,0 +1,8 @@
+{
+  "status": "REFUSED",
+  "refusalCode": "FUTURE_PRIOR_BOLUS",
+  "refusalCategory": "INPUT",
+  "userFacingMessage": "A recent insulin timestamp is in the future. Check the dose history and device time.",
+  "blockingReason": "A recorded prior dose timestamp is later than the calculation time.",
+  "safeNextStep": "Check the dose history and device time."
+}

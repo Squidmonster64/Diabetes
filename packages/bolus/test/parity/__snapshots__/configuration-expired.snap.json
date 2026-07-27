@@ -1,0 +1,8 @@
+{
+  "status": "REFUSED",
+  "refusalCode": "CONFIGURATION_EXPIRED",
+  "refusalCategory": "CONFIGURATION",
+  "userFacingMessage": "The clinical settings cannot be verified. No calculation was produced.",
+  "blockingReason": "The active settings version has expired.",
+  "safeNextStep": "Re-enter and confirm current settings from your clinician-approved plan."
+}

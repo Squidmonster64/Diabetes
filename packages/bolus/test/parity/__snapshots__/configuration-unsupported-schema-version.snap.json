@@ -1,0 +1,8 @@
+{
+  "status": "REFUSED",
+  "refusalCode": "UNSUPPORTED_CONFIGURATION_VERSION",
+  "refusalCategory": "CONFIGURATION",
+  "userFacingMessage": "The clinical settings cannot be verified. No calculation was produced.",
+  "blockingReason": "The settings schema version is not supported by this calculator version.",
+  "safeNextStep": "Update the application or contact support."
+}

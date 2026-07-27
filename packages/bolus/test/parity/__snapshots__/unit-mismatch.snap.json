@@ -1,0 +1,8 @@
+{
+  "status": "REFUSED",
+  "refusalCode": "UNIT_MISMATCH",
+  "refusalCategory": "INPUT",
+  "userFacingMessage": "The glucose units do not match the clinician settings.",
+  "blockingReason": "The submitted glucose unit differs from the active configuration unit.",
+  "safeNextStep": "Re-enter the glucose value using the configured unit."
+}

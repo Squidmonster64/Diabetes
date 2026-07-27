@@ -1,0 +1,18 @@
+{
+  "status": "CALCULATED",
+  "mealComponentUnits": "5",
+  "correctionComponentUnits": "1.75",
+  "activeInsulinAdjustmentUnits": "0",
+  "unroundedTotalUnits": "6.75",
+  "roundedTotalUnits": "7",
+  "doseIncrementUnits": "0.5",
+  "maximumDoseUnits": "20",
+  "warnings": [],
+  "explanation": [
+    "Meal component: 10 g/U divides confirmed carbohydrate grams = 5 U",
+    "Correction component: (current glucose - 110) / 40 = 1.75 U",
+    "No active-insulin subtraction is permitted in this scope.",
+    "Unrounded total: max(0, combined) = 6.75 U",
+    "Rounded once to 0.5 U increment: 7 U"
+  ]
+}

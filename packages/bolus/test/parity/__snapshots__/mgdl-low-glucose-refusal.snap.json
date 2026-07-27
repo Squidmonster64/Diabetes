@@ -1,0 +1,8 @@
+{
+  "status": "REFUSED",
+  "refusalCode": "HYPO_THRESHOLD",
+  "refusalCategory": "GLUCOSE_SAFETY",
+  "userFacingMessage": "The glucose value is at or below the clinician-configured low threshold. Follow the established hypo plan.",
+  "blockingReason": "Current glucose is at or below the configured low-glucose threshold.",
+  "safeNextStep": "Follow your established hypo plan."
+}

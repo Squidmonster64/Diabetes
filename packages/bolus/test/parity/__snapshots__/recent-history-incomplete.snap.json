@@ -1,0 +1,8 @@
+{
+  "status": "REFUSED",
+  "refusalCode": "RECENT_BOLUS_HISTORY_INCOMPLETE",
+  "refusalCategory": "INPUT",
+  "userFacingMessage": "Recent rapid-acting insulin history is incomplete. No calculation was produced.",
+  "blockingReason": "The user could not confirm recent rapid-acting insulin history is complete.",
+  "safeNextStep": "Confirm recent insulin history, or contact the treating team."
+}

@@ -7,6 +7,13 @@ startup fails clearly if the file is missing, the checksum mismatches, or
 `pragma integrity_check` does not return `ok`. User data is never written
 into this file.
 
+This database file and its adapter code (`apps/api/src/food/`) are one of
+the three areas covered by [`packages/bolus/FROZEN.md`](packages/bolus/FROZEN.md)'s
+audit map (alongside the dose algorithm and plain-language generation, both
+in `packages/bolus/`) - a change to the database's byte content is checked
+in CI against the committed hash file above (`scripts/check-food-db-hash.mjs`),
+and is expected to update that hash file in the same PR.
+
 ## Source views
 
 Documented in [`docs/data-source/application_views_report.md`](docs/data-source/application_views_report.md).
