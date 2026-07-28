@@ -22,6 +22,9 @@ const NEGLIGIBLE_CARB_FOODS = [
   "mayo",
   "mayonnaise",
   "mustard",
+  "butter",
+  "margarine",
+  "oil",
 ];
 
 /** "a little", "some", "a bowl of", "a glass of", "a handful of", "a splash of" - vague, non-numeric quantifiers. */
@@ -30,6 +33,16 @@ const VAGUE_QUALIFIER_PATTERN =
 
 /** "sandwich"/"wrap"/"burger"/"roll" as a container noun implies its named filling is the real food component. */
 const CONTAINER_NOUN_PATTERN = /\b(?:a|an)\s+([a-z]+)\s+(sandwich|wrap|burger|roll)\b/i;
+
+/**
+ * "a meal of", "a plate of", "a serving of" etc. are generic containment
+ * phrases, not food names or quantities - the actual food named after them
+ * is the real component. Stripped before any quantity/unit pattern runs so
+ * "a meal of bread" resolves to the food "bread" (with no stated quantity,
+ * which still correctly blocks for a carbohydrate-relevant food like
+ * bread), not to a bogus food literally named "meal of bread".
+ */
+const MEAL_FILLER_LEAD_IN_PATTERN = /^(?:a|an|the)?\s*(?:meal|plate|serving|portion|helping)\s+of\s+/i;
 
 const COUNTABLE_UNIT_WORDS = ["slice", "slices", "piece", "pieces", "cup", "cups"];
 const VOLUME_UNIT_WORDS = ["ml", "millilitre", "millilitres"];
@@ -65,7 +78,7 @@ function unitKindFor(unitWord: string | null): FoodComponentQuantityKind {
 }
 
 function buildComponent(rawMention: string): FoodComponentExtraction {
-  const mention = rawMention.trim();
+  const mention = rawMention.trim().replace(MEAL_FILLER_LEAD_IN_PATTERN, "");
 
   const withOf = mention.match(LEADING_QUANTITY_PATTERN);
   const withUnitNoOf = !withOf ? mention.match(LEADING_UNIT_NO_OF_PATTERN) : null;

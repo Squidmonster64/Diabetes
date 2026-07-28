@@ -22,7 +22,10 @@ export type FoodMatchSource = "CUSTOM" | "AUSNUT" | "AFCD";
 
 export interface FoodMatchCandidate {
   readonly source: FoodMatchSource;
+  /** The short, canonical food name - what's shown as the primary match, matching the convention used everywhere else in the app (e.g. FoodResultsScreen). */
   readonly label: string;
+  /** The longer database description, if any and if it differs from the label - supplementary detail only, never the primary label. */
+  readonly description: string | null;
   readonly brand: string | null;
   readonly confidence: number;
   readonly matchReason: string;
@@ -206,6 +209,7 @@ export async function resolveFoodComponent(
       candidates.push({
         source: "CUSTOM",
         label: food.name,
+        description: null,
         brand: food.brand,
         confidence,
         matchReason:
@@ -221,7 +225,8 @@ export async function resolveFoodComponent(
     const datasetLabel = result.sourceDataset === "AUSNUT_2023" ? "AUSNUT" : "AFCD";
     candidates.push({
       source: datasetLabel,
-      label: result.foodDescription ?? result.foodName,
+      label: result.foodName,
+      description: result.foodDescription && result.foodDescription !== result.foodName ? result.foodDescription : null,
       brand: null,
       confidence: CONFIDENCE_BY_MATCH_TYPE[result.matchType],
       matchReason: `${result.matchType.replaceAll("_", " ").toLowerCase()} match in the ${datasetLabel} food database.`,

@@ -260,6 +260,11 @@ export function NaturalLanguageReviewScreen() {
     <Screen title="Review details">
       <p className="muted">You said: "{provisionalEvent.originalText}"</p>
 
+      <div className="banner banner-warning">
+        Nothing has been calculated yet. No insulin dose is suggested on this screen - review and confirm the
+        details below, then the existing glucose/insulin screen will calculate a bolus preview.
+      </div>
+
       {correctionsApplied.length > 0 ? (
         <div className="banner banner-success">
           Applied {correctionsApplied.length} correction{correctionsApplied.length === 1 ? "" : "s"} from what you said.
@@ -282,9 +287,10 @@ export function NaturalLanguageReviewScreen() {
 
       {recentInsulin ? (
         <div className="card">
-          <h3>Recent insulin</h3>
+          <h3>Insulin you already took</h3>
+          <p className="muted">This is what you said - not a suggested dose. Nothing new is being recommended here.</p>
           <div>
-            {recentInsulin.amountUnits.value ?? "?"} units
+            You reported taking {recentInsulin.amountUnits.value ?? "an unspecified amount of"} units
             {recentInsulin.insulinType.value ? ` (${recentInsulin.insulinType.value})` : ""}
           </div>
           <div className="muted">{describeTimestamp(recentInsulin.takenAt.value, referenceNowMs)}</div>
@@ -350,6 +356,7 @@ export function NaturalLanguageReviewScreen() {
               {detailsOpenIndex === index ? (
                 <div>
                   {rc.bestMatch ? <p className="muted">Why this match: {rc.bestMatch.matchReason}</p> : null}
+                  {rc.bestMatch?.description ? <p className="muted">{rc.bestMatch.description}</p> : null}
                   {rc.alternates.length > 0 ? (
                     <>
                       <p className="muted">Other possible matches:</p>

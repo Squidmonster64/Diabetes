@@ -253,3 +253,33 @@ describe("acceptance test 14: dictated text behaves identically to typed text", 
     expect(JSON.stringify(first)).toBe(JSON.stringify(second));
   });
 });
+
+describe("regression: 'a meal of X' filler phrase must not become the food name", () => {
+  const event = run("I ate a meal of bread and butter.");
+
+  it("strips the 'a meal of' lead-in so 'bread' is the food, not 'meal of bread'", () => {
+    const components = event.meal?.components ?? [];
+    const bread = components.find((c) => c.phrase === "bread");
+    expect(bread).toBeDefined();
+    expect(components.some((c) => c.phrase.includes("meal"))).toBe(false);
+  });
+
+  it("asks a correct, clean clarification question for the unquantified bread", () => {
+    const question = event.clarifications.find((c) => c.field.startsWith("meal.components"));
+    expect(question?.question).toBe("How many slices of bread did you have?");
+  });
+
+  it("does not block on butter, a negligible-carbohydrate food regardless of quantity", () => {
+    const butter = event.meal?.components.find((c) => c.phrase === "butter");
+    expect(butter?.matchStatus).toBe("provisional");
+    expect(butter?.quantityNeededForCalculation).toBe(false);
+    expect(event.clarifications.some((c) => c.field.includes("butter"))).toBe(false);
+  });
+
+  it("also strips 'a plate of'/'a serving of' the same way", () => {
+    const plateEvent = run("I am eating a plate of rice.");
+    expect(plateEvent.meal?.components[0]?.phrase).toBe("rice");
+    const servingEvent = run("I am eating a serving of pasta.");
+    expect(servingEvent.meal?.components[0]?.phrase).toBe("pasta");
+  });
+});

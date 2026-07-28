@@ -69,6 +69,40 @@ describe("resolveFoodComponent", () => {
     );
   });
 
+  it("uses the short foodName as the primary label, never the long foodDescription", async () => {
+    // Reproduces a real production bug: the review screen showed AFCD's
+    // verbose foodDescription sentence as the primary match line instead
+    // of the short foodName - the same convention every other food screen
+    // in the app already follows (FoodResultsScreen/FoodDetailsScreen).
+    const deps = baseDeps({
+      searchFoods: vi.fn().mockResolvedValue({
+        results: [
+          {
+            sourceDataset: "AFCD_RELEASE_3",
+            sourceFoodId: "F001845",
+            publicFoodKey: "F001845",
+            foodName: "Weet-Bix",
+            foodDescription:
+              "Breakfast cereal made from whole wheat, with added bran and sugar formed into a biscuit shape. Contains added vitamins B1, B2, B3 and folic acid and iron.",
+            classification: null,
+            matchType: "EXACT",
+            rank: 1,
+            hasGramData: true,
+            hasMillilitreData: false,
+          },
+        ],
+        totalMatches: 1,
+      }),
+    });
+
+    const result = await resolveFoodComponent(component({ phrase: "weet-bix" }), deps);
+
+    expect(result.bestMatch?.label).toBe("Weet-Bix");
+    expect(result.bestMatch?.description).toBe(
+      "Breakfast cereal made from whole wheat, with added bran and sugar formed into a biscuit shape. Contains added vitamins B1, B2, B3 and folic acid and iron.",
+    );
+  });
+
   it("skips AUSNUT's '1 density' reference measure and uses the real per-slice measure for a COUNT quantity", async () => {
     // Reproduces a real production bug: AUSNUT lists a "1 density" measure
     // (a grams-per-millilitre coefficient, gram_amount ~0.2) ahead of the
