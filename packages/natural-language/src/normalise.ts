@@ -44,13 +44,37 @@ export const NUMBER_WORD_PATTERN = Object.keys(WORD_NUMBERS)
   .sort((a, b) => b.length - a.length)
   .join("|");
 
-/** Matches a digit sequence (optionally decimal) or a recognised number word. */
-export const QUANTITY_PATTERN = `(?:\\d+(?:\\.\\d+)?|${NUMBER_WORD_PATTERN})`;
+/**
+ * Common spoken fractions that can safely be represented as a deterministic
+ * numeric amount. They remain provisional and require review downstream; the
+ * parser never converts them into carbohydrate amounts by itself.
+ */
+const FRACTION_WORDS: Record<string, number> = {
+  "a half": 0.5,
+  "one half": 0.5,
+  half: 0.5,
+  "a third": 1 / 3,
+  "one third": 1 / 3,
+  third: 1 / 3,
+  "a quarter": 0.25,
+  "one quarter": 0.25,
+  quarter: 0.25,
+};
 
-/** Parses a quantity token (digit or word) to a number, or null if unparseable. */
+/** Longest-first so phrases such as "a third" are captured as one quantity rather than "a" plus a food name. */
+export const FRACTION_WORD_PATTERN = Object.keys(FRACTION_WORDS)
+  .sort((a, b) => b.length - a.length)
+  .map((value) => value.replaceAll(" ", "\\s+"))
+  .join("|");
+
+/** Matches a digit sequence (optionally decimal), a supported spoken fraction, or a recognised number word. */
+export const QUANTITY_PATTERN = `(?:\\d+(?:\\.\\d+)?|${FRACTION_WORD_PATTERN}|${NUMBER_WORD_PATTERN})`;
+
+/** Parses a quantity token (digit, number word, or supported fraction) to a number, or null if unparseable. */
 export function parseQuantityToken(token: string): number | null {
-  const trimmed = token.trim();
+  const trimmed = token.trim().toLowerCase().replace(/\s+/g, " ");
   if (/^\d+(\.\d+)?$/.test(trimmed)) return Number(trimmed);
+  if (trimmed in FRACTION_WORDS) return FRACTION_WORDS[trimmed]!;
   return wordToNumber(trimmed);
 }
 

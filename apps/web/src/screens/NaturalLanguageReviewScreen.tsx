@@ -23,6 +23,13 @@ function describeTimestamp(iso: string | null, referenceNowMs: number): string {
   return new Date(iso).toLocaleString();
 }
 
+function describeFoodInterpretation(component: ResolvedFoodComponent): string {
+  const { quantity, unit, qualifier, phrase } = component.component;
+  if (quantity.value !== null) return `${quantity.value}${unit.value ? ` ${unit.value}` : ""} ${phrase}`;
+  if (qualifier) return `${qualifier} ${phrase}`;
+  return phrase;
+}
+
 /**
  * The review screen every natural-language event must pass through before
  * any carbohydrate is calculated. Nothing here is auto-confirmed: glucose,
@@ -96,6 +103,7 @@ export function NaturalLanguageReviewScreen() {
 
   const totalCarbohydrateGrams = resolvedComponents.reduce((sum, rc) => sum + (rc.carbohydrateGrams ?? 0), 0);
   const allComponentsResolved = resolvedComponents.every((rc) => rc.carbohydrateGrams !== null);
+  const interpretedMeal = resolvedComponents.map(describeFoodInterpretation).join(", ");
   const blocked = hasBlockingClarifications(provisionalEvent) || !allComponentsResolved;
 
   const renderClarification = (clarification: ClarificationQuestion) => {
@@ -261,9 +269,16 @@ export function NaturalLanguageReviewScreen() {
       <p className="muted">You said: "{provisionalEvent.originalText}"</p>
 
       <div className="banner banner-warning">
-        Nothing has been calculated yet. No insulin dose is suggested on this screen - review and confirm the
-        details below, then the existing glucose/insulin screen will calculate a bolus preview.
+        Nothing has been calculated yet. No insulin dose is suggested on this screen. This is a check, not medical
+        advice — please verify every detail before continuing to the bolus preview.
       </div>
+
+      {interpretedMeal ? (
+        <div className="banner banner-success">
+          <strong>I heard:</strong> {interpretedMeal}
+          {allComponentsResolved ? `, about ${Math.round(totalCarbohydrateGrams * 10) / 10} g carbohydrate.` : ". Please confirm any item marked for review."}
+        </div>
+      ) : null}
 
       {correctionsApplied.length > 0 ? (
         <div className="banner banner-success">

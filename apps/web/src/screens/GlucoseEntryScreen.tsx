@@ -113,6 +113,10 @@ export function GlucoseEntryScreen() {
   return (
     <Screen title="Glucose and active insulin">
       <form onSubmit={handleSubmit}>
+        <div className="banner banner-warning">
+          This calculator provides a check, not medical advice. Please verify your glucose, carbohydrate amount, and recent insulin history before requesting a preview.
+        </div>
+
         <div className="card">
           <div className="muted">Carbohydrate confirmed</div>
           <div>{carbGrams} g ({mode === "MEAL" ? "meal" : "correction only"})</div>

@@ -265,3 +265,33 @@ describe("resolveFoodComponent", () => {
     expect(deps.calculateCustomFoodCarbohydrate).toHaveBeenCalledWith("custom-1", 60);
   });
 });
+
+
+  it("requires confirmation for a prefix/near-miss food match rather than silently calculating carbohydrates", async () => {
+    const deps = baseDeps({
+      searchFoods: vi.fn().mockResolvedValue({
+        results: [
+          {
+            sourceDataset: "AUSNUT_2023",
+            sourceFoodId: "vegemite-toast",
+            publicFoodKey: "vegemite-toast",
+            foodName: "Toast with Vegemite",
+            foodDescription: "Toast with vegetable yeast spread",
+            classification: null,
+            matchType: "PREFIX",
+            rank: 1,
+            hasGramData: true,
+            hasMillilitreData: false,
+          },
+        ],
+        totalMatches: 1,
+      }),
+    });
+
+    const result = await resolveFoodComponent(component({ phrase: "vegemite on toast" }), deps);
+    expect(result.matchStatus).toBe("ambiguous");
+    expect(result.bestMatch?.label).toBe("Toast with Vegemite");
+    expect(result.carbohydrateGrams).toBeNull();
+    expect(result.requiresManualPortion).toBe(true);
+    expect(deps.calculateCarbohydrate).not.toHaveBeenCalled();
+  });

@@ -57,8 +57,12 @@ const CONFIDENCE_BY_MATCH_TYPE: Record<FoodSearchResult["matchType"], number> = 
   SUBSTRING: 0.4,
 };
 
-/** A best match at or above this confidence is auto-surfaced as the provisional match; below it, treated as ambiguous. */
-const AUTO_ACCEPT_CONFIDENCE = 0.7;
+/**
+ * Only an exact or whole-word database match may proceed as a provisional
+ * candidate. Prefix, token, and substring matches are near-misses: surface
+ * them for a quick user choice rather than silently using their carbohydrates.
+ */
+const AUTO_ACCEPT_CONFIDENCE = 0.85;
 
 /**
  * AUSNUT records a "1 density" household measure on almost every food -

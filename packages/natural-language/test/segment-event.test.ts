@@ -283,3 +283,85 @@ describe("regression: 'a meal of X' filler phrase must not become the food name"
     expect(servingEvent.meal?.components[0]?.phrase).toBe("pasta");
   });
 });
+
+
+describe("parsing guardrail library: quantities, units, and low-friction clarifications", () => {
+  it("reproduces the historical toast failure and keeps the stated quantity with the food", () => {
+    const event = run("I am eating two pieces of toast.");
+    const toast = event.meal?.components.find((component) => component.phrase === "toast");
+
+    expect(toast?.rawSpan).toBe("two pieces of toast");
+    expect(toast?.quantity.value).toBe(2);
+    expect(toast?.unit.value).toBe("pieces");
+    expect(toast?.quantityKind).toBe("COUNT");
+    expect(toast?.matchStatus).toBe("provisional");
+    expect(event.clarifications.some((clarification) => clarification.field === "meal.components[0].quantity")).toBe(false);
+  });
+
+  it("treats a digit quantity and a numeral word equivalently", () => {
+    const digitEvent = run("I am eating 2 pieces of toast.");
+    const wordEvent = run("I am eating two pieces of toast.");
+
+    for (const event of [digitEvent, wordEvent]) {
+      const toast = event.meal?.components.find((component) => component.phrase === "toast");
+      expect(toast?.quantity.value).toBe(2);
+      expect(toast?.unit.value).toBe("pieces");
+      expect(toast?.matchStatus).toBe("provisional");
+    }
+  });
+
+  it("parses fractions without leaving the article in the food name", () => {
+    const halfEvent = run("I am eating half a banana.");
+    const banana = halfEvent.meal?.components.find((component) => component.phrase === "banana");
+    expect(banana?.quantity.value).toBe(0.5);
+    expect(banana?.quantityKind).toBe("COUNT");
+    expect(banana?.matchStatus).toBe("provisional");
+
+    const thirdCupEvent = run("I am having a third of a cup of rice.");
+    const rice = thirdCupEvent.meal?.components.find((component) => component.phrase === "rice");
+    expect(rice?.quantity.value).toBeCloseTo(1 / 3);
+    expect(rice?.unit.value).toBe("cup");
+    expect(rice?.matchStatus).toBe("provisional");
+  });
+
+  it("preserves informal quantity language for one focused follow-up rather than inventing an amount", () => {
+    const event = run("I am eating a hand of cashews and a splash of milk.");
+    const cashews = event.meal?.components.find((component) => component.phrase === "cashews");
+    const milk = event.meal?.components.find((component) => component.phrase === "milk");
+
+    expect(cashews?.qualifier).toBe("a hand of");
+    expect(cashews?.matchStatus).toBe("requires_review");
+    expect(milk?.qualifier).toBe("a splash of");
+    expect(milk?.matchStatus).toBe("requires_review");
+    expect(event.clarifications).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ field: "meal.components[0].quantity", question: expect.stringContaining("cashews") }),
+        expect.objectContaining({ field: "meal.components[1].quantity", question: expect.stringContaining("milk") }),
+      ]),
+    );
+  });
+
+  it("keeps countable, weight, and volume quantities attached to their respective foods in one multi-food utterance", () => {
+    const event = run("I am eating two slices of toast, 30 g of cheese, and 200 ml of milk.");
+    const toast = event.meal?.components.find((component) => component.phrase === "toast");
+    const cheese = event.meal?.components.find((component) => component.phrase === "cheese");
+    const milk = event.meal?.components.find((component) => component.phrase === "milk");
+
+    expect(toast?.quantity.value).toBe(2);
+    expect(toast?.quantityKind).toBe("COUNT");
+    expect(cheese?.quantity.value).toBe(30);
+    expect(cheese?.quantityKind).toBe("GRAMS");
+    expect(milk?.quantity.value).toBe(200);
+    expect(milk?.quantityKind).toBe("MILLILITRES");
+    expect(event.clarifications.some((clarification) => clarification.field.startsWith("meal.components"))).toBe(false);
+  });
+
+  it("asks one short question that references the food when quantity is genuinely absent", () => {
+    const event = run("I am eating toast.");
+    const questions = event.clarifications.filter((clarification) => clarification.field.startsWith("meal.components"));
+
+    expect(questions).toHaveLength(1);
+    expect(questions[0]?.question).toBe("How many slices of toast did you have?");
+    expect(questions[0]?.blocking).toBe(true);
+  });
+});

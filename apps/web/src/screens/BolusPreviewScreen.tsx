@@ -28,7 +28,7 @@ export function BolusPreviewScreen() {
   return (
     <Screen title="Bolus preview">
       <div className="banner banner-warning">
-        Calculated bolus: {result.roundedTotalUnits} units. Review the calculation before confirming.
+        Calculated bolus: {result.roundedTotalUnits} units. This is a check, not medical advice — please verify the calculation and your inputs before confirming.
       </div>
       <div className="dose-display">{result.roundedTotalUnits}</div>
       <div className="dose-unit">units (rapid-acting insulin)</div>

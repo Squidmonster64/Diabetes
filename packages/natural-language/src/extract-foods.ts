@@ -29,7 +29,7 @@ const NEGLIGIBLE_CARB_FOODS = [
 
 /** "a little", "some", "a bowl of", "a glass of", "a handful of", "a splash of" - vague, non-numeric quantifiers. */
 const VAGUE_QUALIFIER_PATTERN =
-  /\b(a\s+little|some|a\s+bit\s+of|a\s+bowl\s+of|a\s+glass\s+of|a\s+handful\s+of|a\s+splash\s+of|a\s+cup\s+of)\b/i;
+  /\b(a\s+little|some|a\s+bit\s+of|a\s+bowl\s+of|a\s+glass\s+of|a\s+handful\s+of|a\s+hand\s+of|a\s+splash\s+of|a\s+cup\s+of)\b/i;
 
 /** "sandwich"/"wrap"/"burger"/"roll" as a container noun implies its named filling is the real food component. */
 const CONTAINER_NOUN_PATTERN = /\b(?:a|an)\s+([a-z]+)\s+(sandwich|wrap|burger|roll)\b/i;
@@ -48,11 +48,16 @@ const COUNTABLE_UNIT_WORDS = ["slice", "slices", "piece", "pieces", "cup", "cups
 const VOLUME_UNIT_WORDS = ["ml", "millilitre", "millilitres"];
 const WEIGHT_UNIT_WORDS = ["gram", "grams", "g"];
 
+const ALL_UNIT_WORDS = [...COUNTABLE_UNIT_WORDS, ...VOLUME_UNIT_WORDS, ...WEIGHT_UNIT_WORDS];
 const LEADING_QUANTITY_PATTERN = new RegExp(
-  `^(${QUANTITY_PATTERN})\\s+(${[...COUNTABLE_UNIT_WORDS, ...VOLUME_UNIT_WORDS, ...WEIGHT_UNIT_WORDS].join("|")})\\s+of\\s+(.+)$`,
+  `^(${QUANTITY_PATTERN})\\s+(${ALL_UNIT_WORDS.join("|")})(?:\\s+of)?\\s+(.+)$`,
   "i",
 );
-const LEADING_BARE_COUNT_PATTERN = new RegExp(`^(${QUANTITY_PATTERN})\\s+(.+)$`, "i");
+const LEADING_FRACTION_OF_UNIT_PATTERN = new RegExp(
+  `^(${QUANTITY_PATTERN})\\s+of\\s+(?:a|an)\\s+(${ALL_UNIT_WORDS.join("|")})\\s+of\\s+(.+)$`,
+  "i",
+);
+const LEADING_BARE_COUNT_PATTERN = new RegExp(`^(${QUANTITY_PATTERN})\\s+(?:a|an)\\s+(.+)$|^(${QUANTITY_PATTERN})\\s+(.+)$`, "i");
 const LEADING_UNIT_NO_OF_PATTERN = new RegExp(
   `^(${QUANTITY_PATTERN})\\s+(${[...VOLUME_UNIT_WORDS, ...WEIGHT_UNIT_WORDS].join("|")})\\s+(?:of\\s+)?(.+)$`,
   "i",
@@ -81,8 +86,9 @@ function buildComponent(rawMention: string): FoodComponentExtraction {
   const mention = rawMention.trim().replace(MEAL_FILLER_LEAD_IN_PATTERN, "");
 
   const withOf = mention.match(LEADING_QUANTITY_PATTERN);
-  const withUnitNoOf = !withOf ? mention.match(LEADING_UNIT_NO_OF_PATTERN) : null;
-  const bareCount = !withOf && !withUnitNoOf ? mention.match(LEADING_BARE_COUNT_PATTERN) : null;
+  const fractionOfUnit = !withOf ? mention.match(LEADING_FRACTION_OF_UNIT_PATTERN) : null;
+  const withUnitNoOf = !withOf && !fractionOfUnit ? mention.match(LEADING_UNIT_NO_OF_PATTERN) : null;
+  const bareCount = !withOf && !fractionOfUnit && !withUnitNoOf ? mention.match(LEADING_BARE_COUNT_PATTERN) : null;
   const vagueMatch = mention.match(VAGUE_QUALIFIER_PATTERN);
   const containerMatch = mention.match(CONTAINER_NOUN_PATTERN);
 
@@ -96,6 +102,12 @@ function buildComponent(rawMention: string): FoodComponentExtraction {
     quantityValue = parseQuantityToken(withOf[1]!);
     unitWord = withOf[2]!;
     phrase = withOf[3]!.trim();
+    quantityKind = unitKindFor(unitWord);
+    rawSpan = mention;
+  } else if (fractionOfUnit) {
+    quantityValue = parseQuantityToken(fractionOfUnit[1]!);
+    unitWord = fractionOfUnit[2]!;
+    phrase = fractionOfUnit[3]!.trim();
     quantityKind = unitKindFor(unitWord);
     rawSpan = mention;
   } else if (withUnitNoOf) {
@@ -115,16 +127,19 @@ function buildComponent(rawMention: string): FoodComponentExtraction {
     quantityKind = "VAGUE";
     rawSpan = mention;
   } else if (bareCount && !vagueMatch) {
-    const asNumber = parseQuantityToken(bareCount[1]!);
+    const asNumber = parseQuantityToken(bareCount[1] ?? bareCount[3] ?? "");
     if (asNumber !== null) {
       quantityValue = asNumber;
       quantityKind = "COUNT";
-      phrase = bareCount[2]!.trim();
+      phrase = (bareCount[2] ?? bareCount[4] ?? "").trim();
       rawSpan = mention;
     }
   }
 
-  const qualifier = vagueMatch ? vagueMatch[0] : null;
+  // A phrase such as "a third of a cup of rice" contains "a cup of", but
+  // its quantity and unit were already parsed deterministically. Only retain
+  // a vague qualifier when no numeric quantity was extracted.
+  const qualifier = quantityValue === null && vagueMatch ? vagueMatch[0] : null;
   const hasAnyQuantitySignal = quantityValue !== null || qualifier !== null;
   const negligible = isNegligibleCarb(phrase);
 
