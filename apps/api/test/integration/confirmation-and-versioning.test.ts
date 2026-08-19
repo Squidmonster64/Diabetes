@@ -24,7 +24,7 @@ describe("confirmation, rejection and settings versioning", () => {
     });
     const preview = previewResponse.json();
 
-    const confirmPayload = { confirmedAt: new Date().toISOString(), expectedSnapshotHash: preview.snapshotHash };
+    const confirmPayload = { confirmationRequestId: "confirm-attempt-1", confirmedAt: "2099-01-01T00:00:00.000Z", expectedSnapshotHash: preview.snapshotHash };
     const first = await app.inject({
       method: "POST",
       url: `/api/v1/bolus/previews/${preview.calculationId}/confirm`,
@@ -32,6 +32,7 @@ describe("confirmation, rejection and settings versioning", () => {
       payload: confirmPayload,
     });
     expect(first.statusCode).toBe(200);
+    expect(first.json().status).toBe("USER_CONFIRMED");
 
     const second = await app.inject({
       method: "POST",
@@ -39,8 +40,9 @@ describe("confirmation, rejection and settings versioning", () => {
       headers: patient,
       payload: confirmPayload,
     });
-    expect(second.statusCode).toBe(409);
-    expect(second.json().error.code).toBe("DUPLICATE_CONFIRMATION");
+    expect(second.statusCode).toBe(200);
+    expect(second.json().status).toBe("DUPLICATE_CONFIRMATION");
+    expect(second.json().record.calculationId).toBe(preview.calculationId);
 
     const historyResponse = await app.inject({ method: "GET", url: "/api/v1/history", headers: patient });
     expect(historyResponse.json().events).toHaveLength(1);
@@ -49,19 +51,22 @@ describe("confirmation, rejection and settings versioning", () => {
   it("rejecting a preview prevents later confirmation", async () => {
     const patient = devAuthHeader("patient_reject");
     await app.inject({ method: "POST", url: "/api/v1/settings", headers: patient, payload: baseSettingsPayload() });
+    const staleClientTimestamp = "2000-01-01T00:00:00.000Z";
     const previewResponse = await app.inject({
       method: "POST",
       url: "/api/v1/bolus/preview",
       headers: patient,
-      payload: baseBolusPayload(),
+      payload: baseBolusPayload({ calculatedAt: staleClientTimestamp }),
     });
     const preview = previewResponse.json();
+    expect(preview.serverNow).toBeTruthy();
+    expect(preview.serverNow).not.toBe(staleClientTimestamp);
 
     const rejectResponse = await app.inject({
       method: "POST",
       url: `/api/v1/bolus/previews/${preview.calculationId}/reject`,
       headers: patient,
-      payload: { rejectedAt: new Date().toISOString(), reason: "USER_REJECTED" },
+      payload: { rejectedAt: "2099-01-01T00:00:00.000Z", reason: "USER_REJECTED" },
     });
     expect(rejectResponse.statusCode).toBe(200);
 
@@ -69,7 +74,7 @@ describe("confirmation, rejection and settings versioning", () => {
       method: "POST",
       url: `/api/v1/bolus/previews/${preview.calculationId}/confirm`,
       headers: patient,
-      payload: { confirmedAt: new Date().toISOString(), expectedSnapshotHash: preview.snapshotHash },
+      payload: { confirmationRequestId: "confirm-after-rejection", confirmedAt: "2000-01-01T00:00:00.000Z", expectedSnapshotHash: preview.snapshotHash },
     });
     expect(confirmResponse.statusCode).toBe(409);
     expect(confirmResponse.json().error.code).toBe("CALCULATION_INVALIDATED");

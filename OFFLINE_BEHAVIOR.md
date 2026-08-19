@@ -42,3 +42,9 @@ without the full offline queue. See
 `@supabase/supabase-js` manages its own session storage; the app does not
 add any additional client-side caching of tokens, and the service worker's
 cache does not include API responses that could carry a token.
+
+## Dose actions never queue
+
+A preview confirmation or administration record is **never** placed into an offline queue. If connectivity is unavailable when either action is requested, the app refuses the action visibly and requires the person to reconnect before retrying. A later background replay is not permitted: recording a confirmation or administration after an unknown delay could misrepresent the moment at which it happened.
+
+The client also avoids blind retry on a network timeout. A confirmation attempt carries one request identifier for the attempt; the server resolves a duplicate request by returning the existing durable calculation record instead of creating another confirmation.

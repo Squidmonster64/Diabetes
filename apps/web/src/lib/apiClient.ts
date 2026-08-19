@@ -62,6 +62,8 @@ export const api = {
     request(`/bolus/previews/${previewId}/confirm`, { method: "POST", body: JSON.stringify(body) }),
   rejectBolus: (previewId: string, body: Record<string, unknown>) =>
     request(`/bolus/previews/${previewId}/reject`, { method: "POST", body: JSON.stringify(body) }),
+  recordAdministration: (body: Record<string, unknown>) =>
+    request("/administrations", { method: "POST", body: JSON.stringify(body) }),
 
   getHistory: () => request<{ events: unknown[] }>("/history"),
   getHistoryEvent: (eventId: string) => request(`/history/${eventId}`),
