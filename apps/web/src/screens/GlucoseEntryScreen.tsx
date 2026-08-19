@@ -2,7 +2,15 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api, ApiError } from "../lib/apiClient.js";
 import { useWorkflow, type PriorRapidActingDoseEntry } from "../state/WorkflowContext.js";
+import { NumberPad } from "../components/ReviewPrimitives.js";
 import { Screen } from "../components/Screen.js";
+
+const AUDIT_PERSISTENCE_REFUSAL = {
+  refusalCategory: "INTEGRITY",
+  userFacingMessage: "The calculation could not be recorded safely. No result was displayed.",
+  blockingReason: "The audit trail could not be durably persisted before the result was displayed.",
+  safeNextStep: "Try again. If the problem continues, contact support.",
+} as const;
 
 const SPECIAL_SITUATIONS = [
   "SICK_DAY",
@@ -103,8 +111,20 @@ export function GlucoseEntryScreen() {
       else if (warnings.length > 0) navigate("/safety-warning");
       else navigate("/bolus-preview");
     } catch (err) {
+      // A transport or backend failure cannot leave the dosing path in an
+      // ambiguous loading state. Use the frozen integrity refusal copy and
+      // fail closed rather than retrying or displaying a generic toast.
+      const refusal = AUDIT_PERSISTENCE_REFUSAL;
+      setPreviewResult({
+        status: "REFUSED",
+        refusalCode: "AUDIT_PERSISTENCE_FAILURE",
+        refusalCategory: refusal.refusalCategory,
+        userFacingMessage: refusal.userFacingMessage,
+        blockingReason: refusal.blockingReason,
+        safeNextStep: refusal.safeNextStep,
+      });
       if (err instanceof ApiError) setError(err.message);
-      else setError(err instanceof Error ? err.message : "Could not calculate a bolus preview.");
+      navigate("/safety-refusal");
     } finally {
       setSubmitting(false);
     }
@@ -123,15 +143,8 @@ export function GlucoseEntryScreen() {
         </div>
 
         <div className="field">
-          <label htmlFor="glucose">Current glucose ({glucoseUnit === "MMOL_L" ? "mmol/L" : "mg/dL"})</label>
-          <input
-            id="glucose"
-            type="number"
-            inputMode="decimal"
-            required
-            value={currentGlucose}
-            onChange={(event) => setCurrentGlucose(event.target.value)}
-          />
+          <label>Current glucose</label>
+          <NumberPad value={currentGlucose} onChange={setCurrentGlucose} unit={glucoseUnit === "MMOL_L" ? "mmol/L" : "mg/dL"} />
         </div>
 
         <label className="checkbox-row">
@@ -163,6 +176,7 @@ export function GlucoseEntryScreen() {
 
         {priorRapidActingDoses.length > 0 ? (
           <div className="card">
+            <div className="banner banner-warning">A recent dose may stop this calculation. Review the timing and amount before requesting a preview.</div>
             <div className="muted">Recent rapid-acting doses on record for this event</div>
             {priorRapidActingDoses.map((dose, index) => (
               <div className="checkbox-row" key={`${dose.administeredAt}-${index}`}>
