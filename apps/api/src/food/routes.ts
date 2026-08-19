@@ -4,7 +4,7 @@ import type { AppState } from "../appState.js";
 import { searchFoods } from "./search.js";
 import { getMeasures } from "./measures.js";
 import { calculateCarbohydrate } from "./calculate.js";
-import { lookupOnlineFood } from "./onlineLookup.js";
+import { lookupOnlineFood, type OnlineFoodLookupResult } from "./onlineLookup.js";
 import { FoodModuleError } from "./errors.js";
 import { HttpError } from "../httpError.js";
 
@@ -12,11 +12,32 @@ function isSourceDataset(value: unknown): value is SourceDataset {
   return value === "AUSNUT_2023" || value === "AFCD_RELEASE_3";
 }
 
+const ONLINE_LOOKUP_RESPONSE_DEADLINE_MS = 6_000;
+
+/**
+ * The provider adapter has its own abort signal, but an explicit route-level
+ * deadline prevents an unavailable upstream connection from leaving the
+ * review-only client in a loading state. The fallback is never a carbohydrate
+ * value: it is simply the existing unavailable response.
+ */
+async function lookupOnlineFoodWithinDeadline(query: string): Promise<OnlineFoodLookupResult> {
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+  const deadline = new Promise<OnlineFoodLookupResult>((resolve) => {
+    timeout = setTimeout(() => resolve({ candidates: [], unavailable: true }), ONLINE_LOOKUP_RESPONSE_DEADLINE_MS);
+  });
+
+  try {
+    return await Promise.race([lookupOnlineFood(query), deadline]);
+  } finally {
+    if (timeout !== undefined) clearTimeout(timeout);
+  }
+}
+
 export function registerFoodRoutes(app: FastifyInstance, state: AppState): void {
   app.get("/api/v1/foods/online-lookup", { preHandler: app.requireAuth }, async (request) => {
     const query = request.query as Record<string, unknown>;
     const q = typeof query.q === "string" ? query.q : "";
-    return lookupOnlineFood(q);
+    return lookupOnlineFoodWithinDeadline(q);
   });
 
   app.get("/api/v1/foods/search", async (request) => {
