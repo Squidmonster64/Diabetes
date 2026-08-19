@@ -24,6 +24,8 @@ function baseDeps(overrides: Partial<FoodMatchDependencies> = {}): FoodMatchDepe
     getMeasures: vi.fn().mockResolvedValue({ measures: [] }),
     calculateCarbohydrate: vi.fn(),
     calculateCustomFoodCarbohydrate: vi.fn(),
+    listMeals: vi.fn().mockResolvedValue({ meals: [] }),
+    calculateMealCarbohydrate: vi.fn(),
     ...overrides,
   };
 }
@@ -35,6 +37,44 @@ describe("resolveFoodComponent", () => {
     expect(result.bestMatch).toBeNull();
     expect(result.carbohydrateGrams).toBeNull();
     expect(result.requiresManualPortion).toBe(true);
+  });
+
+  it("recognises an exact saved-recipe reference and recalculates it for review", async () => {
+    const deps = baseDeps({
+      listMeals: vi.fn().mockResolvedValue({
+        meals: [{
+          id: "recipe-1",
+          patientId: "patient-1",
+          name: "Morning smoothie",
+          archivedAt: null,
+          createdAt: "2026-08-01T00:00:00.000Z",
+          updatedAt: "2026-08-01T00:00:00.000Z",
+          components: [],
+        }],
+      }),
+      calculateMealCarbohydrate: vi.fn().mockResolvedValue({
+        mealId: "recipe-1",
+        mealName: "Morning smoothie",
+        components: [],
+        totalCarbohydrateGrams: 31.5,
+      }),
+    });
+
+    const result = await resolveFoodComponent(
+      component({
+        phrase: "my morning smoothie",
+        quantity: { rawSpan: "", value: null, confidence: 0, status: "missing", requiresConfirmation: true },
+        unit: { rawSpan: "", value: null, confidence: 0, status: "missing", requiresConfirmation: true },
+        quantityKind: "UNKNOWN",
+      }),
+      deps,
+    );
+
+    expect(result.matchStatus).toBe("resolved");
+    expect(result.bestMatch).toMatchObject({ source: "SAVED_RECIPE", label: "Morning smoothie", savedRecipeId: "recipe-1" });
+    expect(result.carbohydrateGrams).toBe(31.5);
+    expect(result.requiresManualPortion).toBe(false);
+    expect(deps.calculateMealCarbohydrate).toHaveBeenCalledWith("recipe-1");
   });
 
   it("auto-calculates carbohydrate for a high-confidence AUSNUT match with a gram quantity", async () => {

@@ -1,13 +1,36 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import type {
   CustomFoodRecord,
+  FoodMeasure,
   FoodSearchResult,
   SavedMealComponentRecord,
   SavedMealRecord,
 } from "@diabetes-companion/food-contracts";
 import { api, ApiError } from "../lib/apiClient.js";
 import { Screen } from "../components/Screen.js";
+
+type RecipeFoodChoice =
+  | { readonly kind: "CUSTOM"; readonly food: CustomFoodRecord }
+  | { readonly kind: "OFFICIAL"; readonly food: FoodSearchResult };
+
+type IngredientQuantityKind = "GRAMS" | "MILLILITRES" | "MEASURE" | "SAVED_SERVING";
+
+function componentQuantity(component: SavedMealComponentRecord): string {
+  if (component.quantityKind === "MILLILITRES") return component.quantityMillilitres ?? "";
+  if (component.quantityKind === "MEASURE") return component.measureMultiplier ?? "";
+  return component.quantityGrams ?? "";
+}
+
+function componentUnitLabel(component: SavedMealComponentRecord): string {
+  if (component.quantityKind === "MILLILITRES") return "mL";
+  if (component.quantityKind === "MEASURE") return "recipe measure";
+  return "g";
+}
+
+function choiceLabel(choice: RecipeFoodChoice): string {
+  return choice.kind === "CUSTOM" ? choice.food.name : choice.food.foodName;
+}
 
 export function MealEditScreen() {
   const { id } = useParams();
@@ -16,12 +39,15 @@ export function MealEditScreen() {
   const [name, setName] = useState("");
   const [quantityDrafts, setQuantityDrafts] = useState<Record<string, string>>({});
   const [customFoods, setCustomFoods] = useState<CustomFoodRecord[]>([]);
-  const [selectedCustomFoodId, setSelectedCustomFoodId] = useState("");
-  const [customFoodGrams, setCustomFoodGrams] = useState("");
-  const [query, setQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<FoodSearchResult[]>([]);
-  const [selectedFood, setSelectedFood] = useState<FoodSearchResult | null>(null);
-  const [officialFoodGrams, setOfficialFoodGrams] = useState("");
+  const [ingredientQuery, setIngredientQuery] = useState("");
+  const [officialResults, setOfficialResults] = useState<FoodSearchResult[]>([]);
+  const [selectedFood, setSelectedFood] = useState<RecipeFoodChoice | null>(null);
+  const [quantityKind, setQuantityKind] = useState<IngredientQuantityKind>("GRAMS");
+  const [quantity, setQuantity] = useState("");
+  const [measures, setMeasures] = useState<FoodMeasure[]>([]);
+  const [selectedMeasureId, setSelectedMeasureId] = useState("");
+  const [searching, setSearching] = useState(false);
+  const [adding, setAdding] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const load = () => {
@@ -29,195 +55,275 @@ export function MealEditScreen() {
     api.getMeal(id).then(({ meal: loaded }) => {
       setMeal(loaded);
       setName(loaded.name);
-      const drafts: Record<string, string> = {};
-      for (const component of loaded.components) drafts[component.id] = component.quantityGrams ?? "";
-      setQuantityDrafts(drafts);
+      setQuantityDrafts(Object.fromEntries(loaded.components.map((component) => [component.id, componentQuantity(component)])));
     });
     api.listCustomFoods().then((response) => setCustomFoods(response.foods));
   };
 
   useEffect(load, [id]);
 
+  const matchingCustomFoods = useMemo(() => {
+    const query = ingredientQuery.trim().toLocaleLowerCase();
+    if (!query) return [];
+    return customFoods.filter((food) => food.name.toLocaleLowerCase().includes(query)).slice(0, 5);
+  }, [customFoods, ingredientQuery]);
+
   const saveName = async () => {
-    if (!id || !meal || name === meal.name) return;
-    await api.renameMeal(id, name);
-    load();
+    if (!id || !meal || name.trim() === meal.name) return;
+    try {
+      await api.renameMeal(id, name.trim());
+      load();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Could not rename recipe.");
+    }
   };
 
   const saveQuantity = async (component: SavedMealComponentRecord) => {
     if (!id) return;
+    const value = Number(quantityDrafts[component.id]);
+    if (!Number.isFinite(value) || value <= 0) return;
     setError(null);
     try {
       await api.updateMealComponent(id, component.id, {
-        quantityKind: "GRAMS",
-        quantityGrams: Number(quantityDrafts[component.id]),
+        quantityKind: component.quantityKind,
+        quantityGrams: component.quantityKind === "GRAMS" ? value : undefined,
+        quantityMillilitres: component.quantityKind === "MILLILITRES" ? value : undefined,
+        measureId: component.quantityKind === "MEASURE" ? component.measureId : undefined,
+        measureMultiplier: component.quantityKind === "MEASURE" ? value : undefined,
       });
       load();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Could not update quantity.");
+      setError(err instanceof ApiError ? err.message : "Could not update ingredient quantity.");
     }
   };
 
   const removeComponent = async (componentId: string) => {
     if (!id) return;
-    await api.removeMealComponent(id, componentId);
-    load();
-  };
-
-  const addCustomFoodComponent = async () => {
-    if (!id || !selectedCustomFoodId) return;
-    const food = customFoods.find((f) => f.id === selectedCustomFoodId);
-    if (!food) return;
-    setError(null);
     try {
-      await api.addMealComponent(id, {
-        componentSource: "CUSTOM",
-        customFoodId: food.id,
-        label: food.name,
-        quantityKind: "GRAMS",
-        quantityGrams: Number(customFoodGrams),
-      });
-      setCustomFoodGrams("");
+      await api.removeMealComponent(id, componentId);
       load();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Could not add component.");
+      setError(err instanceof ApiError ? err.message : "Could not remove ingredient.");
     }
   };
 
-  const runSearch = async () => {
-    if (query.trim().length === 0) return;
-    const response = await api.searchFoods(query.trim());
-    setSearchResults(response.results as FoodSearchResult[]);
+  const selectIngredient = async (choice: RecipeFoodChoice) => {
+    setSelectedFood(choice);
+    setQuantity("");
+    setMeasures([]);
+    setSelectedMeasureId("");
+    setError(null);
+
+    if (choice.kind === "CUSTOM") {
+      setQuantityKind(choice.food.servingGrams ? "SAVED_SERVING" : "GRAMS");
+      return;
+    }
+
+    setQuantityKind("GRAMS");
+    if (choice.food.sourceDataset === "AUSNUT_2023") {
+      try {
+        const response = await api.getMeasures(choice.food.sourceDataset, choice.food.sourceFoodId);
+        setMeasures(
+          response.measures.filter(
+            (measure) => !/density/i.test(measure.measureDescription) && (measure.gramAmount !== null || measure.volumeMillilitres !== null),
+          ),
+        );
+      } catch {
+        setMeasures([]);
+      }
+    }
   };
 
-  const addOfficialFoodComponent = async () => {
-    if (!id || !selectedFood) return;
+  const searchKnownFoods = async () => {
+    const query = ingredientQuery.trim();
+    if (!query) return;
+    setSearching(true);
     setError(null);
     try {
-      await api.addMealComponent(id, {
-        componentSource: selectedFood.sourceDataset === "AUSNUT_2023" ? "AUSNUT" : "AFCD",
-        sourceDataset: selectedFood.sourceDataset,
-        sourceFoodId: selectedFood.sourceFoodId,
-        label: selectedFood.foodName,
-        quantityKind: "GRAMS",
-        quantityGrams: Number(officialFoodGrams),
-      });
+      const response = await api.searchFoods(query);
+      setOfficialResults(response.results.slice(0, 8));
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Could not search known foods.");
+    } finally {
+      setSearching(false);
+    }
+  };
+
+  const addIngredient = async () => {
+    if (!id || !selectedFood) return;
+    const amount = Number(quantity);
+    if (!Number.isFinite(amount) || amount <= 0) return;
+    setAdding(true);
+    setError(null);
+    try {
+      if (selectedFood.kind === "CUSTOM") {
+        const servingGrams = Number(selectedFood.food.servingGrams);
+        const grams = quantityKind === "SAVED_SERVING" ? amount * servingGrams : amount;
+        if (!Number.isFinite(grams) || grams <= 0) {
+          throw new Error("This saved food needs a serving weight before it can be added by serving. Choose grams instead.");
+        }
+        const label = quantityKind === "SAVED_SERVING"
+          ? `${selectedFood.food.name} (${amount} × ${selectedFood.food.servingDescription ?? "serving"})`
+          : selectedFood.food.name;
+        await api.addMealComponent(id, {
+          componentSource: "CUSTOM",
+          customFoodId: selectedFood.food.id,
+          label,
+          quantityKind: "GRAMS",
+          quantityGrams: grams,
+        });
+      } else {
+        const food = selectedFood.food;
+        if (quantityKind === "MEASURE") {
+          const measure = measures.find((item) => item.measureId === selectedMeasureId);
+          if (!measure) throw new Error("Choose a database measure first.");
+          await api.addMealComponent(id, {
+            componentSource: "AUSNUT",
+            sourceDataset: food.sourceDataset,
+            sourceFoodId: food.sourceFoodId,
+            label: `${food.foodName} (${amount} × ${measure.measureDescription})`,
+            quantityKind: "MEASURE",
+            measureId: measure.measureId,
+            measureMultiplier: amount,
+          });
+        } else if (quantityKind === "MILLILITRES") {
+          await api.addMealComponent(id, {
+            componentSource: "AFCD",
+            sourceDataset: food.sourceDataset,
+            sourceFoodId: food.sourceFoodId,
+            label: food.foodName,
+            quantityKind: "MILLILITRES",
+            quantityMillilitres: amount,
+          });
+        } else {
+          await api.addMealComponent(id, {
+            componentSource: food.sourceDataset === "AUSNUT_2023" ? "AUSNUT" : "AFCD",
+            sourceDataset: food.sourceDataset,
+            sourceFoodId: food.sourceFoodId,
+            label: food.foodName,
+            quantityKind: "GRAMS",
+            quantityGrams: amount,
+          });
+        }
+      }
       setSelectedFood(null);
-      setOfficialFoodGrams("");
-      setSearchResults([]);
-      setQuery("");
+      setQuantity("");
+      setSelectedMeasureId("");
+      setMeasures([]);
+      setIngredientQuery("");
+      setOfficialResults([]);
       load();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Could not add component.");
+      setError(err instanceof ApiError ? err.message : err instanceof Error ? err.message : "Could not add ingredient.");
+    } finally {
+      setAdding(false);
     }
   };
 
   if (!meal) {
-    return (
-      <Screen title="Edit meal">
-        <p className="muted">Loading…</p>
-      </Screen>
-    );
+    return <Screen title="Edit recipe"><p className="muted">Loading…</p></Screen>;
   }
 
+  const officialCanUseMillilitres = selectedFood?.kind === "OFFICIAL" && selectedFood.food.sourceDataset === "AFCD_RELEASE_3";
+  const officialCanUseMeasures = selectedFood?.kind === "OFFICIAL" && selectedFood.food.sourceDataset === "AUSNUT_2023" && measures.length > 0;
+  const selectedCustomHasServing = selectedFood?.kind === "CUSTOM" && Boolean(selectedFood.food.servingGrams);
+
   return (
-    <Screen title="Edit meal">
+    <Screen title="Edit recipe">
+      <p className="muted">Build this recipe from your saved foods and the Australian food database. Its current ingredient values are always shown for review before use.</p>
       <div className="field">
-        <label htmlFor="mealName">Meal name</label>
-        <input id="mealName" value={name} onChange={(e) => setName(e.target.value)} onBlur={saveName} />
+        <label htmlFor="mealName">Recipe name</label>
+        <input id="mealName" value={name} onChange={(event) => setName(event.target.value)} onBlur={() => void saveName()} />
       </div>
 
       {error ? <div className="banner banner-danger">{error}</div> : null}
 
-      <h3>Components</h3>
-      {meal.components.length === 0 ? <p className="muted">No components yet - add one below.</p> : null}
+      <h3>Ingredients</h3>
+      {meal.components.length === 0 ? <p className="muted">Search for a known food below to add your first ingredient.</p> : null}
       {meal.components.map((component) => (
         <div className="card" key={component.id}>
           <div>{component.label}</div>
           <div className="field" style={{ marginBottom: "0.5rem" }}>
-            <label>Quantity (g)</label>
+            <label htmlFor={`ingredient-${component.id}`}>Quantity ({componentUnitLabel(component)})</label>
             <input
+              id={`ingredient-${component.id}`}
               type="number"
               inputMode="decimal"
+              min="0"
               value={quantityDrafts[component.id] ?? ""}
-              onChange={(e) => setQuantityDrafts((prev) => ({ ...prev, [component.id]: e.target.value }))}
+              onChange={(event) => setQuantityDrafts((current) => ({ ...current, [component.id]: event.target.value }))}
             />
           </div>
           <div style={{ display: "flex", gap: "0.5rem" }}>
-            <button className="btn-secondary" onClick={() => saveQuantity(component)}>
-              Save quantity
-            </button>
-            <button className="btn-secondary" onClick={() => removeComponent(component.id)}>
-              Remove
-            </button>
+            <button className="btn-secondary" type="button" onClick={() => void saveQuantity(component)}>Save quantity</button>
+            <button className="btn-secondary" type="button" onClick={() => void removeComponent(component.id)}>Remove</button>
           </div>
         </div>
       ))}
 
-      <h3 style={{ marginTop: "1.5rem" }}>Add a custom food</h3>
-      <div className="field">
-        <select value={selectedCustomFoodId} onChange={(e) => setSelectedCustomFoodId(e.target.value)}>
-          <option value="">Select a custom food…</option>
-          {customFoods.map((food) => (
-            <option key={food.id} value={food.id}>
-              {food.name}
-            </option>
-          ))}
-        </select>
-      </div>
-      <div className="field">
-        <label>Quantity (g)</label>
-        <input type="number" inputMode="decimal" value={customFoodGrams} onChange={(e) => setCustomFoodGrams(e.target.value)} />
-      </div>
-      <button
-        className="btn-secondary"
-        onClick={addCustomFoodComponent}
-        disabled={!selectedCustomFoodId || !customFoodGrams}
-      >
-        Add custom food
-      </button>
+      <section className="card" style={{ marginTop: "1.5rem" }}>
+        <h3>Add an ingredient</h3>
+        <p className="muted">Search your saved foods or the Australian food database.</p>
+        <div className="field">
+          <label htmlFor="ingredient-search">Food name</label>
+          <input
+            id="ingredient-search"
+            placeholder="e.g. protein powder, avocado, banana or coconut water"
+            value={ingredientQuery}
+            onChange={(event) => setIngredientQuery(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                event.preventDefault();
+                void searchKnownFoods();
+              }
+            }}
+          />
+        </div>
+        <button className="btn-secondary" type="button" onClick={() => void searchKnownFoods()} disabled={!ingredientQuery.trim() || searching}>
+          {searching ? "Searching…" : "Search known foods"}
+        </button>
 
-      <h3 style={{ marginTop: "1.5rem" }}>Add an Australian food</h3>
-      <div className="field">
-        <input placeholder="Search foods" value={query} onChange={(e) => setQuery(e.target.value)} />
-      </div>
-      <button className="btn-secondary" onClick={runSearch} disabled={query.trim().length === 0}>
-        Search
-      </button>
-      <ul className="result-list">
-        {searchResults.map((food) => (
-          <li key={`${food.sourceDataset}-${food.sourceFoodId}`}>
-            <button
-              className="result-item"
-              onClick={() => setSelectedFood(food)}
-              style={selectedFood?.sourceFoodId === food.sourceFoodId ? { borderColor: "var(--accent)" } : undefined}
-            >
-              {food.foodName}
-            </button>
-          </li>
-        ))}
-      </ul>
-      {selectedFood ? (
-        <>
+        {matchingCustomFoods.length > 0 || officialResults.length > 0 ? <div className="result-list" style={{ marginTop: "0.75rem" }}>
+          {matchingCustomFoods.map((food) => {
+            const choice: RecipeFoodChoice = { kind: "CUSTOM", food };
+            return <button className="result-item" type="button" key={`custom-${food.id}`} onClick={() => void selectIngredient(choice)}>Your saved food · {food.name}</button>;
+          })}
+          {officialResults.map((food) => {
+            const choice: RecipeFoodChoice = { kind: "OFFICIAL", food };
+            return <button className="result-item" type="button" key={`${food.sourceDataset}-${food.sourceFoodId}`} onClick={() => void selectIngredient(choice)}>Australian food data · {food.foodName}</button>;
+          })}
+        </div> : null}
+
+        {selectedFood ? <div className="card" style={{ marginTop: "0.75rem" }}>
+          <strong>{choiceLabel(selectedFood)}</strong>
           <div className="field">
-            <label>Quantity (g) for {selectedFood.foodName}</label>
-            <input
-              type="number"
-              inputMode="decimal"
-              value={officialFoodGrams}
-              onChange={(e) => setOfficialFoodGrams(e.target.value)}
-            />
+            <label htmlFor="ingredient-unit">Amount type</label>
+            <select id="ingredient-unit" value={quantityKind} onChange={(event) => setQuantityKind(event.target.value as IngredientQuantityKind)}>
+              <option value="GRAMS">grams</option>
+              {selectedCustomHasServing ? <option value="SAVED_SERVING">saved serving ({selectedFood.kind === "CUSTOM" ? selectedFood.food.servingDescription ?? "serving" : "serving"})</option> : null}
+              {officialCanUseMillilitres ? <option value="MILLILITRES">millilitres</option> : null}
+              {officialCanUseMeasures ? <option value="MEASURE">database measure</option> : null}
+            </select>
           </div>
-          <button className="btn-secondary" onClick={addOfficialFoodComponent} disabled={!officialFoodGrams}>
-            Add {selectedFood.foodName}
+          {quantityKind === "MEASURE" ? <div className="field">
+            <label htmlFor="ingredient-measure">Database measure</label>
+            <select id="ingredient-measure" value={selectedMeasureId} onChange={(event) => setSelectedMeasureId(event.target.value)}>
+              <option value="">Choose a measure</option>
+              {measures.map((measure) => <option key={measure.measureId} value={measure.measureId}>{measure.measureDescription}</option>)}
+            </select>
+          </div> : null}
+          <div className="field">
+            <label htmlFor="ingredient-quantity">How many {quantityKind === "MILLILITRES" ? "mL" : quantityKind === "SAVED_SERVING" ? "servings" : quantityKind === "MEASURE" ? "measures" : "grams"}?</label>
+            <input id="ingredient-quantity" type="number" inputMode="decimal" min="0" value={quantity} onChange={(event) => setQuantity(event.target.value)} />
+          </div>
+          <button className="btn-primary" type="button" onClick={() => void addIngredient()} disabled={adding || !quantity || (quantityKind === "MEASURE" && !selectedMeasureId)}>
+            {adding ? "Adding…" : "Add to recipe"}
           </button>
-        </>
-      ) : null}
+        </div> : null}
+      </section>
 
       <div style={{ height: "1.5rem" }} />
-      <button className="btn-primary" onClick={() => navigate("/meals")}>
-        Done
-      </button>
+      <button className="btn-primary" type="button" onClick={() => navigate("/meals")}>Done</button>
     </Screen>
   );
 }

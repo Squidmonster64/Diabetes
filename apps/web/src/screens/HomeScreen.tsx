@@ -28,7 +28,7 @@ export function HomeScreen() {
       </div>
       <div className="field">
         <Link to="/meals" onClick={resetAll}>
-          <button className="btn-secondary">Use a saved meal</button>
+          <button className="btn-secondary">Use a saved recipe</button>
         </Link>
       </div>
       <div className="field">
@@ -43,7 +43,7 @@ export function HomeScreen() {
       </div>
       <div className="field">
         <Link to="/meals">
-          <button className="btn-secondary">Manage saved meals</button>
+          <button className="btn-secondary">Create or manage recipes</button>
         </Link>
       </div>
       <div className="field">

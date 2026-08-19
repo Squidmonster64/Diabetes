@@ -15,7 +15,7 @@ export function MealsListScreen() {
     api
       .listMeals(showArchived)
       .then((response) => setMeals(response.meals))
-      .catch((err) => setError(err instanceof Error ? err.message : "Could not load meals."));
+      .catch((err) => setError(err instanceof Error ? err.message : "Could not load recipes."));
   };
 
   useEffect(load, [showArchived]);
@@ -32,10 +32,10 @@ export function MealsListScreen() {
   };
 
   return (
-    <Screen title="My saved meals">
+    <Screen title="My recipes">
       {error ? <div className="banner banner-danger">{error}</div> : null}
       <button className="btn-primary" onClick={() => navigate("/meals/new")}>
-        Create a new meal
+        Create a recipe
       </button>
       <label className="checkbox-row" style={{ marginTop: "1rem" }}>
         <input type="checkbox" checked={showArchived} onChange={(e) => setShowArchived(e.target.checked)} />
@@ -43,7 +43,7 @@ export function MealsListScreen() {
       </label>
 
       {meals === null && !error ? <p className="muted">Loading…</p> : null}
-      {meals && meals.length === 0 ? <p className="muted">No saved meals yet.</p> : null}
+      {meals && meals.length === 0 ? <p className="muted">No recipes yet. Create one from your known foods.</p> : null}
       <ul className="result-list">
         {meals?.map((meal) => (
           <li key={meal.id}>
@@ -51,19 +51,19 @@ export function MealsListScreen() {
               <div>
                 {meal.name} {meal.archivedAt ? <span className="badge">archived</span> : null}
               </div>
-              <div className="muted">{meal.components.length} component(s)</div>
+              <div className="muted">{meal.components.length} ingredient{meal.components.length === 1 ? "" : "s"}</div>
               <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.5rem", flexWrap: "wrap" }}>
                 <Link to={`/meals/${meal.id}/use`}>
-                  <button className="btn-primary">Use</button>
+                  <button className="btn-primary">Review and use</button>
                 </Link>
                 <Link to={`/meals/${meal.id}/edit`}>
-                  <button className="btn-secondary">Edit</button>
+                  <button className="btn-secondary">Edit recipe</button>
                 </Link>
                 <button className="btn-secondary" onClick={() => duplicate(meal)}>
-                  Duplicate
+                  Copy
                 </button>
                 <button className="btn-secondary" onClick={() => toggleArchive(meal)}>
-                  {meal.archivedAt ? "Unarchive" : "Archive"}
+                  {meal.archivedAt ? "Restore" : "Archive recipe"}
                 </button>
               </div>
             </div>

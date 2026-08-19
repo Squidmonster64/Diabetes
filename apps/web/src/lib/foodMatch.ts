@@ -1,5 +1,5 @@
 import { api } from "./apiClient.js";
-import type { CustomFoodRecord, FoodMeasure, FoodSearchResult } from "@diabetes-companion/food-contracts";
+import type { CustomFoodRecord, FoodMeasure, FoodSearchResult, SavedMealRecord } from "@diabetes-companion/food-contracts";
 import type { FoodComponentExtraction } from "@diabetes-companion/natural-language";
 
 /**
@@ -18,7 +18,7 @@ import type { FoodComponentExtraction } from "@diabetes-companion/natural-langua
  * bolus module, and only after the user has reviewed it here.
  */
 
-export type FoodMatchSource = "CUSTOM" | "AUSNUT" | "AFCD" | "BRANDED_OFFICIAL" | "ONLINE_CONFIRMED";
+export type FoodMatchSource = "CUSTOM" | "AUSNUT" | "AFCD" | "BRANDED_OFFICIAL" | "ONLINE_CONFIRMED" | "SAVED_RECIPE";
 
 export interface FoodMatchCandidate {
   readonly source: FoodMatchSource;
@@ -32,6 +32,8 @@ export interface FoodMatchCandidate {
   readonly sourceDataset: string | null;
   readonly sourceFoodId: string | null;
   readonly customFoodId: string | null;
+  /** The patient's explicitly saved reusable recipe, when this is a recipe reference. */
+  readonly savedRecipeId?: string | null;
   /** Official publisher page or document when the user explicitly selected a branded-menu item. */
   readonly sourceUrl?: string | null;
   readonly sourceVersion?: string | null;
@@ -99,12 +101,32 @@ function customFoodConfidence(food: CustomFoodRecord, phrase: string): number {
   return 0;
 }
 
+function normalizedRecipeReference(value: string): string {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/^(?:my|the|a|an)\s+/, "")
+    .trim();
+}
+
+function savedRecipeConfidence(recipe: SavedMealRecord, phrase: string): number {
+  const name = normalizedRecipeReference(recipe.name);
+  const reference = normalizedRecipeReference(phrase);
+  if (!name || !reference) return 0;
+  if (name === reference) return 1;
+  if (name.length >= 4 && (name.includes(reference) || reference.includes(name))) return 0.65;
+  return 0;
+}
+
 export interface FoodMatchDependencies {
   searchFoods: typeof api.searchFoods;
   listCustomFoods: typeof api.listCustomFoods;
   getMeasures: typeof api.getMeasures;
   calculateCarbohydrate: typeof api.calculateCarbohydrate;
   calculateCustomFoodCarbohydrate: typeof api.calculateCustomFoodCarbohydrate;
+  listMeals: typeof api.listMeals;
+  calculateMealCarbohydrate: typeof api.calculateMealCarbohydrate;
 }
 
 const defaultDependencies: FoodMatchDependencies = {
@@ -113,6 +135,8 @@ const defaultDependencies: FoodMatchDependencies = {
   getMeasures: api.getMeasures,
   calculateCarbohydrate: api.calculateCarbohydrate,
   calculateCustomFoodCarbohydrate: api.calculateCustomFoodCarbohydrate,
+  listMeals: api.listMeals,
+  calculateMealCarbohydrate: api.calculateMealCarbohydrate,
 };
 
 function toServingMeasureOptions(measures: readonly FoodMeasure[]): ServingMeasureOption[] {
@@ -142,6 +166,24 @@ async function computeCarbohydrate(
   }
 
   const quantity = component.quantity.value;
+  if (bestMatch.source === "SAVED_RECIPE") {
+    const recipeId = bestMatch.savedRecipeId;
+    const multiplier = component.quantityKind === "COUNT" && quantity !== null && Number.isInteger(quantity) && quantity > 0
+      ? quantity
+      : component.quantityKind === "UNKNOWN" ? 1 : null;
+    if (!recipeId || multiplier === null) return { carbohydrateGrams: null, requiresManualPortion: true, servingMeasures: [] };
+    try {
+      const result = await deps.calculateMealCarbohydrate(recipeId);
+      return {
+        carbohydrateGrams: Math.round(result.totalCarbohydrateGrams * multiplier * 10) / 10,
+        requiresManualPortion: false,
+        servingMeasures: [],
+      };
+    } catch {
+      return { carbohydrateGrams: null, requiresManualPortion: true, servingMeasures: [] };
+    }
+  }
+
   if (quantity === null) return { carbohydrateGrams: null, requiresManualPortion: true, servingMeasures: [] };
 
   try {
@@ -250,12 +292,35 @@ export async function resolveFoodComponent(
     return { component, matchStatus: "resolved", bestMatch: null, alternates: [], carbohydrateGrams: 0, servingMeasures: [], requiresManualPortion: false };
   }
 
-  const [searchResponse, customFoodsResponse] = await Promise.all([
+  const [searchResponse, customFoodsResponse, savedRecipesResponse] = await Promise.all([
     deps.searchFoods(component.phrase).catch(() => ({ results: [] as FoodSearchResult[], totalMatches: 0 })),
     deps.listCustomFoods().catch(() => ({ foods: [] as CustomFoodRecord[] })),
+    deps.listMeals().catch(() => ({ meals: [] as SavedMealRecord[] })),
   ]);
 
   const candidates: FoodMatchCandidate[] = [];
+
+  for (const recipe of savedRecipesResponse.meals) {
+    const confidence = savedRecipeConfidence(recipe, component.phrase);
+    if (confidence > 0) {
+      candidates.push({
+        source: "SAVED_RECIPE",
+        label: recipe.name,
+        description: `${recipe.components.length} saved ingredient${recipe.components.length === 1 ? "" : "s"}`,
+        brand: null,
+        confidence,
+        matchReason: confidence >= 0.9
+          ? "Matches your saved recipe exactly. The ingredients will be recalculated and shown for review."
+          : "Similar to one of your saved recipes. Choose it explicitly before use.",
+        sourceDataset: null,
+        sourceFoodId: null,
+        customFoodId: null,
+        savedRecipeId: recipe.id,
+        sourceUrl: null,
+        sourceVersion: null,
+      });
+    }
+  }
 
   for (const food of customFoodsResponse.foods) {
     const confidence = customFoodConfidence(food, component.phrase);
