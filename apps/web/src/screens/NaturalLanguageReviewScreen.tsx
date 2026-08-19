@@ -51,6 +51,8 @@ export function requiresOnlineFoodLookup(component: ResolvedFoodComponent): bool
   return component.component.quantityNeededForCalculation && component.bestMatch === null && component.carbohydrateGrams === null;
 }
 
+const ONLINE_LOOKUP_REVIEW_TIMEOUT_MS = 7_000;
+
 /** Every parsed value stays editable and remains a reviewable draft until the
  * explicit hand-off to glucose entry. This component never calculates a dose. */
 export function NaturalLanguageReviewScreen() {
@@ -129,8 +131,14 @@ export function NaturalLanguageReviewScreen() {
     if (requests.length === 0) return;
 
     let active = true;
+    const reviewTimeouts: ReturnType<typeof setTimeout>[] = [];
     for (const { component, index } of requests) {
       setOnlineLookupByIndex((current) => ({ ...current, [index]: { status: "loading", candidates: [] } }));
+      const reviewTimeout = setTimeout(() => {
+        if (active) setOnlineLookupByIndex((current) => ({ ...current, [index]: { status: "unavailable", candidates: [] } }));
+      }, ONLINE_LOOKUP_REVIEW_TIMEOUT_MS);
+      reviewTimeouts.push(reviewTimeout);
+
       void api.lookupFoodOnline(component.component.phrase)
         .then((result) => {
           if (!active) return;
@@ -141,10 +149,12 @@ export function NaturalLanguageReviewScreen() {
         })
         .catch(() => {
           if (active) setOnlineLookupByIndex((current) => ({ ...current, [index]: { status: "unavailable", candidates: [] } }));
-        });
+        })
+        .finally(() => clearTimeout(reviewTimeout));
     }
     return () => {
       active = false;
+      reviewTimeouts.forEach((timeout) => clearTimeout(timeout));
     };
   }, [onlineLookupByIndex, provisionalEvent, resolvedComponents]);
 
