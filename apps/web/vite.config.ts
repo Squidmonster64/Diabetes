@@ -12,9 +12,10 @@ export default defineConfig({
         name: "Diabetes Companion",
         short_name: "DiaCompanion",
         description: "Australian-first diabetes companion: food carbohydrate lookup and deterministic bolus calculator preview.",
-        theme_color: "#0f172a",
-        background_color: "#0f172a",
+        theme_color: "#12181C",
+        background_color: "#12181C",
         display: "standalone",
+        orientation: "portrait-primary",
         start_url: "/",
         icons: [
           { src: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
