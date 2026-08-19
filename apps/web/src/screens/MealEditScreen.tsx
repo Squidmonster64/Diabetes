@@ -4,6 +4,7 @@ import type {
   CustomFoodRecord,
   FoodMeasure,
   FoodSearchResult,
+  OnlineFoodLookupCandidate,
   SavedMealComponentRecord,
   SavedMealRecord,
 } from "@diabetes-companion/food-contracts";
@@ -12,7 +13,8 @@ import { Screen } from "../components/Screen.js";
 
 type RecipeFoodChoice =
   | { readonly kind: "CUSTOM"; readonly food: CustomFoodRecord }
-  | { readonly kind: "OFFICIAL"; readonly food: FoodSearchResult };
+  | { readonly kind: "OFFICIAL"; readonly food: FoodSearchResult }
+  | { readonly kind: "ONLINE"; candidate: OnlineFoodLookupCandidate };
 
 type IngredientQuantityKind = "GRAMS" | "MILLILITRES" | "MEASURE" | "SAVED_SERVING";
 
@@ -29,7 +31,9 @@ function componentUnitLabel(component: SavedMealComponentRecord): string {
 }
 
 function choiceLabel(choice: RecipeFoodChoice): string {
-  return choice.kind === "CUSTOM" ? choice.food.name : choice.food.foodName;
+  if (choice.kind === "CUSTOM") return choice.food.name;
+  if (choice.kind === "ONLINE") return choice.candidate.name;
+  return choice.food.foodName;
 }
 
 export function MealEditScreen() {
@@ -41,6 +45,7 @@ export function MealEditScreen() {
   const [customFoods, setCustomFoods] = useState<CustomFoodRecord[]>([]);
   const [ingredientQuery, setIngredientQuery] = useState("");
   const [officialResults, setOfficialResults] = useState<FoodSearchResult[]>([]);
+  const [onlineLookup, setOnlineLookup] = useState<{ status: "idle" | "loading" | "ready" | "unavailable"; candidates: readonly OnlineFoodLookupCandidate[] }>({ status: "idle", candidates: [] });
   const [selectedFood, setSelectedFood] = useState<RecipeFoodChoice | null>(null);
   const [quantityKind, setQuantityKind] = useState<IngredientQuantityKind>("GRAMS");
   const [quantity, setQuantity] = useState("");
@@ -118,6 +123,10 @@ export function MealEditScreen() {
       setQuantityKind(choice.food.servingGrams ? "SAVED_SERVING" : "GRAMS");
       return;
     }
+    if (choice.kind === "ONLINE") {
+      setQuantityKind(choice.candidate.servingGrams !== null ? "SAVED_SERVING" : "GRAMS");
+      return;
+    }
 
     setQuantityKind("GRAMS");
     if (choice.food.sourceDataset === "AUSNUT_2023") {
@@ -139,9 +148,26 @@ export function MealEditScreen() {
     if (!query) return;
     setSearching(true);
     setError(null);
+    setOfficialResults([]);
+    setOnlineLookup({ status: "idle", candidates: [] });
     try {
       const response = await api.searchFoods(query);
-      setOfficialResults(response.results.slice(0, 8));
+      const official = response.results.slice(0, 8);
+      setOfficialResults(official);
+      const normalizedQuery = query.toLocaleLowerCase();
+      const hasSavedFoodMatch = customFoods.some((food) => food.name.toLocaleLowerCase().includes(normalizedQuery));
+      if (official.length > 0 || hasSavedFoodMatch) return;
+
+      setOnlineLookup({ status: "loading", candidates: [] });
+      try {
+        const online = await api.lookupFoodOnline(query);
+        setOnlineLookup({
+          status: online.unavailable || online.candidates.length === 0 ? "unavailable" : "ready",
+          candidates: online.candidates,
+        });
+      } catch {
+        setOnlineLookup({ status: "unavailable", candidates: [] });
+      }
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Could not search known foods.");
     } finally {
@@ -156,7 +182,36 @@ export function MealEditScreen() {
     setAdding(true);
     setError(null);
     try {
-      if (selectedFood.kind === "CUSTOM") {
+      if (selectedFood.kind === "ONLINE") {
+        const candidate = selectedFood.candidate;
+        const servingGrams = Number(candidate.servingGrams);
+        const grams = quantityKind === "SAVED_SERVING" ? amount * servingGrams : amount;
+        if (!Number.isFinite(grams) || grams <= 0) {
+          throw new Error("This online result needs a serving weight before it can be added by serving. Choose grams instead.");
+        }
+        const saved = await api.createCustomFood({
+          foodType: "ONLINE_CONFIRMED",
+          name: candidate.name,
+          brand: candidate.brand,
+          servingDescription: candidate.servingDescription,
+          servingGrams: candidate.servingGrams,
+          carbohydratePerServingGrams: candidate.carbohydratePerServingGrams,
+          carbohydratePer100gGrams: candidate.carbohydratePer100gGrams,
+          sourceName: "Open Food Facts (community-contributed)",
+          sourceReference: candidate.sourceUrl,
+          sourceRetrievedAt: candidate.sourceRetrievedAt,
+        });
+        const label = quantityKind === "SAVED_SERVING"
+          ? `${candidate.name} (${amount} × ${candidate.servingDescription ?? "serving"})`
+          : candidate.name;
+        await api.addMealComponent(id, {
+          componentSource: "CUSTOM",
+          customFoodId: saved.id,
+          label,
+          quantityKind: "GRAMS",
+          quantityGrams: grams,
+        });
+      } else if (selectedFood.kind === "CUSTOM") {
         const servingGrams = Number(selectedFood.food.servingGrams);
         const grams = quantityKind === "SAVED_SERVING" ? amount * servingGrams : amount;
         if (!Number.isFinite(grams) || grams <= 0) {
@@ -212,6 +267,7 @@ export function MealEditScreen() {
       setMeasures([]);
       setIngredientQuery("");
       setOfficialResults([]);
+      setOnlineLookup({ status: "idle", candidates: [] });
       load();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : err instanceof Error ? err.message : "Could not add ingredient.");
@@ -227,6 +283,7 @@ export function MealEditScreen() {
   const officialCanUseMillilitres = selectedFood?.kind === "OFFICIAL" && selectedFood.food.sourceDataset === "AFCD_RELEASE_3" && selectedFood.food.hasMillilitreData;
   const officialCanUseMeasures = selectedFood?.kind === "OFFICIAL" && selectedFood.food.sourceDataset === "AUSNUT_2023" && measures.length > 0;
   const selectedCustomHasServing = selectedFood?.kind === "CUSTOM" && Boolean(selectedFood.food.servingGrams);
+  const selectedOnlineHasServing = selectedFood?.kind === "ONLINE" && selectedFood.candidate.servingGrams !== null;
   const commonMeasures = measures.filter((measure) => /\b(serving|scoop|cup|tablespoon|tbsp|teaspoon|tsp|slice|piece|each|medium|small|large|unit)\b/i.test(measure.measureDescription));
   const additionalMeasures = measures.filter((measure) => !commonMeasures.some((common) => common.measureId === measure.measureId));
   const chooseQuantityKind = (kind: IngredientQuantityKind, measureId = "") => {
@@ -277,7 +334,10 @@ export function MealEditScreen() {
             id="ingredient-search"
             placeholder="e.g. protein powder, avocado, banana or coconut water"
             value={ingredientQuery}
-            onChange={(event) => setIngredientQuery(event.target.value)}
+            onChange={(event) => {
+              setIngredientQuery(event.target.value);
+              setOnlineLookup({ status: "idle", candidates: [] });
+            }}
             onKeyDown={(event) => {
               if (event.key === "Enter") {
                 event.preventDefault();
@@ -300,12 +360,27 @@ export function MealEditScreen() {
             return <button className="result-item" type="button" key={`${food.sourceDataset}-${food.sourceFoodId}`} onClick={() => void selectIngredient(choice)}>Australian food data · {food.foodName}</button>;
           })}
         </div> : null}
+        {onlineLookup.status === "loading" ? <p className="muted" style={{ marginTop: "0.75rem" }}>No local match. Looking online for a possible product — nothing will be added unless you choose it.</p> : null}
+        {onlineLookup.status === "ready" ? <div className="card" style={{ marginTop: "0.75rem" }}>
+          <strong>Possible online matches</strong>
+          <p className="muted">Community-contributed data. Check the product and carbohydrate basis before adding it to this recipe.</p>
+          <div className="clarification-prompt__choices">
+            {onlineLookup.candidates.map((candidate) => {
+              const basis = candidate.carbohydratePerServingGrams !== null && candidate.servingDescription
+                ? `${candidate.carbohydratePerServingGrams} g carb per ${candidate.servingDescription}`
+                : `${candidate.carbohydratePer100gGrams} g carb per 100 g`;
+              const choice: RecipeFoodChoice = { kind: "ONLINE", candidate };
+              return <button className="btn-secondary" type="button" key={candidate.productCode} onClick={() => void selectIngredient(choice)}>Use {candidate.name}{candidate.brand ? ` — ${candidate.brand}` : ""} ({basis})</button>;
+            })}
+          </div>
+        </div> : null}
+        {onlineLookup.status === "unavailable" ? <div className="banner banner-warning" style={{ marginTop: "0.75rem" }}>I can’t find “{ingredientQuery.trim()}” in your foods or online right now. Try a brand, the full product name, or add its packet-label details as a custom food. Your recipe is still open and unchanged.</div> : null}
 
         {selectedFood ? <div className="card" style={{ marginTop: "0.75rem" }}>
           <strong>{choiceLabel(selectedFood)}</strong>
           <p className="muted">Choose the amount basis first. Only measures supplied for this known food are offered; no conversion is guessed.</p>
           <div className="clarification-prompt__choices" aria-label="Ingredient amount basis">
-            {selectedCustomHasServing ? <button className="btn-secondary" type="button" onClick={() => chooseQuantityKind("SAVED_SERVING")} style={quantityKind === "SAVED_SERVING" ? { borderColor: "var(--accent)" } : undefined}>Serving ({selectedFood.kind === "CUSTOM" ? selectedFood.food.servingDescription ?? "saved serving" : "saved serving"})</button> : null}
+            {selectedCustomHasServing || selectedOnlineHasServing ? <button className="btn-secondary" type="button" onClick={() => chooseQuantityKind("SAVED_SERVING")} style={quantityKind === "SAVED_SERVING" ? { borderColor: "var(--accent)" } : undefined}>Serving ({selectedFood.kind === "CUSTOM" ? selectedFood.food.servingDescription ?? "saved serving" : selectedFood.kind === "ONLINE" ? selectedFood.candidate.servingDescription ?? "serving" : "saved serving"})</button> : null}
             <button className="btn-secondary" type="button" onClick={() => chooseQuantityKind("GRAMS")} style={quantityKind === "GRAMS" ? { borderColor: "var(--accent)" } : undefined}>g</button>
             {officialCanUseMillilitres ? <button className="btn-secondary" type="button" onClick={() => chooseQuantityKind("MILLILITRES")} style={quantityKind === "MILLILITRES" ? { borderColor: "var(--accent)" } : undefined}>mL</button> : null}
             {officialCanUseMeasures ? commonMeasures.map((measure) => <button key={measure.measureId} className="btn-secondary" type="button" onClick={() => chooseQuantityKind("MEASURE", measure.measureId)} style={quantityKind === "MEASURE" && selectedMeasureId === measure.measureId ? { borderColor: "var(--accent)" } : undefined}>{measure.measureDescription}</button>) : null}
