@@ -44,6 +44,13 @@ function spansForText(text: string, fragments: readonly string[]): Array<{ start
   });
 }
 
+/** A food can be offered an online lookup only when the local resolver found
+ * no candidate at all and no carbohydrate amount is available. This avoids
+ * mistaking parser-side quantity statuses for resolver-side match outcomes. */
+export function requiresOnlineFoodLookup(component: ResolvedFoodComponent): boolean {
+  return component.component.quantityNeededForCalculation && component.bestMatch === null && component.carbohydrateGrams === null;
+}
+
 /** Every parsed value stays editable and remains a reviewable draft until the
  * explicit hand-off to glucose entry. This component never calculates a dose. */
 export function NaturalLanguageReviewScreen() {
@@ -115,7 +122,7 @@ export function NaturalLanguageReviewScreen() {
     const requests = resolvedComponents
       .map((component, index) => ({ component, index }))
       .filter(({ component, index }) =>
-        component.matchStatus === "unmatched" &&
+        requiresOnlineFoodLookup(component) &&
         !/\bsubway\b/i.test(component.component.phrase) &&
         !onlineLookupByIndex[index],
       );
@@ -341,7 +348,7 @@ export function NaturalLanguageReviewScreen() {
   );
   const onlineQuestionIndexes = new Set(
     resolvedComponents.flatMap((component, index) =>
-      component.matchStatus === "unmatched" && component.carbohydrateGrams === null && !brandedQuestionIndexes.has(index) ? [index] : [],
+      requiresOnlineFoodLookup(component) && !brandedQuestionIndexes.has(index) ? [index] : [],
     ),
   );
   const blockingClarifications = clarifications.filter(
