@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Screen } from "../components/Screen.js";
 
 export interface SettingsDraft {
@@ -33,6 +33,10 @@ const EMPTY: SettingsDraft = {
 export function SettingsScreen() {
   const [draft, setDraft] = useState<SettingsDraft>(EMPTY);
   const navigate = useNavigate();
+  const location = useLocation();
+  const returnTo = typeof (location.state as { returnTo?: unknown } | null)?.returnTo === "string"
+    ? (location.state as { returnTo: string }).returnTo
+    : undefined;
 
   const set = <K extends keyof SettingsDraft>(key: K, value: SettingsDraft[K]) =>
     setDraft((prev) => ({ ...prev, [key]: value }));
@@ -47,10 +51,11 @@ export function SettingsScreen() {
         These values are patient-entered values copied from a current clinician-approved report or treatment plan.
         This app does not suggest, derive, or recommend any of these values.
       </div>
+      {returnTo ? <p className="muted">After you review and explicitly save these clinician-approved baseline values, you will return to the calculator.</p> : null}
       <form
         onSubmit={(event) => {
           event.preventDefault();
-          navigate("/settings/confirm", { state: draft });
+          navigate("/settings/confirm", { state: { ...draft, returnTo } });
         }}
       >
         <div className="field">

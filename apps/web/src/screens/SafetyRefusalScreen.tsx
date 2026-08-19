@@ -28,6 +28,10 @@ export function SafetyRefusalScreen() {
   }
 
   const followSafeNextStep = () => {
+    if (result.refusalCode === "NO_ACTIVE_CONFIGURATION") {
+      navigate("/settings", { state: { returnTo: "/glucose-entry" } });
+      return;
+    }
     reset();
     navigate("/");
   };
@@ -40,7 +44,7 @@ export function SafetyRefusalScreen() {
         head={<RefusalAperture userFacingMessage={result.userFacingMessage} />}
         footer={
           <button className="btn-primary" type="button" onClick={followSafeNextStep}>
-            {result.safeNextStep}
+            {result.refusalCode === "NO_ACTIVE_CONFIGURATION" ? "Set up clinician baseline" : result.safeNextStep}
           </button>
         }
       >

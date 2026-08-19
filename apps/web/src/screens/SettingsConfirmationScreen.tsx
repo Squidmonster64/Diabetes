@@ -7,7 +7,21 @@ import type { SettingsDraft } from "./SettingsScreen.js";
 export function SettingsConfirmationScreen() {
   const location = useLocation();
   const navigate = useNavigate();
-  const draft = location.state as SettingsDraft | undefined;
+  const state = location.state as (SettingsDraft & { returnTo?: string }) | undefined;
+  const draft = state ? {
+    icr: state.icr,
+    isf: state.isf,
+    targetGlucose: state.targetGlucose,
+    insulinDurationHours: state.insulinDurationHours,
+    doseIncrementUnits: state.doseIncrementUnits,
+    maximumDoseUnits: state.maximumDoseUnits,
+    lowGlucoseThreshold: state.lowGlucoseThreshold,
+    glucoseUnit: state.glucoseUnit,
+    insulinDurationEntrySource: state.insulinDurationEntrySource,
+    insulinDurationSourceDate: state.insulinDurationSourceDate,
+    insulinDurationSourceReference: state.insulinDurationSourceReference,
+  } satisfies SettingsDraft : undefined;
+  const returnTo = typeof state?.returnTo === "string" && state.returnTo.startsWith("/") ? state.returnTo : undefined;
   const [accepted, setAccepted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -42,7 +56,7 @@ export function SettingsConfirmationScreen() {
         insulinDurationSourceReference: draft.insulinDurationSourceReference || undefined,
         insulinDurationPatientConfirmedAccurate: true,
       });
-      navigate("/settings/history");
+      navigate(returnTo ?? "/settings/history");
     } catch (err) {
       if (err instanceof ApiError) setError(err.message);
       else setError(err instanceof Error ? err.message : "Could not save settings.");

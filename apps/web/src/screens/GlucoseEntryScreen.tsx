@@ -54,6 +54,7 @@ export function GlucoseEntryScreen() {
   const [situations, setSituations] = useState<Set<string>>(new Set(glucoseEntry?.specialSituations ?? []));
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [baselineStatus, setBaselineStatus] = useState<"checking" | "ready" | "missing" | "unavailable">("checking");
 
   useEffect(() => {
     api
@@ -61,9 +62,11 @@ export function GlucoseEntryScreen() {
       .then((settings) => {
         const unit = (settings as { glucoseUnit?: "MMOL_L" | "MG_DL" }).glucoseUnit;
         if (unit) setGlucoseUnit(unit);
+        setBaselineStatus("ready");
       })
-      .catch(() => {
-        // No active settings yet - fall through and let the calculation refuse with a clear message.
+      .catch((err) => {
+        if (err instanceof ApiError && err.code === "NO_ACTIVE_CONFIGURATION") setBaselineStatus("missing");
+        else setBaselineStatus("unavailable");
       });
   }, []);
 
@@ -82,6 +85,15 @@ export function GlucoseEntryScreen() {
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     setError(null);
+    if (baselineStatus === "missing") {
+      navigate("/settings", { state: { returnTo: "/glucose-entry" } });
+      return;
+    }
+    if (baselineStatus === "unavailable") {
+      setError("Your clinician baseline settings could not be checked. Please retry, or review the settings connection before requesting a preview.");
+      return;
+    }
+    if (baselineStatus === "checking") return;
     setSubmitting(true);
     try {
       const nowTs = nowIso();
@@ -136,6 +148,9 @@ export function GlucoseEntryScreen() {
         <div className="banner banner-warning">
           This calculator provides a check, not medical advice. Please verify your glucose, carbohydrate amount, and recent insulin history before requesting a preview.
         </div>
+        {baselineStatus === "checking" ? <div className="banner banner-warning">Checking your clinician baseline settings…</div> : null}
+        {baselineStatus === "missing" ? <div className="banner banner-warning">Before the first preview, enter the values copied from your current clinician-approved plan. This one-time setup does not create, infer, or recommend any insulin settings.</div> : null}
+        {baselineStatus === "unavailable" ? <div className="banner banner-danger">Baseline settings could not be checked. A preview will not be requested until that connection is restored.</div> : null}
 
         <div className="card">
           <div className="muted">Carbohydrate confirmed</div>
@@ -239,8 +254,8 @@ export function GlucoseEntryScreen() {
 
         {error ? <div className="banner banner-danger">{error}</div> : null}
 
-        <button className="btn-primary" type="submit" disabled={submitting}>
-          {submitting ? "Calculating…" : "Calculate bolus preview"}
+        <button className="btn-primary" type="submit" disabled={submitting || baselineStatus === "checking" || baselineStatus === "unavailable"}>
+          {submitting ? "Calculating…" : baselineStatus === "missing" ? "Set up clinician baseline" : "Calculate bolus preview"}
         </button>
       </form>
     </Screen>

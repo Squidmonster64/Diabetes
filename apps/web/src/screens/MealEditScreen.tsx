@@ -224,9 +224,16 @@ export function MealEditScreen() {
     return <Screen title="Edit recipe"><p className="muted">Loading…</p></Screen>;
   }
 
-  const officialCanUseMillilitres = selectedFood?.kind === "OFFICIAL" && selectedFood.food.sourceDataset === "AFCD_RELEASE_3";
+  const officialCanUseMillilitres = selectedFood?.kind === "OFFICIAL" && selectedFood.food.sourceDataset === "AFCD_RELEASE_3" && selectedFood.food.hasMillilitreData;
   const officialCanUseMeasures = selectedFood?.kind === "OFFICIAL" && selectedFood.food.sourceDataset === "AUSNUT_2023" && measures.length > 0;
   const selectedCustomHasServing = selectedFood?.kind === "CUSTOM" && Boolean(selectedFood.food.servingGrams);
+  const commonMeasures = measures.filter((measure) => /\b(serving|scoop|cup|tablespoon|tbsp|teaspoon|tsp|slice|piece|each|medium|small|large|unit)\b/i.test(measure.measureDescription));
+  const additionalMeasures = measures.filter((measure) => !commonMeasures.some((common) => common.measureId === measure.measureId));
+  const chooseQuantityKind = (kind: IngredientQuantityKind, measureId = "") => {
+    setQuantityKind(kind);
+    setSelectedMeasureId(measureId);
+    if ((kind === "SAVED_SERVING" || kind === "MEASURE") && !quantity) setQuantity("1");
+  };
 
   return (
     <Screen title="Edit recipe">
@@ -296,24 +303,21 @@ export function MealEditScreen() {
 
         {selectedFood ? <div className="card" style={{ marginTop: "0.75rem" }}>
           <strong>{choiceLabel(selectedFood)}</strong>
-          <div className="field">
-            <label htmlFor="ingredient-unit">Amount type</label>
-            <select id="ingredient-unit" value={quantityKind} onChange={(event) => setQuantityKind(event.target.value as IngredientQuantityKind)}>
-              <option value="GRAMS">grams</option>
-              {selectedCustomHasServing ? <option value="SAVED_SERVING">saved serving ({selectedFood.kind === "CUSTOM" ? selectedFood.food.servingDescription ?? "serving" : "serving"})</option> : null}
-              {officialCanUseMillilitres ? <option value="MILLILITRES">millilitres</option> : null}
-              {officialCanUseMeasures ? <option value="MEASURE">database measure</option> : null}
-            </select>
+          <p className="muted">Choose the amount basis first. Only measures supplied for this known food are offered; no conversion is guessed.</p>
+          <div className="clarification-prompt__choices" aria-label="Ingredient amount basis">
+            {selectedCustomHasServing ? <button className="btn-secondary" type="button" onClick={() => chooseQuantityKind("SAVED_SERVING")} style={quantityKind === "SAVED_SERVING" ? { borderColor: "var(--accent)" } : undefined}>Serving ({selectedFood.kind === "CUSTOM" ? selectedFood.food.servingDescription ?? "saved serving" : "saved serving"})</button> : null}
+            <button className="btn-secondary" type="button" onClick={() => chooseQuantityKind("GRAMS")} style={quantityKind === "GRAMS" ? { borderColor: "var(--accent)" } : undefined}>g</button>
+            {officialCanUseMillilitres ? <button className="btn-secondary" type="button" onClick={() => chooseQuantityKind("MILLILITRES")} style={quantityKind === "MILLILITRES" ? { borderColor: "var(--accent)" } : undefined}>mL</button> : null}
+            {officialCanUseMeasures ? commonMeasures.map((measure) => <button key={measure.measureId} className="btn-secondary" type="button" onClick={() => chooseQuantityKind("MEASURE", measure.measureId)} style={quantityKind === "MEASURE" && selectedMeasureId === measure.measureId ? { borderColor: "var(--accent)" } : undefined}>{measure.measureDescription}</button>) : null}
           </div>
-          {quantityKind === "MEASURE" ? <div className="field">
-            <label htmlFor="ingredient-measure">Database measure</label>
-            <select id="ingredient-measure" value={selectedMeasureId} onChange={(event) => setSelectedMeasureId(event.target.value)}>
-              <option value="">Choose a measure</option>
-              {measures.map((measure) => <option key={measure.measureId} value={measure.measureId}>{measure.measureDescription}</option>)}
-            </select>
-          </div> : null}
+          {officialCanUseMeasures && additionalMeasures.length > 0 ? <details style={{ marginTop: "0.75rem" }}>
+            <summary className="muted">More database measures</summary>
+            <div className="clarification-prompt__choices">
+              {additionalMeasures.map((measure) => <button key={measure.measureId} className="btn-secondary" type="button" onClick={() => chooseQuantityKind("MEASURE", measure.measureId)} style={quantityKind === "MEASURE" && selectedMeasureId === measure.measureId ? { borderColor: "var(--accent)" } : undefined}>{measure.measureDescription}</button>)}
+            </div>
+          </details> : null}
           <div className="field">
-            <label htmlFor="ingredient-quantity">How many {quantityKind === "MILLILITRES" ? "mL" : quantityKind === "SAVED_SERVING" ? "servings" : quantityKind === "MEASURE" ? "measures" : "grams"}?</label>
+            <label htmlFor="ingredient-quantity">How many {quantityKind === "MILLILITRES" ? "mL" : quantityKind === "SAVED_SERVING" ? "servings" : quantityKind === "MEASURE" ? (measures.find((measure) => measure.measureId === selectedMeasureId)?.measureDescription ?? "measures") : "grams"}?</label>
             <input id="ingredient-quantity" type="number" inputMode="decimal" min="0" value={quantity} onChange={(event) => setQuantity(event.target.value)} />
           </div>
           <button className="btn-primary" type="button" onClick={() => void addIngredient()} disabled={adding || !quantity || (quantityKind === "MEASURE" && !selectedMeasureId)}>
