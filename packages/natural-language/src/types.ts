@@ -65,7 +65,7 @@ export interface InsulinExtraction {
   readonly concentratedInsulinAmbiguity: boolean;
 }
 
-export type FoodComponentQuantityKind = "GRAMS" | "MILLILITRES" | "COUNT" | "VAGUE" | "UNKNOWN";
+export type FoodComponentQuantityKind = "GRAMS" | "MILLILITRES" | "COUNT" | "SERVING" | "VAGUE" | "UNKNOWN";
 
 export interface FoodComponentExtraction {
   /** The food-name phrase, exactly as it should be used as a search term - never altered. */
@@ -74,6 +74,8 @@ export interface FoodComponentExtraction {
   readonly quantity: ExtractedValue<number>;
   readonly unit: ExtractedValue<string>;
   readonly quantityKind: FoodComponentQuantityKind;
+  /** Set only by the review UI after the user selects a concrete database measure for a SERVING phrase. */
+  readonly selectedServingMeasureId: string | null;
   /** A vague quantifier as stated ("a little", "some", "a bowl of"), if any. */
   readonly qualifier: string | null;
   readonly matchStatus: ExtractionStatus;

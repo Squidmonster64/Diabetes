@@ -1,5 +1,5 @@
 import { api } from "./apiClient.js";
-import type { CustomFoodRecord, FoodSearchResult } from "@diabetes-companion/food-contracts";
+import type { CustomFoodRecord, FoodMeasure, FoodSearchResult } from "@diabetes-companion/food-contracts";
 import type { FoodComponentExtraction } from "@diabetes-companion/natural-language";
 
 /**
@@ -36,6 +36,14 @@ export interface FoodMatchCandidate {
 
 export type FoodMatchStatus = "resolved" | "ambiguous" | "unmatched";
 
+export interface ServingMeasureOption {
+  readonly measureId: string;
+  readonly label: string;
+  readonly quantity: number;
+  readonly gramAmount: number | null;
+  readonly volumeMillilitres: number | null;
+}
+
 export interface ResolvedFoodComponent {
   readonly component: FoodComponentExtraction;
   readonly matchStatus: FoodMatchStatus;
@@ -44,6 +52,8 @@ export interface ResolvedFoodComponent {
   readonly alternates: readonly FoodMatchCandidate[];
   /** Null until a quantity has been confirmed and mapped onto this match's carbohydrate data. */
   readonly carbohydrateGrams: number | null;
+  /** Selectable database measures for a spoken serving phrase; never a guessed default. */
+  readonly servingMeasures: readonly ServingMeasureOption[];
   /** True whenever this component still needs the existing manual portion-selection screen. */
   readonly requiresManualPortion: boolean;
 }
@@ -102,41 +112,69 @@ const defaultDependencies: FoodMatchDependencies = {
   calculateCustomFoodCarbohydrate: api.calculateCustomFoodCarbohydrate,
 };
 
+function toServingMeasureOptions(measures: readonly FoodMeasure[]): ServingMeasureOption[] {
+  return measures
+    .filter((measure) => !DENSITY_MEASURE_PATTERN.test(measure.measureDescription) && (measure.gramAmount !== null || measure.volumeMillilitres !== null))
+    .map((measure) => ({
+      measureId: measure.measureId,
+      label: measure.measureDescription,
+      quantity: measure.quantity,
+      gramAmount: measure.gramAmount,
+      volumeMillilitres: measure.volumeMillilitres,
+    }));
+}
+
 async function computeCarbohydrate(
   component: FoodComponentExtraction,
   bestMatch: FoodMatchCandidate,
   customFoods: readonly CustomFoodRecord[],
   deps: FoodMatchDependencies,
-): Promise<{ carbohydrateGrams: number | null; requiresManualPortion: boolean }> {
+  selectedServingMeasureId: string | null,
+): Promise<{ carbohydrateGrams: number | null; requiresManualPortion: boolean; servingMeasures: readonly ServingMeasureOption[] }> {
   if (!component.quantityNeededForCalculation) {
     // A negligible-carbohydrate food with no stated quantity at all (e.g. "ham") -
     // its amount would not materially change the total, so it contributes zero
     // rather than the app guessing a portion size.
-    return { carbohydrateGrams: 0, requiresManualPortion: false };
+    return { carbohydrateGrams: 0, requiresManualPortion: false, servingMeasures: [] };
   }
 
   const quantity = component.quantity.value;
-  if (quantity === null) return { carbohydrateGrams: null, requiresManualPortion: true };
+  if (quantity === null) return { carbohydrateGrams: null, requiresManualPortion: true, servingMeasures: [] };
 
   try {
     if (bestMatch.source === "CUSTOM") {
       const food = customFoods.find((candidate) => candidate.id === bestMatch.customFoodId);
-      if (!food) return { carbohydrateGrams: null, requiresManualPortion: true };
+      if (!food) return { carbohydrateGrams: null, requiresManualPortion: true, servingMeasures: [] };
 
       if (component.quantityKind === "GRAMS") {
         const result = await deps.calculateCustomFoodCarbohydrate(food.id, quantity);
-        return { carbohydrateGrams: result.carbohydrateGrams, requiresManualPortion: false };
+        return { carbohydrateGrams: result.carbohydrateGrams, requiresManualPortion: false, servingMeasures: [] };
       }
       if (component.quantityKind === "COUNT" && food.servingGrams) {
         const grams = Number(food.servingGrams) * quantity;
         const result = await deps.calculateCustomFoodCarbohydrate(food.id, grams);
-        return { carbohydrateGrams: result.carbohydrateGrams, requiresManualPortion: false };
+        return { carbohydrateGrams: result.carbohydrateGrams, requiresManualPortion: false, servingMeasures: [] };
       }
-      return { carbohydrateGrams: null, requiresManualPortion: true };
+      return { carbohydrateGrams: null, requiresManualPortion: true, servingMeasures: [] };
     }
 
     if (!bestMatch.sourceDataset || !bestMatch.sourceFoodId) {
-      return { carbohydrateGrams: null, requiresManualPortion: true };
+      return { carbohydrateGrams: null, requiresManualPortion: true, servingMeasures: [] };
+    }
+
+    if (component.quantityKind === "SERVING") {
+      const { measures } = await deps.getMeasures(bestMatch.sourceDataset, bestMatch.sourceFoodId);
+      const servingMeasures = toServingMeasureOptions(measures);
+      const selectedMeasure = selectedServingMeasureId ? servingMeasures.find((measure) => measure.measureId === selectedServingMeasureId) : null;
+      if (!selectedMeasure) return { carbohydrateGrams: null, requiresManualPortion: true, servingMeasures };
+      const result = await deps.calculateCarbohydrate({
+        sourceDataset: bestMatch.sourceDataset,
+        sourceFoodId: bestMatch.sourceFoodId,
+        kind: "MEASURE",
+        measureId: selectedMeasure.measureId,
+        measureMultiplier: quantity,
+      });
+      return { carbohydrateGrams: result.carbohydrateGrams, requiresManualPortion: false, servingMeasures };
     }
 
     if (component.quantityKind === "GRAMS") {
@@ -146,7 +184,7 @@ async function computeCarbohydrate(
         kind: "GRAMS",
         grams: quantity,
       });
-      return { carbohydrateGrams: result.carbohydrateGrams, requiresManualPortion: false };
+      return { carbohydrateGrams: result.carbohydrateGrams, requiresManualPortion: false, servingMeasures: [] };
     }
 
     if (component.quantityKind === "MILLILITRES") {
@@ -156,7 +194,7 @@ async function computeCarbohydrate(
         kind: "MILLILITRES",
         millilitres: quantity,
       });
-      return { carbohydrateGrams: result.carbohydrateGrams, requiresManualPortion: false };
+      return { carbohydrateGrams: result.carbohydrateGrams, requiresManualPortion: false, servingMeasures: [] };
     }
 
     if (component.quantityKind === "COUNT") {
@@ -176,16 +214,16 @@ async function computeCarbohydrate(
           measureId: perUnitMeasure.measureId,
           measureMultiplier: quantity,
         });
-        return { carbohydrateGrams: result.carbohydrateGrams, requiresManualPortion: false };
+        return { carbohydrateGrams: result.carbohydrateGrams, requiresManualPortion: false, servingMeasures: [] };
       }
     }
 
-    return { carbohydrateGrams: null, requiresManualPortion: true };
+    return { carbohydrateGrams: null, requiresManualPortion: true, servingMeasures: [] };
   } catch {
     // Any calculation failure (e.g. no carbohydrate data for this food) falls
     // back to the existing manual portion-selection screen rather than
     // silently reporting zero or a guessed value.
-    return { carbohydrateGrams: null, requiresManualPortion: true };
+    return { carbohydrateGrams: null, requiresManualPortion: true, servingMeasures: [] };
   }
 }
 
@@ -199,6 +237,7 @@ async function computeCarbohydrate(
 export async function resolveFoodComponent(
   component: FoodComponentExtraction,
   deps: FoodMatchDependencies = defaultDependencies,
+  selectedServingMeasureId: string | null = null,
 ): Promise<ResolvedFoodComponent> {
   const [searchResponse, customFoodsResponse] = await Promise.all([
     deps.searchFoods(component.phrase).catch(() => ({ results: [] as FoodSearchResult[], totalMatches: 0 })),
@@ -245,21 +284,22 @@ export async function resolveFoodComponent(
   const alternates = candidates.slice(1, 3);
 
   if (!bestMatch) {
-    return { component, matchStatus: "unmatched", bestMatch: null, alternates: [], carbohydrateGrams: null, requiresManualPortion: true };
+    return { component, matchStatus: "unmatched", bestMatch: null, alternates: [], carbohydrateGrams: null, servingMeasures: [], requiresManualPortion: true };
   }
 
   const matchStatus: FoodMatchStatus = bestMatch.confidence >= AUTO_ACCEPT_CONFIDENCE ? "resolved" : "ambiguous";
 
   if (matchStatus !== "resolved") {
-    return { component, matchStatus, bestMatch, alternates, carbohydrateGrams: null, requiresManualPortion: true };
+    return { component, matchStatus, bestMatch, alternates, carbohydrateGrams: null, servingMeasures: [], requiresManualPortion: true };
   }
 
-  const { carbohydrateGrams, requiresManualPortion } = await computeCarbohydrate(
+  const { carbohydrateGrams, requiresManualPortion, servingMeasures } = await computeCarbohydrate(
     component,
     bestMatch,
     customFoodsResponse.foods,
     deps,
+    selectedServingMeasureId,
   );
 
-  return { component, matchStatus, bestMatch, alternates, carbohydrateGrams, requiresManualPortion };
+  return { component, matchStatus, bestMatch, alternates, carbohydrateGrams, servingMeasures, requiresManualPortion };
 }

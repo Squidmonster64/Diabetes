@@ -28,6 +28,14 @@ function foodClarification(component: FoodComponentExtraction, index: number, co
     return { field: `${field}.quantity`, question, blocking: true };
   }
 
+  if (component.quantityKind === "SERVING" && !component.selectedServingMeasureId) {
+    return {
+      field: `${field}.serving`,
+      question: `Choose the serving size for ${component.phrase} from the food database.`,
+      blocking: true,
+    };
+  }
+
   if (component.matchStatus === "requires_review" && component.qualifier) {
     return {
       field: `${field}.quantity`,
@@ -56,6 +64,14 @@ export function generateClarifications(event: Pick<ProvisionalEvent, "glucose" |
     });
   }
 
+  if (event.glucose?.value.status === "requires_review") {
+    clarifications.push({
+      field: "glucose.value",
+      question: "Please verify or edit the glucose value we understood before continuing.",
+      blocking: true,
+    });
+  }
+
   if (event.recentInsulin) {
     const insulin = event.recentInsulin;
 
@@ -72,6 +88,12 @@ export function generateClarifications(event: Pick<ProvisionalEvent, "glucose" |
       clarifications.push({
         field: "recentInsulin.takenAt",
         question: "When did you take that insulin?",
+        blocking: true,
+      });
+    } else if (insulin.takenAt.status === "requires_review") {
+      clarifications.push({
+        field: "recentInsulin.takenAt",
+        question: `Please enter the exact insulin time; "${insulin.takenAt.rawSpan}" is not precise enough for calculation.`,
         blocking: true,
       });
     }

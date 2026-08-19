@@ -9,6 +9,7 @@ function component(overrides: Partial<FoodComponentExtraction> = {}): FoodCompon
     quantity: { rawSpan: "two", value: 2, confidence: 0.85, status: "provisional", requiresConfirmation: true },
     unit: { rawSpan: "slices", value: "slices", confidence: 0.85, status: "provisional", requiresConfirmation: true },
     quantityKind: "COUNT",
+    selectedServingMeasureId: null,
     qualifier: null,
     matchStatus: "provisional",
     quantityNeededForCalculation: true,
@@ -295,3 +296,59 @@ describe("resolveFoodComponent", () => {
     expect(result.requiresManualPortion).toBe(true);
     expect(deps.calculateCarbohydrate).not.toHaveBeenCalled();
   });
+
+
+describe("spoken serving resolution", () => {
+  it("lists usable database measures without calculating until one is explicitly selected", async () => {
+    const deps = baseDeps({
+      searchFoods: vi.fn().mockResolvedValue({
+        results: [
+          {
+            sourceDataset: "AUSNUT_2023",
+            sourceFoodId: "rice-1",
+            publicFoodKey: "rice-1",
+            foodName: "Rice, cooked",
+            foodDescription: null,
+            classification: null,
+            matchType: "EXACT",
+            rank: 1,
+            hasGramData: true,
+            hasMillilitreData: false,
+          },
+        ],
+        totalMatches: 1,
+      }),
+      getMeasures: vi.fn().mockResolvedValue({
+        measures: [
+          { measureId: "density", measureDescription: "1 density", quantity: 1, gramAmount: 0.8, volumeMillilitres: null },
+          { measureId: "cup", measureDescription: "1 cup cooked", quantity: 1, gramAmount: 150, volumeMillilitres: null },
+        ],
+      }),
+      calculateCarbohydrate: vi.fn().mockResolvedValue({ carbohydrateGrams: 42 }),
+    });
+    const serving = component({
+      phrase: "rice",
+      rawSpan: "a serving of rice",
+      quantity: { rawSpan: "a serving", value: 1, confidence: 0.85, status: "provisional", requiresConfirmation: true },
+      unit: { rawSpan: "serving", value: "serving", confidence: 0.85, status: "provisional", requiresConfirmation: true },
+      quantityKind: "SERVING",
+      selectedServingMeasureId: null,
+      matchStatus: "requires_review",
+    });
+
+    const unresolved = await resolveFoodComponent(serving, deps);
+    expect(unresolved.carbohydrateGrams).toBeNull();
+    expect(unresolved.requiresManualPortion).toBe(true);
+    expect(unresolved.servingMeasures).toEqual([
+      expect.objectContaining({ measureId: "cup", label: "1 cup cooked", gramAmount: 150 }),
+    ]);
+    expect(deps.calculateCarbohydrate).not.toHaveBeenCalled();
+
+    const selected = await resolveFoodComponent({ ...serving, selectedServingMeasureId: "cup", matchStatus: "provisional" }, deps, "cup");
+    expect(selected.carbohydrateGrams).toBe(42);
+    expect(selected.requiresManualPortion).toBe(false);
+    expect(deps.calculateCarbohydrate).toHaveBeenCalledWith(
+      expect.objectContaining({ kind: "MEASURE", measureId: "cup", measureMultiplier: 1 }),
+    );
+  });
+});

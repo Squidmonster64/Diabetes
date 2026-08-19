@@ -29,7 +29,13 @@ const NEGLIGIBLE_CARB_FOODS = [
 
 /** "a little", "some", "a bowl of", "a glass of", "a handful of", "a splash of" - vague, non-numeric quantifiers. */
 const VAGUE_QUALIFIER_PATTERN =
-  /\b(a\s+little|some|a\s+bit\s+of|a\s+bowl\s+of|a\s+glass\s+of|a\s+handful\s+of|a\s+hand\s+of|a\s+splash\s+of|a\s+cup\s+of)\b/i;
+  /\b(a\s+little|some|a\s+few|a\s+bit\s+of|a\s+bowl\s+of|a\s+glass\s+of|a\s+handful\s+of|a\s+hand\s+of|a\s+splash\s+of|a\s+cup\s+of)\b/i;
+
+/** Exact colloquial counts are deterministic; only "a few" remains intentionally vague. */
+const COLLOQUIAL_COUNT_PATTERN = /^(?:(?:a\s+)?(couple|pair|dozen)(?:\s+of)?|(both))\s+(.+)$/i;
+const COLLOQUIAL_COUNT_VALUES: Record<string, number> = { couple: 2, pair: 2, both: 2, dozen: 12 };
+/** A serving names an intent, not a numeric portion. A database measure must be selected in review. */
+const SERVING_PATTERN = /^(?:a|an|one)\s+(?:serving|portion|helping)\s+of\s+(.+)$/i;
 
 /** "sandwich"/"wrap"/"burger"/"roll" as a container noun implies its named filling is the real food component. */
 const CONTAINER_NOUN_PATTERN = /\b(?:a|an)\s+([a-z]+)\s+(sandwich|wrap|burger|roll)\b/i;
@@ -42,9 +48,26 @@ const CONTAINER_NOUN_PATTERN = /\b(?:a|an)\s+([a-z]+)\s+(sandwich|wrap|burger|ro
  * which still correctly blocks for a carbohydrate-relevant food like
  * bread), not to a bogus food literally named "meal of bread".
  */
-const MEAL_FILLER_LEAD_IN_PATTERN = /^(?:a|an|the)?\s*(?:meal|plate|serving|portion|helping)\s+of\s+/i;
+const MEAL_FILLER_LEAD_IN_PATTERN = /^(?:a|an|the)?\s*(?:meal|plate)\s+of\s+/i;
 
-const COUNTABLE_UNIT_WORDS = ["slice", "slices", "piece", "pieces", "cup", "cups"];
+const COUNTABLE_UNIT_WORDS = [
+  "slice",
+  "slices",
+  "piece",
+  "pieces",
+  "cup",
+  "cups",
+  "biscuit",
+  "biscuits",
+  "cookie",
+  "cookies",
+  "cracker",
+  "crackers",
+  "bar",
+  "bars",
+  "roll",
+  "rolls",
+];
 const VOLUME_UNIT_WORDS = ["ml", "millilitre", "millilitres"];
 const WEIGHT_UNIT_WORDS = ["gram", "grams", "g"];
 
@@ -64,7 +87,7 @@ const LEADING_UNIT_NO_OF_PATTERN = new RegExp(
 );
 
 /** Finds where a meal description starts within a larger, possibly multi-topic sentence. */
-const MEAL_TRIGGER_PATTERN = /\b(?:i(?:'m| am)?\s+)?(?:now\s+)?(?:eating|having|eat|have|ate)\b\s*/i;
+const MEAL_TRIGGER_PATTERN = /\b(?:i(?:'m| am)?\s+)?(?:now\s+|just\s+)?(?:eating|having|eat|ate|consumed|finished|drinking|drank)\b\s*|\b(?:i\s+)?(?:just\s+)?had(?=\s+(?:some|a|an|the|my)\b)\s*/i;
 
 function isNegligibleCarb(phrase: string): boolean {
   const normalisedPhrase = phrase.trim().toLowerCase();
@@ -85,11 +108,13 @@ function unitKindFor(unitWord: string | null): FoodComponentQuantityKind {
 function buildComponent(rawMention: string): FoodComponentExtraction {
   const mention = rawMention.trim().replace(MEAL_FILLER_LEAD_IN_PATTERN, "");
 
-  const withOf = mention.match(LEADING_QUANTITY_PATTERN);
-  const fractionOfUnit = !withOf ? mention.match(LEADING_FRACTION_OF_UNIT_PATTERN) : null;
-  const withUnitNoOf = !withOf && !fractionOfUnit ? mention.match(LEADING_UNIT_NO_OF_PATTERN) : null;
-  const bareCount = !withOf && !fractionOfUnit && !withUnitNoOf ? mention.match(LEADING_BARE_COUNT_PATTERN) : null;
-  const vagueMatch = mention.match(VAGUE_QUALIFIER_PATTERN);
+  const servingMatch = mention.match(SERVING_PATTERN);
+  const colloquialCount = !servingMatch ? mention.match(COLLOQUIAL_COUNT_PATTERN) : null;
+  const withOf = !servingMatch && !colloquialCount ? mention.match(LEADING_QUANTITY_PATTERN) : null;
+  const fractionOfUnit = !servingMatch && !colloquialCount && !withOf ? mention.match(LEADING_FRACTION_OF_UNIT_PATTERN) : null;
+  const withUnitNoOf = !servingMatch && !colloquialCount && !withOf && !fractionOfUnit ? mention.match(LEADING_UNIT_NO_OF_PATTERN) : null;
+  const bareCount = !servingMatch && !colloquialCount && !withOf && !fractionOfUnit && !withUnitNoOf ? mention.match(LEADING_BARE_COUNT_PATTERN) : null;
+  const vagueMatch = !servingMatch && !colloquialCount ? mention.match(VAGUE_QUALIFIER_PATTERN) : null;
   const containerMatch = mention.match(CONTAINER_NOUN_PATTERN);
 
   let phrase = mention;
@@ -98,7 +123,20 @@ function buildComponent(rawMention: string): FoodComponentExtraction {
   let unitWord: string | null = null;
   let rawSpan = mention;
 
-  if (withOf) {
+  if (servingMatch) {
+    quantityValue = 1;
+    unitWord = "serving";
+    phrase = servingMatch[1]!.trim();
+    quantityKind = "SERVING";
+    rawSpan = mention;
+  } else if (colloquialCount) {
+    const label = (colloquialCount[1] ?? colloquialCount[2] ?? "").toLowerCase();
+    quantityValue = COLLOQUIAL_COUNT_VALUES[label] ?? null;
+    unitWord = label === "pair" ? "pair" : label === "dozen" ? "dozen" : "items";
+    phrase = colloquialCount[3]!.trim();
+    quantityKind = "COUNT";
+    rawSpan = mention;
+  } else if (withOf) {
     quantityValue = parseQuantityToken(withOf[1]!);
     unitWord = withOf[2]!;
     phrase = withOf[3]!.trim();
@@ -156,7 +194,12 @@ function buildComponent(rawMention: string): FoodComponentExtraction {
   let matchStatus: FoodComponentExtraction["matchStatus"];
   let quantityNeededForCalculation: boolean;
 
-  if (qualifier) {
+  if (quantityKind === "SERVING") {
+    // The phrase identifies a serving intent but not which database measure.
+    // Do not translate it into grams or a default household portion here.
+    matchStatus = "requires_review";
+    quantityNeededForCalculation = true;
+  } else if (qualifier) {
     // A vague amount was explicitly stated - respect that the patient
     // quantified it, even loosely, and let them resolve it precisely.
     matchStatus = "requires_review";
@@ -182,6 +225,7 @@ function buildComponent(rawMention: string): FoodComponentExtraction {
     quantity,
     unit,
     quantityKind,
+    selectedServingMeasureId: null,
     qualifier,
     matchStatus,
     quantityNeededForCalculation,

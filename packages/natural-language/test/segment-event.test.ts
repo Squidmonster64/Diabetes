@@ -232,6 +232,7 @@ describe("acceptance test 13: no raw database records in extracted components", 
       "quantity",
       "unit",
       "quantityKind",
+      "selectedServingMeasureId",
       "qualifier",
       "matchStatus",
       "quantityNeededForCalculation",
@@ -363,5 +364,89 @@ describe("parsing guardrail library: quantities, units, and low-friction clarifi
     expect(questions).toHaveLength(1);
     expect(questions[0]?.question).toBe("How many slices of toast did you have?");
     expect(questions[0]?.blocking).toBe(true);
+  });
+});
+
+
+describe("spoken-language interpretation library: contextual recognition with review-gated uncertainty", () => {
+  it("recognises sugar, BGL, a spoken decimal, and an explicit-unit pronoun phrase as glucose candidates", () => {
+    const sugar = run("My sugar is eight point four.");
+    expect(sugar.glucose?.value.value).toBe(8.4);
+    expect(sugar.glucose?.unit.status).toBe("missing");
+
+    const bgl = run("My BGL is 180 mg/dl.");
+    expect(bgl.glucose?.value.value).toBe(180);
+    expect(bgl.glucose?.unit.value).toBe("MG_DL");
+
+    const pronoun = run("I'm at 5.4 mmol/l.");
+    expect(pronoun.glucose?.value.value).toBe(5.4);
+    expect(pronoun.glucose?.value.status).toBe("requires_review");
+    expect(pronoun.clarifications.some((clarification) => clarification.field === "glucose.value" && clarification.blocking)).toBe(true);
+  });
+
+  it("recovers bounded cue-word transcription variants without manufacturing a value", () => {
+    const event = run("My glucos is eight point four.");
+    expect(event.glucose?.value.value).toBe(8.4);
+    expect(event.glucose?.unit.status).toBe("missing");
+
+    const missing = run("My insuline dose was units this morning.");
+    expect(missing.recentInsulin?.amountUnits.value).toBeNull();
+    expect(missing.recentInsulin?.amountUnits.status).toBe("missing");
+  });
+
+  it("recognises varied insulin administration language but still blocks on non-specific timing", () => {
+    const injected = run("I injected four units of Fiasp about 30 minutes ago.");
+    expect(injected.recentInsulin?.amountUnits.value).toBe(4);
+    expect(injected.recentInsulin?.insulinType.value).toBe("fiasp");
+    expect(injected.recentInsulin?.takenAt.value).toBe(new Date(REFERENCE_NOW - 30 * 60_000).toISOString());
+    expect(injected.recentInsulin?.takenAt.status).toBe("requires_review");
+
+    const vague = run("I bolused 3 units this morning.");
+    expect(vague.recentInsulin?.takenAt.value).toBeNull();
+    expect(vague.recentInsulin?.takenAt.status).toBe("requires_review");
+    expect(vague.clarifications.some((clarification) => clarification.field === "recentInsulin.takenAt" && clarification.blocking)).toBe(true);
+  });
+
+  it("treats a couple, pair, both, and dozen as exact stated counts while leaving a few unresolved", () => {
+    const event = run("I am eating a couple of biscuits, a pair of cookies, both crackers, a dozen grapes, and a few pretzels.");
+    const components = event.meal?.components ?? [];
+
+    expect(components.find((component) => component.phrase === "biscuits")?.quantity.value).toBe(2);
+    expect(components.find((component) => component.phrase === "cookies")?.quantity.value).toBe(2);
+    expect(components.find((component) => component.phrase === "crackers")?.quantity.value).toBe(2);
+    expect(components.find((component) => component.phrase === "grapes")?.quantity.value).toBe(12);
+    expect(components.find((component) => component.phrase === "pretzels")?.matchStatus).toBe("requires_review");
+  });
+
+  it("keeps a serving unresolved until a database measure is selected in review", () => {
+    const event = run("I just had a serving of rice.");
+    const rice = event.meal?.components[0];
+
+    expect(rice?.phrase).toBe("rice");
+    expect(rice?.quantityKind).toBe("SERVING");
+    expect(rice?.quantity.value).toBe(1);
+    expect(rice?.selectedServingMeasureId).toBeNull();
+    expect(rice?.matchStatus).toBe("requires_review");
+    expect(event.clarifications).toEqual(
+      expect.arrayContaining([expect.objectContaining({ field: "meal.components[0].serving", blocking: true })]),
+    );
+  });
+
+  it("recognises drinking and high-number spoken portions without confusing food language for glucose", () => {
+    const drink = run("I drank 200ml of juice.");
+    const juice = drink.meal?.components.find((component) => component.phrase === "juice");
+    expect(juice?.quantity.value).toBe(200);
+    expect(juice?.quantityKind).toBe("MILLILITRES");
+    expect(drink.glucose).toBeNull();
+
+    const portion = run("I consumed thirty five grams of cereal.");
+    const cereal = portion.meal?.components.find((component) => component.phrase === "cereal");
+    expect(cereal?.quantity.value).toBe(35);
+    expect(cereal?.quantityKind).toBe("GRAMS");
+  });
+
+  it("never accepts a bare number without a glucose cue or an explicit glucose unit", () => {
+    const event = run("I had 8 biscuits.");
+    expect(event.glucose).toBeNull();
   });
 });

@@ -12,6 +12,11 @@ function missing(): ExtractedValue<string> {
   return { rawSpan: "", value: null, confidence: 0, status: "missing", requiresConfirmation: true };
 }
 
+/** A recognised but non-numeric time phrase. The UI must ask the user to set the actual time. */
+function requiresTimeReview(rawSpan: string): ExtractedValue<string> {
+  return { rawSpan, value: null, confidence: 0.35, status: "requires_review", requiresConfirmation: true };
+}
+
 /**
  * Parses a relative time expression ("two hours ago", "an hour ago", "10
  * minutes ago", "just now", "this morning") relative to `referenceNowMs`.
@@ -19,17 +24,24 @@ function missing(): ExtractedValue<string> {
  * all - callers decide what "unstated" should default to.
  */
 export function parseRelativeTime(clause: string, referenceNowMs: number): ExtractedValue<string> | null {
+  if (/\bhalf\s+(?:an\s+)?hour\s+ago\b/i.test(clause)) {
+    return confirmed("half an hour ago", new Date(referenceNowMs - 30 * MS_PER_MINUTE).toISOString(), 0.88);
+  }
+
   const agoMatch = clause.match(
-    new RegExp(`\\b(${QUANTITY_PATTERN})\\s*(hours?|hrs?|minutes?|mins?)\\s+ago\\b`, "i"),
+    new RegExp(`\\b(?:(about|around|roughly|approximately)\\s+)?(${QUANTITY_PATTERN})\\s*(hours?|hrs?|minutes?|mins?)\\s+ago\\b`, "i"),
   );
   if (agoMatch) {
-    const amount = parseQuantityToken(agoMatch[1]!);
+    const amount = parseQuantityToken(agoMatch[2]!);
     if (amount === null) return null;
-    const unit = agoMatch[2]!.toLowerCase();
+    const unit = agoMatch[3]!.toLowerCase();
     const isHours = unit.startsWith("h");
     const offsetMs = isHours ? amount * MS_PER_HOUR : amount * MS_PER_MINUTE;
     const iso = new Date(referenceNowMs - offsetMs).toISOString();
-    return confirmed(agoMatch[0], iso, 0.85);
+    const approximate = Boolean(agoMatch[1]);
+    return approximate
+      ? { rawSpan: agoMatch[0], value: iso, confidence: 0.6, status: "requires_review", requiresConfirmation: true }
+      : confirmed(agoMatch[0], iso, 0.85);
   }
 
   const singularAgo = clause.match(/\ban?\s+(hour|minute)\s+ago\b/i);
@@ -43,6 +55,9 @@ export function parseRelativeTime(clause: string, referenceNowMs: number): Extra
   if (/\bjust now\b/i.test(clause) || /\bright now\b/i.test(clause)) {
     return confirmed("now", new Date(referenceNowMs).toISOString(), 0.9);
   }
+
+  const vagueTime = clause.match(/\b(?:this\s+morning|earlier(?:\s+today)?|a\s+little\s+while\s+ago|a\s+while\s+ago|before\s+(?:breakfast|lunch|dinner)|after\s+(?:breakfast|lunch|dinner))\b/i);
+  if (vagueTime) return requiresTimeReview(vagueTime[0]);
 
   return null;
 }

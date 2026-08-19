@@ -2,22 +2,40 @@ import { parseQuantityToken, QUANTITY_PATTERN } from "./normalise.js";
 import { parseTimeExpression } from "./extract-times.js";
 import type { ExtractedValue, InsulinExtraction } from "./types.js";
 
-const KNOWN_INSULIN_TYPES = ["novorapid", "novo rapid", "humalog", "apidra", "fiasp", "lyumjev", "actrapid"];
+const KNOWN_INSULIN_TYPES = [
+  "novorapid",
+  "novo rapid",
+  "novolog",
+  "humalog",
+  "apidra",
+  "fiasp",
+  "lyumjev",
+  "actrapid",
+  "insuman rapid",
+  "insulin aspart",
+  "insulin lispro",
+  "insulin glulisine",
+];
+
+const ADMINISTRATION_VERB = "(?:took|had|taken|gave\\s+myself|given\\s+myself|injected|dosed|administered|shot|jabbed|bolused)";
+const UNIT_TOKEN = "(?:units?|u)";
 
 /**
- * Matches "took/had X unit(s) [of insulin]" where X is a number (digit or
- * word). Deliberately does NOT match the bare word "units" as a number -
- * "I took units of insulin" must produce a missing-amount result, never
- * silently interpret "units" itself as a quantity.
+ * Matches an explicit stated dose after a natural insulin-administration verb.
+ * A valid quantity token is mandatory: the word `units` can never become an
+ * amount on its own.
  */
 const AMOUNT_PATTERN = new RegExp(
-  `\\b(?:took|had|taken|gave\\s+myself)\\s+(${QUANTITY_PATTERN})\\s+units?\\b`,
+  `\\b${ADMINISTRATION_VERB}\\s+(?:my\\s+)?(${QUANTITY_PATTERN})\\s*${UNIT_TOKEN}\\b`,
   "i",
 );
-
-/** Detects the insulin-mention-without-a-number case, e.g. "took units of insulin". */
-const MENTIONS_INSULIN_NO_AMOUNT = /\b(?:took|had|taken|gave\s+myself)\s+units?\s+of\s+insulin\b/i;
-const MENTIONS_INSULIN_GENERAL = /\binsulin\b/i;
+const INSULIN_WAS_AMOUNT_PATTERN = new RegExp(`\\bmy\\s+insulin\\s+(?:dose\\s+)?(?:was|is)\\s+(${QUANTITY_PATTERN})\\s*${UNIT_TOKEN}\\b`, "i");
+/** Detects an insulin-administration statement with no stated quantity. */
+const MENTIONS_INSULIN_NO_AMOUNT = new RegExp(
+  `\\b${ADMINISTRATION_VERB}\\s+(?:my\\s+)?${UNIT_TOKEN}(?:\\s+of)?(?:\\s+insulin)?\\b`,
+  "i",
+);
+const MENTIONS_INSULIN_GENERAL = /\b(?:insulin|novorapid|novo\s+rapid|novolog|humalog|apidra|fiasp|lyumjev|actrapid)\b/i;
 
 function missingAmount(rawSpan: string): ExtractedValue<number> {
   return { rawSpan, value: null, confidence: 0, status: "missing", requiresConfirmation: true };
@@ -41,7 +59,7 @@ function detectInsulinType(clause: string): ExtractedValue<string> {
 }
 
 function detectConcentratedAmbiguity(clause: string): boolean {
-  return /\bconcentrated\b/i.test(clause) || /\bu-?500\b/i.test(clause) || /\bu-?200\b/i.test(clause);
+  return /\b(?:concentrated|u-?(?:200|300|500))\b/i.test(clause);
 }
 
 /**
@@ -53,7 +71,7 @@ function detectConcentratedAmbiguity(clause: string): boolean {
  * circumstance.
  */
 export function extractInsulin(clause: string, referenceNowMs: number): InsulinExtraction | null {
-  const hasAmountMatch = clause.match(AMOUNT_PATTERN);
+  const hasAmountMatch = clause.match(AMOUNT_PATTERN) ?? clause.match(INSULIN_WAS_AMOUNT_PATTERN);
   const hasNoAmountMention = MENTIONS_INSULIN_NO_AMOUNT.test(clause);
   const hasGeneralMention = MENTIONS_INSULIN_GENERAL.test(clause);
 
@@ -65,7 +83,7 @@ export function extractInsulin(clause: string, referenceNowMs: number): InsulinE
     amountUnits =
       parsed === null
         ? missingAmount(hasAmountMatch[0])
-        : { rawSpan: hasAmountMatch[0], value: parsed, confidence: 0.9, status: "provisional", requiresConfirmation: true };
+        : { rawSpan: hasAmountMatch[0], value: parsed, confidence: 0.92, status: "provisional", requiresConfirmation: true };
   } else {
     // "took/had ... units of insulin" with no number, or a bare "insulin"
     // mention with no amount at all - both are missing, never a guess.

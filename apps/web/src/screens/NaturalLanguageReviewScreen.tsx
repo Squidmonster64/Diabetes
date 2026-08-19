@@ -50,6 +50,7 @@ export function NaturalLanguageReviewScreen() {
   const navigate = useNavigate();
   const [busyIndex, setBusyIndex] = useState<number | null>(null);
   const [manualGrams, setManualGrams] = useState<Record<number, string>>({});
+  const [manualGlucose, setManualGlucose] = useState("");
   const [detailsOpenIndex, setDetailsOpenIndex] = useState<number | null>(null);
   const [selectedRow, setSelectedRow] = useState<number | null>(null);
 
@@ -62,6 +63,18 @@ export function NaturalLanguageReviewScreen() {
     setDraft({ ...next, clarifications }, resolvedComponents);
   };
 
+  const updateGlucoseValue = (value: number) => {
+    const timestamp = new Date(referenceNowMs).toISOString();
+    const nextGlucose = glucose
+      ? { ...glucose, value: { ...glucose.value, rawSpan: String(value), value, confidence: 1, status: "provisional" as const } }
+      : {
+          value: { rawSpan: String(value), value, confidence: 1, status: "provisional" as const, requiresConfirmation: true },
+          unit: { rawSpan: "", value: null, confidence: 0, status: "missing" as const, requiresConfirmation: true },
+          timestamp: { rawSpan: "manual entry", value: timestamp, confidence: 1, status: "provisional" as const, requiresConfirmation: true },
+        };
+    applyEventChange({ glucose: nextGlucose });
+  };
+
   const updateComponentAt = async (index: number, patch: { value: number; unit?: string | null }) => {
     if (!provisionalEvent?.meal) return;
     const components = provisionalEvent.meal.components.map((component, i) =>
@@ -70,6 +83,8 @@ export function NaturalLanguageReviewScreen() {
             ...component,
             quantity: { ...component.quantity, value: patch.value, status: "provisional" as const },
             unit: patch.unit ? { ...component.unit, value: patch.unit, status: "provisional" as const } : component.unit,
+            quantityKind: patch.unit === "grams" ? "GRAMS" as const : patch.unit === "ml" ? "MILLILITRES" as const : component.quantityKind,
+            selectedServingMeasureId: patch.unit ? null : component.selectedServingMeasureId,
             matchStatus: "provisional" as const,
           }
         : component,
@@ -78,6 +93,23 @@ export function NaturalLanguageReviewScreen() {
     setBusyIndex(index);
     try {
       const updated = await resolveFoodComponent(components[index]!);
+      const nextResolved = resolvedComponents.map((component, i) => (i === index ? updated : component));
+      const meal = { ...provisionalEvent.meal, components };
+      const clarifications = generateClarifications({ glucose: provisionalEvent.glucose, recentInsulin: provisionalEvent.recentInsulin, meal });
+      setDraft({ ...provisionalEvent, meal, clarifications }, nextResolved);
+    } finally {
+      setBusyIndex(null);
+    }
+  };
+
+  const selectServingMeasureAt = async (index: number, measureId: string) => {
+    if (!provisionalEvent?.meal) return;
+    const components = provisionalEvent.meal.components.map((component, i) =>
+      i === index ? { ...component, selectedServingMeasureId: measureId, matchStatus: "provisional" as const } : component,
+    );
+    setBusyIndex(index);
+    try {
+      const updated = await resolveFoodComponent(components[index]!, undefined, measureId);
       const nextResolved = resolvedComponents.map((component, i) => (i === index ? updated : component));
       const meal = { ...provisionalEvent.meal, components };
       const clarifications = generateClarifications({ glucose: provisionalEvent.glucose, recentInsulin: provisionalEvent.recentInsulin, meal });
@@ -115,6 +147,24 @@ export function NaturalLanguageReviewScreen() {
   );
 
   const renderClarification = (clarification: ClarificationQuestion) => {
+    if (clarification.field === "glucose.value") {
+      return (
+        <ClarificationPrompt key={clarification.field} question={clarification.question}>
+          <input
+            aria-label="Glucose value"
+            type="number"
+            inputMode="decimal"
+            min="0"
+            defaultValue={glucose?.value.value ?? ""}
+            onBlur={(event) => {
+              const value = Number(event.target.value);
+              if (Number.isFinite(value) && value > 0) updateGlucoseValue(value);
+            }}
+          />
+        </ClarificationPrompt>
+      );
+    }
+
     if (clarification.field === "glucose.unit") {
       return (
         <ClarificationPrompt key={clarification.field} question={clarification.question}>
@@ -158,6 +208,18 @@ export function NaturalLanguageReviewScreen() {
     const mealMatch = clarification.field.match(/^meal\.components\[(\d+)\]/);
     if (mealMatch) {
       const index = Number(mealMatch[1]);
+      const resolved = resolvedComponents[index];
+      if (clarification.field.endsWith(".serving")) {
+        return (
+          <ClarificationPrompt key={clarification.field} question={clarification.question}>
+            {resolved?.servingMeasures.length ? resolved.servingMeasures.map((measure) => (
+              <button key={measure.measureId} className="btn-secondary" type="button" disabled={busyIndex === index} onClick={() => void selectServingMeasureAt(index, measure.measureId)}>
+                {measure.label}{measure.gramAmount !== null ? ` (${measure.gramAmount} g)` : measure.volumeMillilitres !== null ? ` (${measure.volumeMillilitres} ml)` : ""}
+              </button>
+            )) : <span className="muted">No usable database serving measure was found. Enter grams below instead.</span>}
+          </ClarificationPrompt>
+        );
+      }
       return (
         <ClarificationPrompt key={clarification.field} question={clarification.question}>
           <input
@@ -235,6 +297,23 @@ export function NaturalLanguageReviewScreen() {
             selected={selectedRow === 0}
             onSelect={() => setSelectedRow(0)}
           />
+          {!glucose ? (
+            <div className="field">
+              <label htmlFor="manual-glucose">Enter current glucose manually</label>
+              <input
+                id="manual-glucose"
+                type="number"
+                inputMode="decimal"
+                min="0"
+                value={manualGlucose}
+                onChange={(event) => setManualGlucose(event.target.value)}
+                onBlur={() => {
+                  const value = Number(manualGlucose);
+                  if (Number.isFinite(value) && value > 0) updateGlucoseValue(value);
+                }}
+              />
+            </div>
+          ) : null}
           {recentInsulin ? <ExtractedRow label="Insulin already taken" value={`${recentInsulin.amountUnits.value ?? "?"} U`} detail={describeTimestamp(recentInsulin.takenAt.value, referenceNowMs)} selected={selectedRow === 1} onSelect={() => setSelectedRow(1)} /> : null}
         </section>
 
