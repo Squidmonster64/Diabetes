@@ -14,6 +14,9 @@ function rowToCustomFoodRecord(row: Record<string, unknown>): CustomFoodRecord {
     servingGrams: (row.serving_grams as string) ?? null,
     carbohydratePerServingGrams: (row.carbohydrate_per_serving_grams as string) ?? null,
     carbohydratePer100gGrams: (row.carbohydrate_per_100g_grams as string) ?? null,
+    sourceName: (row.source_name as string) ?? null,
+    sourceReference: (row.source_reference as string) ?? null,
+    sourceRetrievedAt: (row.source_retrieved_at as string) ?? null,
     archivedAt: (row.archived_at as string) ?? null,
     createdAt: row.created_at as string,
     updatedAt: row.updated_at as string,
@@ -35,6 +38,9 @@ export class SupabaseCustomFoodsRepository implements CustomFoodsRepository {
         serving_grams: input.servingGrams,
         carbohydrate_per_serving_grams: input.carbohydratePerServingGrams,
         carbohydrate_per_100g_grams: input.carbohydratePer100gGrams,
+        source_name: input.sourceName,
+        source_reference: input.sourceReference,
+        source_retrieved_at: input.sourceRetrievedAt,
       })
       .select("*")
       .single();
@@ -68,6 +74,9 @@ export class SupabaseCustomFoodsRepository implements CustomFoodsRepository {
     if (patch.carbohydratePer100gGrams !== undefined) {
       updatePayload.carbohydrate_per_100g_grams = patch.carbohydratePer100gGrams;
     }
+    if (patch.sourceName !== undefined) updatePayload.source_name = patch.sourceName;
+    if (patch.sourceReference !== undefined) updatePayload.source_reference = patch.sourceReference;
+    if (patch.sourceRetrievedAt !== undefined) updatePayload.source_retrieved_at = patch.sourceRetrievedAt;
     const { data, error } = await this.client
       .from("custom_foods")
       .update(updatePayload)

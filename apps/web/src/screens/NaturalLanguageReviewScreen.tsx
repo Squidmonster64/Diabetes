@@ -14,6 +14,7 @@ import { api } from "../lib/apiClient.js";
 import { brandedFoodOptionsForPhrase, subwayAustraliaOptions, type BrandedFoodOption } from "../lib/brandedFoods.js";
 import { useNaturalLanguageDraft } from "../state/NaturalLanguageContext.js";
 import { useWorkflow } from "../state/WorkflowContext.js";
+import type { OnlineFoodLookupCandidate } from "@diabetes-companion/food-contracts";
 
 function describeTimestamp(iso: string | null, referenceNowMs: number): string {
   if (!iso) return "not stated";
@@ -59,6 +60,9 @@ export function NaturalLanguageReviewScreen() {
   const [unitPickerOpen, setUnitPickerOpen] = useState(false);
   const [subwaySizeByIndex, setSubwaySizeByIndex] = useState<Record<number, "SIX_INCH" | "FOOTLONG">>({});
   const [subwaySelectionByIndex, setSubwaySelectionByIndex] = useState<Record<number, string>>({});
+  const [onlineLookupByIndex, setOnlineLookupByIndex] = useState<Record<number, { status: "loading" | "ready" | "unavailable"; candidates: readonly OnlineFoodLookupCandidate[] }>>({});
+  const [onlineSaveErrorByIndex, setOnlineSaveErrorByIndex] = useState<Record<number, string | null>>({});
+  const [onlineCustomFoodIdByIndex, setOnlineCustomFoodIdByIndex] = useState<Record<number, string>>({});
 
   const referenceNowMs = provisionalEvent ? Date.parse(provisionalEvent.referenceNow) : Date.now();
 
@@ -104,6 +108,39 @@ export function NaturalLanguageReviewScreen() {
     setDraft({ ...next, clarifications: generateClarifications(next) }, resolvedComponents);
   }, [provisionalEvent, resolvedComponents, savedGlucoseUnit, setDraft]);
 
+  useEffect(() => {
+    if (!provisionalEvent) return;
+    // Lookup state is keyed by review-row index. The explicit loop avoids
+    // search-as-you-type behavior and only runs once for each unresolved draft.
+    const requests = resolvedComponents
+      .map((component, index) => ({ component, index }))
+      .filter(({ component, index }) =>
+        component.matchStatus === "unmatched" &&
+        !/\bsubway\b/i.test(component.component.phrase) &&
+        !onlineLookupByIndex[index],
+      );
+    if (requests.length === 0) return;
+
+    let active = true;
+    for (const { component, index } of requests) {
+      setOnlineLookupByIndex((current) => ({ ...current, [index]: { status: "loading", candidates: [] } }));
+      void api.lookupFoodOnline(component.component.phrase)
+        .then((result) => {
+          if (!active) return;
+          setOnlineLookupByIndex((current) => ({
+            ...current,
+            [index]: { status: result.unavailable ? "unavailable" : "ready", candidates: result.candidates },
+          }));
+        })
+        .catch(() => {
+          if (active) setOnlineLookupByIndex((current) => ({ ...current, [index]: { status: "unavailable", candidates: [] } }));
+        });
+    }
+    return () => {
+      active = false;
+    };
+  }, [onlineLookupByIndex, provisionalEvent, resolvedComponents]);
+
   const updateGlucoseValue = (value: number) => {
     const timestamp = new Date(referenceNowMs).toISOString();
     const nextGlucose = glucose
@@ -133,7 +170,18 @@ export function NaturalLanguageReviewScreen() {
 
     setBusyIndex(index);
     try {
-      const updated = await resolveFoodComponent(components[index]!);
+      const confirmedOnlineFoodId = onlineCustomFoodIdByIndex[index];
+      const updated: ResolvedFoodComponent = confirmedOnlineFoodId
+        ? {
+            component: components[index]!,
+            matchStatus: "resolved",
+            bestMatch: resolvedComponents[index]?.bestMatch ?? null,
+            alternates: [],
+            carbohydrateGrams: (await api.calculateCustomFoodCarbohydrate(confirmedOnlineFoodId, patch.value)).carbohydrateGrams,
+            servingMeasures: [],
+            requiresManualPortion: false,
+          }
+        : await resolveFoodComponent(components[index]!);
       const nextResolved = resolvedComponents.map((component, i) => (i === index ? updated : component));
       const meal = { ...provisionalEvent.meal, components };
       const clarifications = generateClarifications({ glucose: provisionalEvent.glucose, recentInsulin: provisionalEvent.recentInsulin, meal });
@@ -186,6 +234,77 @@ export function NaturalLanguageReviewScreen() {
     setQuestionsOpen(false);
   };
 
+  const chooseOnlineFoodAt = async (index: number, candidate: OnlineFoodLookupCandidate) => {
+    if (!provisionalEvent?.meal) return;
+    setBusyIndex(index);
+    setOnlineSaveErrorByIndex((current) => ({ ...current, [index]: null }));
+    try {
+      const saved = await api.createCustomFood({
+        foodType: "ONLINE_CONFIRMED",
+        name: candidate.name,
+        brand: candidate.brand,
+        servingDescription: candidate.servingDescription,
+        servingGrams: candidate.servingGrams,
+        carbohydratePerServingGrams: candidate.carbohydratePerServingGrams,
+        carbohydratePer100gGrams: candidate.carbohydratePer100gGrams,
+        sourceName: "Open Food Facts (community-contributed)",
+        sourceReference: candidate.sourceUrl,
+        sourceRetrievedAt: candidate.sourceRetrievedAt,
+      });
+      const components = provisionalEvent.meal.components.map((component, componentIndex) =>
+        componentIndex === index
+          ? {
+              ...component,
+              quantity: candidate.servingGrams !== null && candidate.carbohydratePerServingGrams !== null
+                ? { ...component.quantity, rawSpan: candidate.servingDescription ?? "standard serving", value: candidate.servingGrams, confidence: 1, status: "provisional" as const }
+                : component.quantity,
+              unit: candidate.servingGrams !== null && candidate.carbohydratePerServingGrams !== null
+                ? { ...component.unit, rawSpan: candidate.servingDescription ?? "standard serving", value: "grams", confidence: 1, status: "provisional" as const }
+                : component.unit,
+              quantityKind: candidate.servingGrams !== null && candidate.carbohydratePerServingGrams !== null ? "GRAMS" as const : component.quantityKind,
+              matchStatus: "provisional" as const,
+              quantityNeededForCalculation: candidate.servingGrams === null || candidate.carbohydratePerServingGrams === null,
+            }
+          : component,
+      );
+      const match: FoodMatchCandidate = {
+        source: "ONLINE_CONFIRMED",
+        label: candidate.name,
+        description: candidate.servingDescription,
+        brand: candidate.brand,
+        confidence: 1,
+        matchReason: "You explicitly confirmed this online community-database result and saved it to your food list.",
+        sourceDataset: null,
+        sourceFoodId: candidate.productCode,
+        customFoodId: saved.id,
+        sourceUrl: candidate.sourceUrl,
+        sourceVersion: candidate.sourceRetrievedAt,
+      };
+      const carbohydrateGrams = candidate.servingGrams !== null && candidate.carbohydratePerServingGrams !== null
+        ? candidate.carbohydratePerServingGrams
+        : null;
+      const selected: ResolvedFoodComponent = {
+        component: components[index]!,
+        matchStatus: "resolved",
+        bestMatch: match,
+        alternates: [],
+        carbohydrateGrams,
+        servingMeasures: [],
+        requiresManualPortion: carbohydrateGrams === null,
+      };
+      const nextResolved = resolvedComponents.map((component, componentIndex) => (componentIndex === index ? selected : component));
+      const meal = { ...provisionalEvent.meal, components };
+      const next = { ...provisionalEvent, meal };
+      setDraft({ ...next, clarifications: generateClarifications(next) }, nextResolved);
+      setOnlineCustomFoodIdByIndex((current) => ({ ...current, [index]: saved.id }));
+      setQuestionsOpen(false);
+    } catch {
+      setOnlineSaveErrorByIndex((current) => ({ ...current, [index]: "I found a possible result, but could not save it. Please try again or enter the label carbohydrate value." }));
+    } finally {
+      setBusyIndex(null);
+    }
+  };
+
   const selectServingMeasureAt = async (index: number, measureId: string) => {
     if (!provisionalEvent?.meal) return;
     const components = provisionalEvent.meal.components.map((component, i) =>
@@ -220,13 +339,18 @@ export function NaturalLanguageReviewScreen() {
       component.carbohydrateGrams === null && brandedFoodOptionsForPhrase(component.component.phrase).length > 0 ? [index] : [],
     ),
   );
+  const onlineQuestionIndexes = new Set(
+    resolvedComponents.flatMap((component, index) =>
+      component.matchStatus === "unmatched" && component.carbohydrateGrams === null && !brandedQuestionIndexes.has(index) ? [index] : [],
+    ),
+  );
   const blockingClarifications = clarifications.filter(
     (clarification) =>
       clarification.blocking &&
-      ![...brandedQuestionIndexes].some((index) => clarification.field.startsWith(`meal.components[${index}]`)),
+      ![...brandedQuestionIndexes, ...onlineQuestionIndexes].some((index) => clarification.field.startsWith(`meal.components[${index}]`)),
   );
   const nonBlockingClarifications = clarifications.filter((clarification) => !clarification.blocking);
-  const questionCount = blockingClarifications.length + brandedQuestionIndexes.size;
+  const questionCount = blockingClarifications.length + brandedQuestionIndexes.size + onlineQuestionIndexes.size;
   const blocked = blockingClarifications.length > 0 || !allComponentsResolved;
   const rawSpans = useMemo(
     () =>
@@ -372,6 +496,49 @@ export function NaturalLanguageReviewScreen() {
     );
   };
 
+  const renderOnlineQuestion = (index: number) => {
+    const lookup = onlineLookupByIndex[index];
+    const phrase = resolvedComponents[index]?.component.phrase ?? "that food";
+    const saveError = onlineSaveErrorByIndex[index];
+
+    if (!lookup || lookup.status === "loading") {
+      return <ClarificationPrompt key={`online-${index}`} question={`Looking online for “${phrase}”…`}><span className="muted">This will only suggest a result for you to confirm.</span></ClarificationPrompt>;
+    }
+    if (lookup.status === "unavailable") {
+      return (
+        <ClarificationPrompt key={`online-${index}`} question={`I can’t find “${phrase}” online right now. Could you describe it differently?`}>
+          <span className="muted">Try the brand, product name, size, or the carbohydrate value from its label.</span>
+          <button className="btn-secondary" type="button" onClick={() => navigate("/describe")}>Go back and describe it differently</button>
+        </ClarificationPrompt>
+      );
+    }
+    if (lookup.candidates.length === 0) {
+      return (
+        <ClarificationPrompt key={`online-${index}`} question={`I can’t find “${phrase}” online right now. Could you describe it differently?`}>
+          <span className="muted">Try the brand, product name, size, or the carbohydrate value from its label.</span>
+          <button className="btn-secondary" type="button" onClick={() => navigate("/describe")}>Go back and describe it differently</button>
+        </ClarificationPrompt>
+      );
+    }
+
+    return (
+      <ClarificationPrompt key={`online-${index}`} question={`I found these possible matches for “${phrase}”. Which one is correct?`}>
+        <span className="muted">Open Food Facts is community-contributed. Please check the product and carbohydrate basis before saving or using it.</span>
+        {lookup.candidates.map((candidate) => {
+          const carbohydrateBasis = candidate.carbohydratePerServingGrams !== null && candidate.servingDescription
+            ? `${candidate.carbohydratePerServingGrams} g carbohydrate per ${candidate.servingDescription}`
+            : `${candidate.carbohydratePer100gGrams} g carbohydrate per 100 g`;
+          return (
+            <button key={candidate.productCode} className="btn-secondary" type="button" disabled={busyIndex === index} onClick={() => void chooseOnlineFoodAt(index, candidate)}>
+              Use {candidate.name}{candidate.brand ? ` — ${candidate.brand}` : ""} ({carbohydrateBasis})
+            </button>
+          );
+        })}
+        {saveError ? <span className="muted">{saveError}</span> : null}
+      </ClarificationPrompt>
+    );
+  };
+
   const handOffConfirmedDraft = () => {
     if (blocked) return;
     const officialSelection = resolvedComponents.find((component) => component.bestMatch?.source === "BRANDED_OFFICIAL")?.bestMatch ?? null;
@@ -422,6 +589,7 @@ export function NaturalLanguageReviewScreen() {
               <section className="question-panel" aria-label="Questions needing your answer">
                 <h2>One quick question at a time</h2>
                 {[...brandedQuestionIndexes].map(renderSubwayQuestion)}
+                {[...onlineQuestionIndexes].map(renderOnlineQuestion)}
                 {blockingClarifications.map(renderClarification)}
               </section>
             ) : null}
@@ -491,7 +659,7 @@ export function NaturalLanguageReviewScreen() {
                 selected={selectedRow === index + 2}
                 onSelect={() => setSelectedRow(index + 2)}
               />
-              {component.requiresManualPortion && !brandedQuestionIndexes.has(index) ? (
+              {component.requiresManualPortion && !brandedQuestionIndexes.has(index) && !onlineQuestionIndexes.has(index) ? (
                 <div className="field">
                   <label htmlFor={`grams-${index}`}>Portion grams</label>
                   <input id={`grams-${index}`} type="number" inputMode="decimal" min="0" value={manualGrams[index] ?? ""} onChange={(event) => setManualGrams((current) => ({ ...current, [index]: event.target.value }))} />

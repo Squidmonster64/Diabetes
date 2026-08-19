@@ -4,6 +4,7 @@ import type { AppState } from "../appState.js";
 import { searchFoods } from "./search.js";
 import { getMeasures } from "./measures.js";
 import { calculateCarbohydrate } from "./calculate.js";
+import { lookupOnlineFood } from "./onlineLookup.js";
 import { FoodModuleError } from "./errors.js";
 import { HttpError } from "../httpError.js";
 
@@ -12,6 +13,12 @@ function isSourceDataset(value: unknown): value is SourceDataset {
 }
 
 export function registerFoodRoutes(app: FastifyInstance, state: AppState): void {
+  app.get("/api/v1/foods/online-lookup", { preHandler: app.requireAuth }, async (request) => {
+    const query = request.query as Record<string, unknown>;
+    const q = typeof query.q === "string" ? query.q : "";
+    return lookupOnlineFood(q);
+  });
+
   app.get("/api/v1/foods/search", async (request) => {
     const query = request.query as Record<string, unknown>;
     const sourceDataset = isSourceDataset(query.sourceDataset) ? query.sourceDataset : undefined;

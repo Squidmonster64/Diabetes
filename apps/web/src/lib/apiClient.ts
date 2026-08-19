@@ -6,6 +6,7 @@ import type {
   FoodSearchResult,
   MealCarbohydrateCalculationResult,
   SavedMealRecord,
+  OnlineFoodLookupCandidate,
 } from "@diabetes-companion/food-contracts";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "/api/v1";
@@ -44,6 +45,9 @@ export const api = {
     request<{ results: FoodSearchResult[]; totalMatches: number }>(
       `/foods/search?q=${encodeURIComponent(query)}${sourceDataset ? `&sourceDataset=${sourceDataset}` : ""}`,
     ),
+
+  lookupFoodOnline: (query: string) =>
+    request<{ candidates: OnlineFoodLookupCandidate[]; unavailable: boolean }>(`/foods/online-lookup?q=${encodeURIComponent(query)}`),
 
   getMeasures: (sourceDataset: string, sourceFoodId: string) =>
     request<{ measures: FoodMeasure[] }>(`/foods/${sourceDataset}/${encodeURIComponent(sourceFoodId)}/measures`),

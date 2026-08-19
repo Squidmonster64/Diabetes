@@ -18,7 +18,7 @@ import type { FoodComponentExtraction } from "@diabetes-companion/natural-langua
  * bolus module, and only after the user has reviewed it here.
  */
 
-export type FoodMatchSource = "CUSTOM" | "AUSNUT" | "AFCD" | "BRANDED_OFFICIAL";
+export type FoodMatchSource = "CUSTOM" | "AUSNUT" | "AFCD" | "BRANDED_OFFICIAL" | "ONLINE_CONFIRMED";
 
 export interface FoodMatchCandidate {
   readonly source: FoodMatchSource;

@@ -20,6 +20,9 @@ export function registerCustomFoodRoutes(app: FastifyInstance, state: AppState):
           body.carbohydratePerServingGrams !== undefined ? Number(body.carbohydratePerServingGrams) : undefined,
         carbohydratePer100gGrams:
           body.carbohydratePer100gGrams !== undefined ? Number(body.carbohydratePer100gGrams) : undefined,
+        sourceName: body.sourceName as string | undefined,
+        sourceReference: body.sourceReference as string | undefined,
+        sourceRetrievedAt: body.sourceRetrievedAt as string | undefined,
       });
       const record = await state.customFoodsRepository.create(patientId, normalized);
       reply.code(201);
@@ -80,6 +83,9 @@ export function registerCustomFoodRoutes(app: FastifyInstance, state: AppState):
             : existing.carbohydratePer100gGrams !== null
               ? Number(existing.carbohydratePer100gGrams)
               : undefined,
+        sourceName: (body.sourceName as string | undefined) ?? existing.sourceName,
+        sourceReference: (body.sourceReference as string | undefined) ?? existing.sourceReference,
+        sourceRetrievedAt: (body.sourceRetrievedAt as string | undefined) ?? existing.sourceRetrievedAt,
       });
       return await state.customFoodsRepository.update(id, normalized);
     } catch (error) {

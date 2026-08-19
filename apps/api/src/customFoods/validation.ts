@@ -13,6 +13,9 @@ export interface CustomFoodInput {
   readonly servingGrams?: number | null;
   readonly carbohydratePerServingGrams?: number | null;
   readonly carbohydratePer100gGrams?: number | null;
+  readonly sourceName?: string | null;
+  readonly sourceReference?: string | null;
+  readonly sourceRetrievedAt?: string | null;
 }
 
 export interface NormalizedCustomFoodInput {
@@ -23,6 +26,9 @@ export interface NormalizedCustomFoodInput {
   readonly servingGrams: string | null;
   readonly carbohydratePerServingGrams: string | null;
   readonly carbohydratePer100gGrams: string;
+  readonly sourceName: string | null;
+  readonly sourceReference: string | null;
+  readonly sourceRetrievedAt: string | null;
 }
 
 function requirePositiveFinite(value: unknown, field: string): number {
@@ -51,8 +57,8 @@ function validateCarbPer100g(value: number): number {
  * stored, so provenance is never lost.
  */
 export function validateCustomFoodInput(input: CustomFoodInput): NormalizedCustomFoodInput {
-  if (input.foodType !== "PACKET_LABEL" && input.foodType !== "MANUAL") {
-    throw new FoodModuleError("INVALID_CUSTOM_FOOD", "foodType must be PACKET_LABEL or MANUAL.");
+  if (input.foodType !== "PACKET_LABEL" && input.foodType !== "MANUAL" && input.foodType !== "ONLINE_CONFIRMED") {
+    throw new FoodModuleError("INVALID_CUSTOM_FOOD", "foodType must be PACKET_LABEL, MANUAL, or ONLINE_CONFIRMED.");
   }
   const name = (input.name ?? "").trim();
   if (name.length === 0 || name.length > MAX_NAME_LENGTH) {
@@ -60,6 +66,12 @@ export function validateCustomFoodInput(input: CustomFoodInput): NormalizedCusto
   }
   const brand = input.brand?.trim() || null;
   const servingDescription = input.servingDescription?.trim() || null;
+  const sourceName = input.sourceName?.trim() || null;
+  const sourceReference = input.sourceReference?.trim() || null;
+  const sourceRetrievedAt = input.sourceRetrievedAt?.trim() || null;
+  if (input.foodType === "ONLINE_CONFIRMED" && (!sourceName || !sourceReference || !sourceRetrievedAt || Number.isNaN(Date.parse(sourceRetrievedAt)))) {
+    throw new FoodModuleError("INVALID_CUSTOM_FOOD", "Online-confirmed food records require a source name, source reference, and valid retrieval time.");
+  }
 
   const hasDirectPer100g = input.carbohydratePer100gGrams !== undefined && input.carbohydratePer100gGrams !== null;
   const hasServingBasis =
@@ -101,5 +113,8 @@ export function validateCustomFoodInput(input: CustomFoodInput): NormalizedCusto
     servingGrams: servingGrams !== null ? String(servingGrams) : null,
     carbohydratePerServingGrams: carbohydratePerServingGrams !== null ? String(carbohydratePerServingGrams) : null,
     carbohydratePer100gGrams: String(carbohydratePer100gGrams),
+    sourceName,
+    sourceReference,
+    sourceRetrievedAt,
   };
 }

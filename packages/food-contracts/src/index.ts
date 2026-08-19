@@ -96,7 +96,7 @@ export interface ConfirmedCarbohydrateInput {
  * single eating-occasion identifier at the bolus boundary and is unrelated
  * to `SavedMealRecord` below (a reusable named recipe).
  */
-export type CustomFoodType = "PACKET_LABEL" | "MANUAL";
+export type CustomFoodType = "PACKET_LABEL" | "MANUAL" | "ONLINE_CONFIRMED";
 
 export interface CustomFoodRecord {
   readonly id: string;
@@ -108,9 +108,29 @@ export interface CustomFoodRecord {
   readonly servingGrams: string | null;
   readonly carbohydratePerServingGrams: string | null;
   readonly carbohydratePer100gGrams: string | null;
+  /** Publisher/database details for an externally found food, saved only after the user confirms it. */
+  readonly sourceName?: string | null;
+  readonly sourceReference?: string | null;
+  readonly sourceRetrievedAt?: string | null;
   readonly archivedAt: string | null;
   readonly createdAt: string;
   readonly updatedAt: string;
+}
+
+/** A proposed online food lookup. This is never calculation-ready until the user explicitly confirms it. */
+export interface OnlineFoodLookupCandidate {
+  readonly provider: "OPEN_FOOD_FACTS";
+  readonly productCode: string;
+  readonly name: string;
+  readonly brand: string | null;
+  readonly servingDescription: string | null;
+  readonly servingGrams: number | null;
+  readonly carbohydratePerServingGrams: number | null;
+  readonly carbohydratePer100gGrams: number;
+  readonly sourceUrl: string;
+  readonly sourceRetrievedAt: string;
+  /** Open Food Facts is community-contributed; UI must surface this and require confirmation. */
+  readonly sourceReliability: "COMMUNITY_CONTRIBUTED";
 }
 
 /** A single ingredient/food line within a saved meal recipe. */

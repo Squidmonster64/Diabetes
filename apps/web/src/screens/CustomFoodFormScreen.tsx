@@ -8,7 +8,7 @@ export function CustomFoodFormScreen() {
   const isEditing = Boolean(id);
   const navigate = useNavigate();
 
-  const [foodType, setFoodType] = useState<"PACKET_LABEL" | "MANUAL">("PACKET_LABEL");
+  const [foodType, setFoodType] = useState<"PACKET_LABEL" | "MANUAL" | "ONLINE_CONFIRMED">("PACKET_LABEL");
   const [name, setName] = useState("");
   const [brand, setBrand] = useState("");
   const [servingDescription, setServingDescription] = useState("");
@@ -67,16 +67,17 @@ export function CustomFoodFormScreen() {
   return (
     <Screen title={isEditing ? "Edit custom food" : "Add a custom food"}>
       <p className="muted">
-        Enter values exactly as printed on the packet nutrition panel, or enter a manual estimate. This app never
-        derives or suggests a carbohydrate value for you.
+        Enter values exactly as printed on the packet nutrition panel, or enter a manual estimate. Online results are proposed only on the review screen, where you must confirm the product and carbohydrate basis before they are saved.
       </p>
       <form onSubmit={handleSubmit}>
         <div className="field">
           <label htmlFor="foodType">Type</label>
-          <select id="foodType" value={foodType} onChange={(e) => setFoodType(e.target.value as never)}>
+          <select id="foodType" value={foodType} disabled={foodType === "ONLINE_CONFIRMED"} onChange={(e) => setFoodType(e.target.value as never)}>
             <option value="PACKET_LABEL">Packet label (from a nutrition panel)</option>
             <option value="MANUAL">Manual estimate</option>
+            {foodType === "ONLINE_CONFIRMED" ? <option value="ONLINE_CONFIRMED">Online result confirmed by you</option> : null}
           </select>
+          {foodType === "ONLINE_CONFIRMED" ? <p className="muted">This food was saved from an online result you previously confirmed. Its source record remains attached when you save corrections.</p> : null}
         </div>
         <div className="field">
           <label htmlFor="name">Name</label>
