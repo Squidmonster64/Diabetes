@@ -6,7 +6,11 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
-      registerType: "prompt",
+      // Clinical workflow fixes must not remain behind a hidden PWA update
+      // prompt. A new version is downloaded and activated automatically on
+      // the next launch/reload; API, auth, and calculation data remain
+      // network-only as defined below.
+      registerType: "autoUpdate",
       includeAssets: ["favicon.png"],
       manifest: {
         name: "Diabetes Companion",
