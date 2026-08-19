@@ -158,7 +158,12 @@ function buildComponent(rawMention: string): FoodComponentExtraction {
     // "a ham sandwich" -> the filling ("ham") is the real food component;
     // the container noun ("sandwich") is not itself a carbohydrate source
     // here because its bread is (or should be) a separate stated mention.
-    phrase = containerMatch[1]!;
+    // A named restaurant phrase such as "a Subway sandwich" is different:
+    // preserving the complete phrase lets the review screen offer a specific,
+    // source-traceable branded-menu question instead of treating the brand as
+    // a generic ingredient.
+    const descriptor = containerMatch[1]!;
+    phrase = /\bsubway\b/i.test(descriptor) ? `${descriptor} ${containerMatch[2]!}` : descriptor;
     rawSpan = containerMatch[0];
   } else if (vagueMatch) {
     phrase = mention.replace(VAGUE_QUALIFIER_PATTERN, "").trim();

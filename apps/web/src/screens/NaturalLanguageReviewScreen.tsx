@@ -491,7 +491,7 @@ export function NaturalLanguageReviewScreen() {
                 selected={selectedRow === index + 2}
                 onSelect={() => setSelectedRow(index + 2)}
               />
-              {component.requiresManualPortion ? (
+              {component.requiresManualPortion && !brandedQuestionIndexes.has(index) ? (
                 <div className="field">
                   <label htmlFor={`grams-${index}`}>Portion grams</label>
                   <input id={`grams-${index}`} type="number" inputMode="decimal" min="0" value={manualGrams[index] ?? ""} onChange={(event) => setManualGrams((current) => ({ ...current, [index]: event.target.value }))} />

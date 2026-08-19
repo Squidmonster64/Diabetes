@@ -474,3 +474,15 @@ describe("low-materiality condiment handling", () => {
     );
   });
 });
+
+
+describe("named restaurant sandwich preservation", () => {
+  it("keeps an explicitly named Subway sandwich intact for a branded-menu question", () => {
+    const event = run("I am eating a Subway sandwich with some chipotle mayo.");
+    const subway = event.meal?.components.find((component) => component.phrase === "subway sandwich");
+    const mayo = event.meal?.components.find((component) => component.phrase === "chipotle mayo");
+
+    expect(subway?.matchStatus).toBe("missing");
+    expect(mayo?.quantityNeededForCalculation).toBe(false);
+  });
+});
