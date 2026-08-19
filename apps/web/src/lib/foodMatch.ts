@@ -18,7 +18,7 @@ import type { FoodComponentExtraction } from "@diabetes-companion/natural-langua
  * bolus module, and only after the user has reviewed it here.
  */
 
-export type FoodMatchSource = "CUSTOM" | "AUSNUT" | "AFCD";
+export type FoodMatchSource = "CUSTOM" | "AUSNUT" | "AFCD" | "BRANDED_OFFICIAL";
 
 export interface FoodMatchCandidate {
   readonly source: FoodMatchSource;
@@ -32,6 +32,9 @@ export interface FoodMatchCandidate {
   readonly sourceDataset: string | null;
   readonly sourceFoodId: string | null;
   readonly customFoodId: string | null;
+  /** Official publisher page or document when the user explicitly selected a branded-menu item. */
+  readonly sourceUrl?: string | null;
+  readonly sourceVersion?: string | null;
 }
 
 export type FoodMatchStatus = "resolved" | "ambiguous" | "unmatched";
@@ -239,6 +242,14 @@ export async function resolveFoodComponent(
   deps: FoodMatchDependencies = defaultDependencies,
   selectedServingMeasureId: string | null = null,
 ): Promise<ResolvedFoodComponent> {
+  // A condiment/protein explicitly classified as negligible does not need a
+  // database match or an invented portion to contribute zero carbohydrate.
+  // This prevents phrases such as "some chipotle mayo" from turning into an
+  // unrelated food-search failure and unnecessary review question.
+  if (!component.quantityNeededForCalculation) {
+    return { component, matchStatus: "resolved", bestMatch: null, alternates: [], carbohydrateGrams: 0, servingMeasures: [], requiresManualPortion: false };
+  }
+
   const [searchResponse, customFoodsResponse] = await Promise.all([
     deps.searchFoods(component.phrase).catch(() => ({ results: [] as FoodSearchResult[], totalMatches: 0 })),
     deps.listCustomFoods().catch(() => ({ foods: [] as CustomFoodRecord[] })),
@@ -260,6 +271,8 @@ export async function resolveFoodComponent(
         sourceDataset: null,
         sourceFoodId: null,
         customFoodId: food.id,
+        sourceUrl: null,
+        sourceVersion: null,
       });
     }
   }
@@ -276,6 +289,8 @@ export async function resolveFoodComponent(
       sourceDataset: result.sourceDataset,
       sourceFoodId: result.sourceFoodId,
       customFoodId: null,
+      sourceUrl: null,
+      sourceVersion: null,
     });
   }
 

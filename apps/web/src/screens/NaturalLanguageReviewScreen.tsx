@@ -1,8 +1,7 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   generateClarifications,
-  hasBlockingClarifications,
   parseTimeExpression,
   type ClarificationQuestion,
   type ProvisionalEvent,
@@ -10,7 +9,9 @@ import {
 import { ClarificationPrompt, ExtractedRow, SpanHighlighter } from "../components/ReviewPrimitives.js";
 import { ResultLayout } from "../components/ResultLayout.js";
 import { Screen } from "../components/Screen.js";
-import { resolveFoodComponent, type ResolvedFoodComponent } from "../lib/foodMatch.js";
+import { resolveFoodComponent, type FoodMatchCandidate, type ResolvedFoodComponent } from "../lib/foodMatch.js";
+import { api } from "../lib/apiClient.js";
+import { brandedFoodOptionsForPhrase, subwayAustraliaOptions, type BrandedFoodOption } from "../lib/brandedFoods.js";
 import { useNaturalLanguageDraft } from "../state/NaturalLanguageContext.js";
 import { useWorkflow } from "../state/WorkflowContext.js";
 
@@ -53,6 +54,11 @@ export function NaturalLanguageReviewScreen() {
   const [manualGlucose, setManualGlucose] = useState("");
   const [detailsOpenIndex, setDetailsOpenIndex] = useState<number | null>(null);
   const [selectedRow, setSelectedRow] = useState<number | null>(null);
+  const [questionsOpen, setQuestionsOpen] = useState(false);
+  const [savedGlucoseUnit, setSavedGlucoseUnit] = useState<"MMOL_L" | "MG_DL" | null>(null);
+  const [unitPickerOpen, setUnitPickerOpen] = useState(false);
+  const [subwaySizeByIndex, setSubwaySizeByIndex] = useState<Record<number, "SIX_INCH" | "FOOTLONG">>({});
+  const [subwaySelectionByIndex, setSubwaySelectionByIndex] = useState<Record<number, string>>({});
 
   const referenceNowMs = provisionalEvent ? Date.parse(provisionalEvent.referenceNow) : Date.now();
 
@@ -62,6 +68,41 @@ export function NaturalLanguageReviewScreen() {
     const clarifications = generateClarifications({ glucose: next.glucose, recentInsulin: next.recentInsulin, meal: next.meal });
     setDraft({ ...next, clarifications }, resolvedComponents);
   };
+
+  useEffect(() => {
+    let active = true;
+    api
+      .getCurrentSettings()
+      .then((settings) => {
+        const unit = (settings as { glucoseUnit?: unknown }).glucoseUnit;
+        if (active) setSavedGlucoseUnit(unit === "MG_DL" ? "MG_DL" : "MMOL_L");
+      })
+      // A returning user without an active clinician settings version keeps the
+      // documented app default of mmol/L; they can still change it on demand.
+      .catch(() => {
+        if (active) setSavedGlucoseUnit("MMOL_L");
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!provisionalEvent?.glucose || provisionalEvent.glucose.unit.status !== "missing" || !savedGlucoseUnit) return;
+    const glucose = provisionalEvent.glucose;
+    const nextGlucose = {
+      ...glucose,
+      unit: {
+        ...glucose.unit,
+        rawSpan: "saved glucose-unit preference",
+        value: savedGlucoseUnit,
+        confidence: 1,
+        status: "provisional" as const,
+      },
+    };
+    const next = { ...provisionalEvent, glucose: nextGlucose };
+    setDraft({ ...next, clarifications: generateClarifications(next) }, resolvedComponents);
+  }, [provisionalEvent, resolvedComponents, savedGlucoseUnit, setDraft]);
 
   const updateGlucoseValue = (value: number) => {
     const timestamp = new Date(referenceNowMs).toISOString();
@@ -102,6 +143,49 @@ export function NaturalLanguageReviewScreen() {
     }
   };
 
+  const chooseOfficialBrandedFoodAt = (index: number, option: BrandedFoodOption) => {
+    if (!provisionalEvent?.meal) return;
+    const components = provisionalEvent.meal.components.map((component, componentIndex) =>
+      componentIndex === index
+        ? {
+            ...component,
+            quantity: { ...component.quantity, rawSpan: option.servingLabel, value: 1, confidence: 1, status: "provisional" as const },
+            unit: { ...component.unit, rawSpan: option.servingLabel, value: option.servingLabel, confidence: 1, status: "provisional" as const },
+            quantityKind: "COUNT" as const,
+            matchStatus: "provisional" as const,
+            quantityNeededForCalculation: true,
+          }
+        : component,
+    );
+    const selectedMatch: FoodMatchCandidate = {
+      source: "BRANDED_OFFICIAL",
+      label: option.label,
+      description: option.servingLabel,
+      brand: option.brand,
+      confidence: 1,
+      matchReason: `Explicitly selected from ${option.sourceLabel}, ${option.sourceVersion}.`,
+      sourceDataset: null,
+      sourceFoodId: null,
+      customFoodId: null,
+      sourceUrl: option.sourceUrl,
+      sourceVersion: option.sourceVersion,
+    };
+    const selectedComponent: ResolvedFoodComponent = {
+      component: components[index]!,
+      matchStatus: "resolved",
+      bestMatch: selectedMatch,
+      alternates: [],
+      carbohydrateGrams: option.carbohydrateGrams,
+      servingMeasures: [],
+      requiresManualPortion: false,
+    };
+    const nextResolved = resolvedComponents.map((component, componentIndex) => (componentIndex === index ? selectedComponent : component));
+    const meal = { ...provisionalEvent.meal, components };
+    const next = { ...provisionalEvent, meal };
+    setDraft({ ...next, clarifications: generateClarifications(next) }, nextResolved);
+    setQuestionsOpen(false);
+  };
+
   const selectServingMeasureAt = async (index: number, measureId: string) => {
     if (!provisionalEvent?.meal) return;
     const components = provisionalEvent.meal.components.map((component, i) =>
@@ -131,9 +215,19 @@ export function NaturalLanguageReviewScreen() {
   const { glucose, recentInsulin, symptoms, clarifications } = provisionalEvent;
   const totalCarbohydrateGrams = resolvedComponents.reduce((sum, component) => sum + (component.carbohydrateGrams ?? 0), 0);
   const allComponentsResolved = resolvedComponents.every((component) => component.carbohydrateGrams !== null);
-  const blocked = hasBlockingClarifications(provisionalEvent) || !allComponentsResolved;
-  const blockingClarifications = clarifications.filter((clarification) => clarification.blocking);
+  const brandedQuestionIndexes = new Set(
+    resolvedComponents.flatMap((component, index) =>
+      component.carbohydrateGrams === null && brandedFoodOptionsForPhrase(component.component.phrase).length > 0 ? [index] : [],
+    ),
+  );
+  const blockingClarifications = clarifications.filter(
+    (clarification) =>
+      clarification.blocking &&
+      ![...brandedQuestionIndexes].some((index) => clarification.field.startsWith(`meal.components[${index}]`)),
+  );
   const nonBlockingClarifications = clarifications.filter((clarification) => !clarification.blocking);
+  const questionCount = blockingClarifications.length + brandedQuestionIndexes.size;
+  const blocked = blockingClarifications.length > 0 || !allComponentsResolved;
   const rawSpans = useMemo(
     () =>
       spansForText(provisionalEvent.originalText, [
@@ -239,20 +333,62 @@ export function NaturalLanguageReviewScreen() {
     return <ClarificationPrompt key={clarification.field} question={clarification.question}><span className="muted">Update this value before continuing.</span></ClarificationPrompt>;
   };
 
+  const renderSubwayQuestion = (index: number) => {
+    const size = subwaySizeByIndex[index] ?? "SIX_INCH";
+    const options = subwayAustraliaOptions(size);
+    const selectedId = subwaySelectionByIndex[index] ?? "";
+    const selectedOption = options.find((option) => option.id === selectedId) ?? null;
+
+    return (
+      <ClarificationPrompt key={`subway-${index}`} question="Which Subway sandwich and size did you have?">
+        <select
+          aria-label="Subway sandwich size"
+          value={size}
+          onChange={(event) => {
+            setSubwaySizeByIndex((current) => ({ ...current, [index]: event.target.value as "SIX_INCH" | "FOOTLONG" }));
+            setSubwaySelectionByIndex((current) => ({ ...current, [index]: "" }));
+          }}
+        >
+          <option value="SIX_INCH">6-inch</option>
+          <option value="FOOTLONG">Footlong</option>
+        </select>
+        <select
+          aria-label="Subway sandwich product"
+          value={selectedId}
+          onChange={(event) => setSubwaySelectionByIndex((current) => ({ ...current, [index]: event.target.value }))}
+        >
+          <option value="">Choose the standard menu sandwich</option>
+          {options.map((option) => (
+            <option key={option.id} value={option.id}>{option.label} — {option.carbohydrateGrams} g carbohydrate</option>
+          ))}
+        </select>
+        <button className="btn-primary" type="button" disabled={!selectedOption} onClick={() => selectedOption && chooseOfficialBrandedFoodAt(index, selectedOption)}>
+          Use this official menu value
+        </button>
+        <span className="muted">
+          Source: Subway Australia Nutritional Web Guide, May 2026. Confirm any bread, sauce, or ingredient customisation that differs from the standard menu item.
+        </span>
+      </ClarificationPrompt>
+    );
+  };
+
   const handOffConfirmedDraft = () => {
     if (blocked) return;
+    const officialSelection = resolvedComponents.find((component) => component.bestMatch?.source === "BRANDED_OFFICIAL")?.bestMatch ?? null;
     setCarbResult({
-      sourceDataset: "AUSNUT_2023",
-      sourceFoodId: "natural-language-entry",
-      foodName: "Described meal",
-      brand: null,
+      sourceDataset: officialSelection ? "BRANDED_OFFICIAL" : "AUSNUT_2023",
+      sourceFoodId: officialSelection ? `official-menu:${officialSelection.label}` : "natural-language-entry",
+      foodName: officialSelection?.label ?? "Described meal",
+      brand: officialSelection?.brand ?? null,
       portionDescription: resolvedComponents.map((component) => `${component.component.phrase}${component.bestMatch ? ` (${component.bestMatch.label})` : ""}`).join(", "),
       portionQuantity: 1,
       portionGrams: null,
       portionMillilitres: null,
       carbohydrateGrams: Math.round(totalCarbohydrateGrams * 10) / 10,
       carbohydrateDefinition: "available_carbohydrate_without_sugar_alcohols",
-      provenance: { database: "australian_foods.sqlite", sourceObject: "natural_language_review", databaseSha256: "" },
+      provenance: officialSelection
+        ? { database: "official_menu", sourceObject: `${officialSelection.sourceUrl ?? "official-menu"}#${officialSelection.sourceVersion ?? "current"}`, databaseSha256: "" }
+        : { database: "australian_foods.sqlite", sourceObject: "natural_language_review", databaseSha256: "" },
     });
     setGlucoseEntry({
       currentGlucose: glucose?.value.value !== null && glucose?.value.value !== undefined ? String(glucose.value.value) : "",
@@ -282,8 +418,15 @@ export function NaturalLanguageReviewScreen() {
         }
         footer={
           <>
-            {blockingClarifications.map(renderClarification)}
-            {blocked ? <p className="muted">Confirm remains unavailable until the highlighted clarification{blockingClarifications.length === 1 ? " is" : "s are"} resolved.</p> : null}
+            {questionsOpen ? (
+              <section className="question-panel" aria-label="Questions needing your answer">
+                <h2>One quick question at a time</h2>
+                {[...brandedQuestionIndexes].map(renderSubwayQuestion)}
+                {blockingClarifications.map(renderClarification)}
+              </section>
+            ) : null}
+            {blocked && !questionsOpen ? <p className="muted">{questionCount} specific question{questionCount === 1 ? " needs" : "s need"} your answer before you continue.</p> : null}
+            {blocked ? <button className="btn-secondary" type="button" onClick={() => setQuestionsOpen((current) => !current)}>{questionsOpen ? "Hide questions" : `Answer ${questionCount} question${questionCount === 1 ? "" : "s"}`}</button> : null}
             <button className="btn-primary" type="button" disabled={blocked} onClick={handOffConfirmedDraft}>Confirm these values</button>
           </>
         }
@@ -297,6 +440,25 @@ export function NaturalLanguageReviewScreen() {
             selected={selectedRow === 0}
             onSelect={() => setSelectedRow(0)}
           />
+          {glucose ? (
+            <div className="field">
+              <button className="btn-secondary" type="button" onClick={() => setUnitPickerOpen((current) => !current)}>
+                {unitPickerOpen ? "Hide glucose unit" : `Change glucose unit (${glucose.unit.value === "MG_DL" ? "mg/dL" : "mmol/L"})`}
+              </button>
+              {unitPickerOpen ? (
+                <div className="clarification-prompt__choices">
+                  <button className="btn-secondary" type="button" onClick={() => {
+                    applyEventChange({ glucose: { ...glucose, unit: { ...glucose.unit, rawSpan: "manual mmol/L selection", value: "MMOL_L", confidence: 1, status: "provisional" } } });
+                    setUnitPickerOpen(false);
+                  }}>mmol/L</button>
+                  <button className="btn-secondary" type="button" onClick={() => {
+                    applyEventChange({ glucose: { ...glucose, unit: { ...glucose.unit, rawSpan: "manual mg/dL selection", value: "MG_DL", confidence: 1, status: "provisional" } } });
+                    setUnitPickerOpen(false);
+                  }}>mg/dL</button>
+                </div>
+              ) : null}
+            </div>
+          ) : null}
           {!glucose ? (
             <div className="field">
               <label htmlFor="manual-glucose">Enter current glucose manually</label>
@@ -324,7 +486,7 @@ export function NaturalLanguageReviewScreen() {
             <div key={`${component.component.phrase}-${index}`}>
               <ExtractedRow
                 label={describeFoodInterpretation(component)}
-                value={component.carbohydrateGrams === null ? "Needs review" : `${component.carbohydrateGrams} g carb`}
+                value={component.carbohydrateGrams === null ? "Carbohydrate amount pending" : `${component.carbohydrateGrams} g carb`}
                 detail={component.bestMatch ? `${component.bestMatch.label}${component.bestMatch.brand ? ` · ${component.bestMatch.brand}` : ""}` : "No match found"}
                 selected={selectedRow === index + 2}
                 onSelect={() => setSelectedRow(index + 2)}
@@ -351,7 +513,7 @@ export function NaturalLanguageReviewScreen() {
           ))}
         </section>
 
-        {nonBlockingClarifications.length > 0 ? <section className="card"><h2>Optional review</h2>{nonBlockingClarifications.map(renderClarification)}</section> : null}
+            {nonBlockingClarifications.length > 0 ? <section className="card"><h2>Optional review</h2>{nonBlockingClarifications.map(renderClarification)}</section> : null}
       </ResultLayout>
     </Screen>
   );

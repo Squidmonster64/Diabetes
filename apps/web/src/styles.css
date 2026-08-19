@@ -363,3 +363,17 @@ button {
   color: var(--chalk);
   font-size: var(--t-trace);
 }
+
+
+.question-panel {
+  margin-bottom: 0.85rem;
+  padding: 0.9rem;
+  border: 1px solid var(--signal);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--signal) 9%, var(--ink-900));
+}
+
+.question-panel h2 {
+  margin: 0 0 0.65rem;
+  font-size: 1rem;
+}

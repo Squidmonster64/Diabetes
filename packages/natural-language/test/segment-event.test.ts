@@ -49,7 +49,8 @@ describe("acceptance test 1: full combined statement", () => {
     const butter = components.find((c) => c.phrase === "butter");
     expect(butter?.quantity.value).toBeNull();
     expect(butter?.qualifier).toBe("a little");
-    expect(butter?.matchStatus).toBe("requires_review");
+    expect(butter?.matchStatus).toBe("provisional");
+    expect(butter?.quantityNeededForCalculation).toBe(false);
   });
 
   it("asks for the glucose unit but not for insulin type or bread quantity", () => {
@@ -448,5 +449,28 @@ describe("spoken-language interpretation library: contextual recognition with re
   it("never accepts a bare number without a glucose cue or an explicit glucose unit", () => {
     const event = run("I had 8 biscuits.");
     expect(event.glucose).toBeNull();
+  });
+});
+
+
+describe("low-materiality condiment handling", () => {
+  it("does not ask for a made-up portion of some chipotle mayo", () => {
+    const event = run("I am eating a Subway sandwich with some chipotle mayo.");
+    const mayo = event.meal?.components.find((component) => component.phrase === "chipotle mayo");
+
+    expect(mayo?.qualifier).toBe("some");
+    expect(mayo?.matchStatus).toBe("provisional");
+    expect(mayo?.quantityNeededForCalculation).toBe(false);
+    expect(event.clarifications.some((clarification) => clarification.field.includes("chipotle mayo"))).toBe(false);
+  });
+
+  it("still asks a direct material-food question when a carbohydrate-relevant portion is genuinely absent", () => {
+    const event = run("I am eating a Subway sandwich with some cookies.");
+    const cookies = event.meal?.components.find((component) => component.phrase === "cookies");
+
+    expect(cookies?.matchStatus).toBe("requires_review");
+    expect(event.clarifications).toEqual(
+      expect.arrayContaining([expect.objectContaining({ question: expect.stringContaining("cookies"), blocking: true })]),
+    );
   });
 });

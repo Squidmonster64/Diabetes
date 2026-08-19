@@ -8,15 +8,17 @@
  * gram value crosses that boundary.
  */
 
-export type SourceDataset = "AUSNUT_2023" | "AFCD_RELEASE_3";
+export type SourceDataset = "AUSNUT_2023" | "AFCD_RELEASE_3" | "BRANDED_OFFICIAL";
 
 export type CarbohydrateDefinition =
   | "available_carbohydrate_without_sugar_alcohols"
   | "available_carbohydrate_with_sugar_alcohols";
 
 export interface FoodProvenance {
-  readonly database: "australian_foods.sqlite";
+  /** Local Australian database or an explicitly selected publisher-owned menu source. */
+  readonly database: "australian_foods.sqlite" | "official_menu";
   readonly sourceObject: string;
+  /** Empty only for publisher-owned menu data, which is versioned by sourceObject instead. */
   readonly databaseSha256: string;
 }
 

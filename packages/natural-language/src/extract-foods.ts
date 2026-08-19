@@ -199,17 +199,20 @@ function buildComponent(rawMention: string): FoodComponentExtraction {
     // Do not translate it into grams or a default household portion here.
     matchStatus = "requires_review";
     quantityNeededForCalculation = true;
-  } else if (qualifier) {
-    // A vague amount was explicitly stated - respect that the patient
-    // quantified it, even loosely, and let them resolve it precisely.
+  } else if (qualifier && !negligible) {
+    // A vague amount was explicitly stated for a carbohydrate-relevant food.
+    // Respect that the patient quantified it, even loosely, and let them
+    // resolve it precisely rather than inventing a portion.
     matchStatus = "requires_review";
     quantityNeededForCalculation = true;
   } else if (quantityValue !== null) {
     matchStatus = "provisional";
     quantityNeededForCalculation = true;
   } else if (negligible) {
-    // No quantity stated at all, and this food's amount would not
-    // materially change the carbohydrate total either way.
+    // No precise quantity is needed for a known negligible-carbohydrate
+    // condiment/protein, even when the patient used a vague qualifier such
+    // as "some chipotle mayo". It contributes zero rather than causing an
+    // unrelated food-match failure or an unnecessary question.
     matchStatus = "provisional";
     quantityNeededForCalculation = false;
   } else {
