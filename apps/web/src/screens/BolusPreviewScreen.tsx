@@ -1,21 +1,33 @@
 import { useNavigate } from "react-router-dom";
-import { useWorkflow } from "../state/WorkflowContext.js";
+import { Aperture } from "../components/Aperture.js";
+import { CalculationTrace } from "../components/CalculationTrace.js";
+import { LifecycleBanner } from "../components/ReviewPrimitives.js";
+import { ResultLayout } from "../components/ResultLayout.js";
 import { Screen } from "../components/Screen.js";
+import { useWorkflow } from "../state/WorkflowContext.js";
 
 interface PreviewSuccess {
   status: "CALCULATED" | "CALCULATED_ZERO";
   roundedTotalUnits: string;
+  unroundedTotalUnits?: string;
   mealComponentUnits: string;
   correctionComponentUnits: string;
+  activeInsulinAdjustmentUnits?: string;
   explanation: string[];
   expiresAt: string;
   calculationId: string;
+  timestamp?: string;
+  serverNow?: string;
+}
+
+interface ExpiredPreview {
+  status: "EXPIRED";
 }
 
 export function BolusPreviewScreen() {
-  const { previewResult } = useWorkflow();
+  const { previewResult, setPreviewResult } = useWorkflow();
   const navigate = useNavigate();
-  const result = previewResult as PreviewSuccess | null;
+  const result = previewResult as PreviewSuccess | ExpiredPreview | null;
 
   if (!result || result.status === undefined) {
     return (
@@ -25,37 +37,71 @@ export function BolusPreviewScreen() {
     );
   }
 
+  if (result.status === "EXPIRED") {
+    return (
+      <Screen title="Bolus preview" className="screen--result" showBack={false}>
+        <ResultLayout
+          title="Preview expired"
+          tone="refusal"
+          head={<h2 className="aperture__refusal">This preview expired</h2>}
+          footer={
+            <button className="btn-primary" type="button" onClick={() => navigate("/glucose-entry")}>
+              Recalculate
+            </button>
+          }
+        >
+          <LifecycleBanner status="EXPIRED">
+            The previous dose is no longer shown. Recalculate using the current details before continuing.
+          </LifecycleBanner>
+        </ResultLayout>
+      </Screen>
+    );
+  }
+
+  const expirePreview = () => setPreviewResult({ status: "EXPIRED" });
+
   return (
-    <Screen title="Bolus preview">
-      <div className="banner banner-warning">
-        Calculated bolus: {result.roundedTotalUnits} units. This is a check, not medical advice — please verify the calculation and your inputs before confirming.
-      </div>
-      <div className="dose-display">{result.roundedTotalUnits}</div>
-      <div className="dose-unit">units (rapid-acting insulin)</div>
-
-      <div className="card">
-        <div className="muted">Meal component</div>
-        <div>{result.mealComponentUnits} U</div>
-      </div>
-      <div className="card">
-        <div className="muted">Correction component</div>
-        <div>{result.correctionComponentUnits} U</div>
-      </div>
-
-      <details>
-        <summary className="muted">Calculation trace</summary>
-        <ul className="explanation-list">
-          {result.explanation.map((line, index) => (
-            <li key={index}>{line}</li>
-          ))}
-        </ul>
-      </details>
-
-      <p className="timestamp">This preview expires at {new Date(result.expiresAt).toLocaleTimeString()}.</p>
-
-      <button className="btn-primary" onClick={() => navigate("/confirm")}>
-        Review and confirm
-      </button>
+    <Screen title="Bolus preview" className="screen--result" showBack={false}>
+      <ResultLayout
+        title="Bolus preview"
+        head={
+          <Aperture
+            roundedTotalUnits={result.roundedTotalUnits}
+            expiresAt={result.expiresAt}
+            serverNow={result.serverNow ?? result.timestamp}
+            onExpired={expirePreview}
+          />
+        }
+        footer={
+          <>
+            <button className="btn-primary" type="button" onClick={() => navigate("/confirm")}>
+              Confirm this calculation
+            </button>
+            <button className="btn-secondary" type="button" onClick={() => navigate("/glucose-entry")}>
+              Reject and change inputs
+            </button>
+          </>
+        }
+      >
+        <LifecycleBanner status="USER_CONFIRMED">
+          Review the calculation trace and your inputs before confirming. This preview is not an instruction to administer insulin.
+        </LifecycleBanner>
+        <CalculationTrace
+          explanation={result.explanation}
+          mealComponentUnits={result.mealComponentUnits}
+          correctionComponentUnits={result.correctionComponentUnits}
+          activeInsulinAdjustmentUnits={result.activeInsulinAdjustmentUnits}
+          unroundedTotalUnits={result.unroundedTotalUnits}
+        />
+        <details className="card">
+          <summary className="trace-summary">
+            <span>Preview details</span>
+            <span className="muted">View metadata</span>
+          </summary>
+          <p className="muted">Calculation ID: {result.calculationId}</p>
+          <p className="muted">Preview expiry: {new Date(result.expiresAt).toLocaleTimeString()}</p>
+        </details>
+      </ResultLayout>
     </Screen>
   );
 }
