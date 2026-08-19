@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   generateClarifications,
@@ -70,6 +70,7 @@ export function NaturalLanguageReviewScreen() {
   const [subwaySizeByIndex, setSubwaySizeByIndex] = useState<Record<number, "SIX_INCH" | "FOOTLONG">>({});
   const [subwaySelectionByIndex, setSubwaySelectionByIndex] = useState<Record<number, string>>({});
   const [onlineLookupByIndex, setOnlineLookupByIndex] = useState<Record<number, { status: "loading" | "ready" | "unavailable"; candidates: readonly OnlineFoodLookupCandidate[] }>>({});
+  const onlineLookupByIndexRef = useRef(onlineLookupByIndex);
   const [onlineSaveErrorByIndex, setOnlineSaveErrorByIndex] = useState<Record<number, string | null>>({});
   const [onlineCustomFoodIdByIndex, setOnlineCustomFoodIdByIndex] = useState<Record<number, string>>({});
 
@@ -118,6 +119,10 @@ export function NaturalLanguageReviewScreen() {
   }, [provisionalEvent, resolvedComponents, savedGlucoseUnit, setDraft]);
 
   useEffect(() => {
+    onlineLookupByIndexRef.current = onlineLookupByIndex;
+  }, [onlineLookupByIndex]);
+
+  useEffect(() => {
     if (!provisionalEvent) return;
     // Lookup state is keyed by review-row index. The explicit loop avoids
     // search-as-you-type behavior and only runs once for each unresolved draft.
@@ -126,7 +131,7 @@ export function NaturalLanguageReviewScreen() {
       .filter(({ component, index }) =>
         requiresOnlineFoodLookup(component) &&
         !/\bsubway\b/i.test(component.component.phrase) &&
-        !onlineLookupByIndex[index],
+        !onlineLookupByIndexRef.current[index],
       );
     if (requests.length === 0) return;
 
@@ -156,7 +161,7 @@ export function NaturalLanguageReviewScreen() {
       active = false;
       reviewTimeouts.forEach((timeout) => clearTimeout(timeout));
     };
-  }, [onlineLookupByIndex, provisionalEvent, resolvedComponents]);
+  }, [provisionalEvent, resolvedComponents]);
 
   const updateGlucoseValue = (value: number) => {
     const timestamp = new Date(referenceNowMs).toISOString();
