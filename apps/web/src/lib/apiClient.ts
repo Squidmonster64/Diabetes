@@ -10,6 +10,7 @@ import type {
 } from "@diabetes-companion/food-contracts";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "/api/v1";
+const FOOD_SEARCH_REQUEST_TIMEOUT_MS = 7_000;
 const ONLINE_LOOKUP_REQUEST_TIMEOUT_MS = 7_000;
 
 export class ApiError extends Error {
@@ -42,10 +43,18 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
 export const api = {
   health: () => request<{ status: string; databaseSha256: string; calculatorVersion: string }>("/health"),
 
-  searchFoods: (query: string, sourceDataset?: string) =>
-    request<{ results: FoodSearchResult[]; totalMatches: number }>(
-      `/foods/search?q=${encodeURIComponent(query)}${sourceDataset ? `&sourceDataset=${sourceDataset}` : ""}`,
-    ),
+  searchFoods: async (query: string, sourceDataset?: string) => {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), FOOD_SEARCH_REQUEST_TIMEOUT_MS);
+    try {
+      return await request<{ results: FoodSearchResult[]; totalMatches: number }>(
+        `/foods/search?q=${encodeURIComponent(query)}${sourceDataset ? `&sourceDataset=${sourceDataset}` : ""}`,
+        { signal: controller.signal },
+      );
+    } finally {
+      clearTimeout(timeout);
+    }
+  },
 
   lookupFoodOnline: async (query: string) => {
     // The server bounds its provider request to five seconds. Keep a slightly

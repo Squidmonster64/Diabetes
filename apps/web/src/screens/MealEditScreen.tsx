@@ -150,26 +150,35 @@ export function MealEditScreen() {
     setError(null);
     setOfficialResults([]);
     setOnlineLookup({ status: "idle", candidates: [] });
+    let official: FoodSearchResult[] = [];
     try {
       const response = await api.searchFoods(query);
-      const official = response.results.slice(0, 8);
+      official = response.results.slice(0, 8);
       setOfficialResults(official);
-      const normalizedQuery = query.toLocaleLowerCase();
-      const hasSavedFoodMatch = customFoods.some((food) => food.name.toLocaleLowerCase().includes(normalizedQuery));
-      if (official.length > 0 || hasSavedFoodMatch) return;
-
-      setOnlineLookup({ status: "loading", candidates: [] });
-      try {
-        const online = await api.lookupFoodOnline(query);
-        setOnlineLookup({
-          status: online.unavailable || online.candidates.length === 0 ? "unavailable" : "ready",
-          candidates: online.candidates,
-        });
-      } catch {
-        setOnlineLookup({ status: "unavailable", candidates: [] });
-      }
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Could not search known foods.");
+      if (!(err instanceof DOMException && err.name === "AbortError")) {
+        setError(err instanceof ApiError ? err.message : "Could not search known foods.");
+        setSearching(false);
+        return;
+      }
+    }
+
+    const normalizedQuery = query.toLocaleLowerCase();
+    const hasSavedFoodMatch = customFoods.some((food) => food.name.toLocaleLowerCase().includes(normalizedQuery));
+    if (official.length > 0 || hasSavedFoodMatch) {
+      setSearching(false);
+      return;
+    }
+
+    setOnlineLookup({ status: "loading", candidates: [] });
+    try {
+      const online = await api.lookupFoodOnline(query);
+      setOnlineLookup({
+        status: online.unavailable || online.candidates.length === 0 ? "unavailable" : "ready",
+        candidates: online.candidates,
+      });
+    } catch {
+      setOnlineLookup({ status: "unavailable", candidates: [] });
     } finally {
       setSearching(false);
     }
