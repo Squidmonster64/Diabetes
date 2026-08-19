@@ -329,3 +329,37 @@ button {
   .result-layout__scroll,
   .result-layout__foot { padding-left: 0.85rem; padding-right: 0.85rem; }
 }
+
+
+/* In-app voice entry: state is deliberately explicit so recording cannot be mistaken for an idle control. */
+.voice-entry__button {
+  width: 100%;
+  min-height: 64px;
+  padding: 0.9rem 1rem;
+  border-width: 2px;
+  border-radius: 12px;
+  color: var(--chalk);
+  font-size: 1.08rem;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+}
+
+.voice-entry__button--start {
+  border-color: color-mix(in srgb, var(--halt) 85%, white);
+  background: var(--halt);
+}
+
+.voice-entry__button--finish {
+  border-color: var(--chalk-dim);
+  background: #050709;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--chalk) 20%, transparent);
+}
+
+.voice-entry__button:active:not(:disabled) { transform: scale(0.99); }
+
+.voice-entry__status {
+  min-height: 1.4em;
+  margin: 0.55rem 0 0;
+  color: var(--chalk);
+  font-size: var(--t-trace);
+}
