@@ -10,6 +10,7 @@ import type {
 } from "@diabetes-companion/food-contracts";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "/api/v1";
+const ONLINE_LOOKUP_REQUEST_TIMEOUT_MS = 7_000;
 
 export class ApiError extends Error {
   constructor(readonly status: number, readonly code: string, message: string, readonly requestId?: string) {
@@ -46,8 +47,21 @@ export const api = {
       `/foods/search?q=${encodeURIComponent(query)}${sourceDataset ? `&sourceDataset=${sourceDataset}` : ""}`,
     ),
 
-  lookupFoodOnline: (query: string) =>
-    request<{ candidates: OnlineFoodLookupCandidate[]; unavailable: boolean }>(`/foods/online-lookup?q=${encodeURIComponent(query)}`),
+  lookupFoodOnline: async (query: string) => {
+    // The server bounds its provider request to five seconds. Keep a slightly
+    // longer client deadline so an unavailable auth/provider connection cannot
+    // leave the mandatory review screen indefinitely in “Looking online…”.
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), ONLINE_LOOKUP_REQUEST_TIMEOUT_MS);
+    try {
+      return await request<{ candidates: OnlineFoodLookupCandidate[]; unavailable: boolean }>(
+        `/foods/online-lookup?q=${encodeURIComponent(query)}`,
+        { signal: controller.signal },
+      );
+    } finally {
+      clearTimeout(timeout);
+    }
+  },
 
   getMeasures: (sourceDataset: string, sourceFoodId: string) =>
     request<{ measures: FoodMeasure[] }>(`/foods/${sourceDataset}/${encodeURIComponent(sourceFoodId)}/measures`),
