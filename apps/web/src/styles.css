@@ -1,5 +1,15 @@
 :root {
   color-scheme: dark;
+  --hj-space-1: .35rem;
+  --hj-space-2: .7rem;
+  --hj-space-3: 1.1rem;
+  --hj-radius: .85rem;
+  --hj-shadow: 0 16px 38px rgba(18, 24, 28, .35);
+  --hj-status-local: #c9b27a;
+  --hj-status-uploading: #6e9e8e;
+  --hj-status-synced: #6e9e8e;
+  --hj-status-retry: #d2402f;
+  --hj-status-error: #d2402f;
   --ink-900: #12181c;
   --ink-700: #1e272d;
   --ink-500: #3a474f;
@@ -195,6 +205,13 @@ button {
   color: var(--chalk-dim);
   font-size: 0.72rem;
 }
+.hj-status { display: inline-block; padding: .18rem .55rem; border-radius: 99px; font-size: .72rem; font-weight: 750; }
+.hj-status.local { background: var(--ink-500); color: var(--signal); }
+.hj-status.synced { background: var(--ink-500); color: var(--settled); }
+.hj-status.retry { background: var(--ink-500); color: var(--halt); }
+.hj-loading, .hj-offline { color: var(--chalk-dim); font-size: .9rem; }
+.hj-error { color: var(--halt); font-weight: 700; }
+.hj-confirm { font-weight: 750; }
 
 .banner {
   margin-bottom: 1rem;
