@@ -4,13 +4,19 @@ import { extractInsulin } from "./extract-insulin.js";
 import { extractFoods } from "./extract-foods.js";
 import { detectSymptoms } from "./detect-symptoms.js";
 import { applyCorrections, generateClarifications } from "./ambiguity.js";
-import type { FoodComponentExtraction, GlucoseExtraction, InsulinExtraction, MealExtraction, ProvisionalEvent } from "./types.js";
+import type { GlucoseExtraction, InsulinExtraction, MealPipelineTrace, ProvisionalEvent } from "./types.js";
 
-function mergeMeals(meals: MealExtraction[]): MealExtraction | null {
-  if (meals.length === 0) return null;
-  const components: FoodComponentExtraction[] = meals.flatMap((meal) => meal.components);
-  const containerContext = meals.find((meal) => meal.containerContext !== null)?.containerContext ?? null;
-  return { components, containerContext };
+function pipelineFromMeal(originalText: string, meal: ProvisionalEvent["meal"]): MealPipelineTrace | null {
+  if (!meal) return null;
+  const parsed = meal.parsedMeal;
+  return {
+    rawInput: originalText,
+    mealText: parsed.mealText,
+    parsedMeal: parsed,
+    parseSource: parsed.parseSource,
+    completenessValid: parsed.completeness.valid,
+    confidenceGate: parsed.confidenceGate,
+  };
 }
 
 /**
@@ -22,6 +28,10 @@ function mergeMeals(meals: MealExtraction[]): MealExtraction | null {
  * actually require. Every extractor call below is a pure function over
  * normalised text; nothing here performs I/O, network access, or dose
  * arithmetic.
+ *
+ * Meal language is parsed from the full utterance (not per clause, and not
+ * by fuzzy-matching the whole sentence against one food record). Glucose
+ * and insulin still scan clause-by-clause so run-on dictation cannot drop them.
  */
 export function segmentEvent(originalText: string, referenceNowMs: number): ProvisionalEvent {
   const normalisedText = normaliseText(originalText);
@@ -29,19 +39,16 @@ export function segmentEvent(originalText: string, referenceNowMs: number): Prov
 
   let glucose: GlucoseExtraction | null = null;
   let recentInsulin: InsulinExtraction | null = null;
-  const meals: MealExtraction[] = [];
 
   for (const clause of clauses) {
     if (!glucose) glucose = extractGlucose(clause, referenceNowMs);
     if (!recentInsulin) recentInsulin = extractInsulin(clause, referenceNowMs);
-    const meal = extractFoods(clause);
-    if (meal) meals.push(meal);
   }
 
-  const mergedMeal = mergeMeals(meals);
+  const extractedMeal = extractFoods(normalisedText);
   const symptoms = detectSymptoms(normalisedText);
 
-  const { meal, correctionsApplied } = applyCorrections(normalisedText, mergedMeal);
+  const { meal, correctionsApplied } = applyCorrections(normalisedText, extractedMeal);
 
   const clarifications = generateClarifications({ glucose, recentInsulin, meal });
 
@@ -55,5 +62,6 @@ export function segmentEvent(originalText: string, referenceNowMs: number): Prov
     clarifications,
     correctionsApplied,
     referenceNow: new Date(referenceNowMs).toISOString(),
+    mealPipeline: pipelineFromMeal(originalText, meal),
   };
 }

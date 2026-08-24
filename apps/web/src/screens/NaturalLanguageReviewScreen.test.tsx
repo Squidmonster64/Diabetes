@@ -14,6 +14,11 @@ function unresolvedComponent(overrides: Partial<ResolvedFoodComponent> = {}): Re
       qualifier: null,
       matchStatus: "missing",
       quantityNeededForCalculation: true,
+      assumptions: [],
+      preparation: null,
+      brand: null,
+      canonicalUnit: null,
+      modifiers: [],
     },
     // The resolver’s status is deliberately not the condition under test.
     // The production defect occurred when a parser-side missing quantity and
@@ -24,6 +29,7 @@ function unresolvedComponent(overrides: Partial<ResolvedFoodComponent> = {}): Re
     carbohydrateGrams: null,
     servingMeasures: [],
     requiresManualPortion: true,
+    assumedPortion: null,
     ...overrides,
   };
 }

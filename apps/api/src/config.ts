@@ -13,6 +13,7 @@ export interface AppConfig {
   readonly supabaseServiceRoleKey: string | undefined;
   readonly useSupabase: boolean;
   readonly staticWebDir: string | undefined;
+  readonly openaiApiKey: string | undefined;
 }
 
 /**
@@ -60,5 +61,6 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     supabaseServiceRoleKey,
     useSupabase: Boolean(supabaseUrl && supabaseAnonKey && supabaseJwtSecret && supabaseServiceRoleKey),
     staticWebDir: env.STATIC_WEB_DIR ? path.resolve(env.STATIC_WEB_DIR) : findDefaultStaticWebDir(),
+    openaiApiKey: env.OPENAI_API_KEY || undefined,
   };
 }

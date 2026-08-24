@@ -61,6 +61,8 @@ export interface ResolvedFoodComponent {
   readonly servingMeasures: readonly ServingMeasureOption[];
   /** True whenever this component still needs the existing manual portion-selection screen. */
   readonly requiresManualPortion: boolean;
+  /** Visible portion assumption such as "assumed medium" for two bananas. */
+  readonly assumedPortion: string | null;
 }
 
 /** Confidence tiers for the existing full-text-search match classification - fixed, not learned. */
@@ -76,8 +78,23 @@ const CONFIDENCE_BY_MATCH_TYPE: Record<FoodSearchResult["matchType"], number> = 
  * Only an exact or whole-word database match may proceed as a provisional
  * candidate. Prefix, token, and substring matches are near-misses: surface
  * them for a quick user choice rather than silently using their carbohydrates.
+ * An identity prefix such as "Banana, cavendish" for the query "banana" is
+ * treated as a resolved identity, not a near-miss.
  */
 const AUTO_ACCEPT_CONFIDENCE = 0.85;
+
+function isStrongIdentityMatch(phrase: string, label: string): boolean {
+  const query = phrase.trim().toLowerCase();
+  const name = label.trim().toLowerCase();
+  if (!query || !name) return false;
+  if (name === query) return true;
+  const firstSegment = name.split(",")[0]!.trim();
+  if (firstSegment === query) return true;
+  const queryTokens = query.split(/\s+/).filter((token) => token.length > 0);
+  if (queryTokens.length < 2) return false;
+  const head = name.split(",").slice(0, 2).join(" ");
+  return queryTokens.every((token) => new RegExp(`(?:^|[^\\p{L}\\p{N}])${token.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?:[^\\p{L}\\p{N}]|$)`, "u").test(head));
+}
 
 /**
  * AUSNUT records a "1 density" household measure on almost every food -
@@ -90,7 +107,29 @@ const AUTO_ACCEPT_CONFIDENCE = 0.85;
  * roughly 100x too small.
  */
 const DENSITY_MEASURE_PATTERN = /density/i;
-const COUNTABLE_MEASURE_HINT = /\b(slice|piece|biscuit|item|roll|unit|each|bar|disc|round|rasher)\b/i;
+const COUNTABLE_MEASURE_HINT = /\b(slice|piece|biscuit|item|roll|unit|each|bar|disc|round|rasher|medium|small|large|fruit|whole|tablespoon|teaspoon|tbsp|tsp|cup|packet)\b/i;
+
+function measureHintFor(component: FoodComponentExtraction): RegExp {
+  const unit = (component.canonicalUnit ?? component.unit.value ?? "").toLowerCase();
+  if (unit === "slice" || unit === "slices") return /\bslice\b/i;
+  if (unit === "tablespoon" || unit === "tbsp") return /\b(tablespoon|tbsp)\b/i;
+  if (unit === "teaspoon" || unit === "tsp") return /\b(teaspoon|tsp)\b/i;
+  if (unit === "cup" || unit === "cups") return /\bcup\b/i;
+  if (unit === "packet" || unit === "pack") return /\b(packet|pack)\b/i;
+  if (unit === "whole" || unit === "piece" || unit === "item") return /\b(medium|small|large|fruit|whole|each|item|piece)\b/i;
+  return COUNTABLE_MEASURE_HINT;
+}
+
+function assumedPortionFromMeasure(measureDescription: string, component: FoodComponentExtraction): string | null {
+  const unit = (component.canonicalUnit ?? component.unit.value ?? "").toLowerCase();
+  if ((unit === "whole" || unit === "piece" || !unit) && /\bmedium\b/i.test(measureDescription)) {
+    return `assumed medium`;
+  }
+  if ((unit === "slice" || unit === "slices") && /\bslice\b/i.test(measureDescription)) {
+    return component.assumptions.find((assumption) => /slice/i.test(assumption)) ?? null;
+  }
+  return component.assumptions[0] ?? null;
+}
 
 function customFoodConfidence(food: CustomFoodRecord, phrase: string): number {
   const name = food.name.trim().toLowerCase();
@@ -157,12 +196,13 @@ async function computeCarbohydrate(
   customFoods: readonly CustomFoodRecord[],
   deps: FoodMatchDependencies,
   selectedServingMeasureId: string | null,
-): Promise<{ carbohydrateGrams: number | null; requiresManualPortion: boolean; servingMeasures: readonly ServingMeasureOption[] }> {
+): Promise<{ carbohydrateGrams: number | null; requiresManualPortion: boolean; servingMeasures: readonly ServingMeasureOption[]; assumedPortion: string | null }> {
   if (!component.quantityNeededForCalculation) {
     // A negligible-carbohydrate food with no stated quantity at all (e.g. "ham") -
     // its amount would not materially change the total, so it contributes zero
-    // rather than the app guessing a portion size.
-    return { carbohydrateGrams: 0, requiresManualPortion: false, servingMeasures: [] };
+    // rather than the app guessing a portion size. The ingredient remains in
+    // the meal AST; it is not discarded.
+    return { carbohydrateGrams: 0, requiresManualPortion: false, servingMeasures: [], assumedPortion: component.assumptions[0] ?? "amount not quantified; treated as negligible carbohydrate" };
   }
 
   const quantity = component.quantity.value;
@@ -171,47 +211,48 @@ async function computeCarbohydrate(
     const multiplier = component.quantityKind === "COUNT" && quantity !== null && Number.isInteger(quantity) && quantity > 0
       ? quantity
       : component.quantityKind === "UNKNOWN" ? 1 : null;
-    if (!recipeId || multiplier === null) return { carbohydrateGrams: null, requiresManualPortion: true, servingMeasures: [] };
+    if (!recipeId || multiplier === null) return { carbohydrateGrams: null, requiresManualPortion: true, servingMeasures: [], assumedPortion: null };
     try {
       const result = await deps.calculateMealCarbohydrate(recipeId);
       return {
         carbohydrateGrams: Math.round(result.totalCarbohydrateGrams * multiplier * 10) / 10,
         requiresManualPortion: false,
         servingMeasures: [],
+        assumedPortion: null,
       };
     } catch {
-      return { carbohydrateGrams: null, requiresManualPortion: true, servingMeasures: [] };
+      return { carbohydrateGrams: null, requiresManualPortion: true, servingMeasures: [], assumedPortion: null };
     }
   }
 
-  if (quantity === null) return { carbohydrateGrams: null, requiresManualPortion: true, servingMeasures: [] };
+  if (quantity === null) return { carbohydrateGrams: null, requiresManualPortion: true, servingMeasures: [], assumedPortion: null };
 
   try {
     if (bestMatch.source === "CUSTOM") {
       const food = customFoods.find((candidate) => candidate.id === bestMatch.customFoodId);
-      if (!food) return { carbohydrateGrams: null, requiresManualPortion: true, servingMeasures: [] };
+      if (!food) return { carbohydrateGrams: null, requiresManualPortion: true, servingMeasures: [], assumedPortion: null };
 
       if (component.quantityKind === "GRAMS") {
         const result = await deps.calculateCustomFoodCarbohydrate(food.id, quantity);
-        return { carbohydrateGrams: result.carbohydrateGrams, requiresManualPortion: false, servingMeasures: [] };
+        return { carbohydrateGrams: result.carbohydrateGrams, requiresManualPortion: false, servingMeasures: [], assumedPortion: null };
       }
       if (component.quantityKind === "COUNT" && food.servingGrams) {
         const grams = Number(food.servingGrams) * quantity;
         const result = await deps.calculateCustomFoodCarbohydrate(food.id, grams);
-        return { carbohydrateGrams: result.carbohydrateGrams, requiresManualPortion: false, servingMeasures: [] };
+        return { carbohydrateGrams: result.carbohydrateGrams, requiresManualPortion: false, servingMeasures: [], assumedPortion: null };
       }
-      return { carbohydrateGrams: null, requiresManualPortion: true, servingMeasures: [] };
+      return { carbohydrateGrams: null, requiresManualPortion: true, servingMeasures: [], assumedPortion: null };
     }
 
     if (!bestMatch.sourceDataset || !bestMatch.sourceFoodId) {
-      return { carbohydrateGrams: null, requiresManualPortion: true, servingMeasures: [] };
+      return { carbohydrateGrams: null, requiresManualPortion: true, servingMeasures: [], assumedPortion: null };
     }
 
     if (component.quantityKind === "SERVING") {
       const { measures } = await deps.getMeasures(bestMatch.sourceDataset, bestMatch.sourceFoodId);
       const servingMeasures = toServingMeasureOptions(measures);
       const selectedMeasure = selectedServingMeasureId ? servingMeasures.find((measure) => measure.measureId === selectedServingMeasureId) : null;
-      if (!selectedMeasure) return { carbohydrateGrams: null, requiresManualPortion: true, servingMeasures };
+      if (!selectedMeasure) return { carbohydrateGrams: null, requiresManualPortion: true, servingMeasures, assumedPortion: null };
       const result = await deps.calculateCarbohydrate({
         sourceDataset: bestMatch.sourceDataset,
         sourceFoodId: bestMatch.sourceFoodId,
@@ -219,7 +260,7 @@ async function computeCarbohydrate(
         measureId: selectedMeasure.measureId,
         measureMultiplier: quantity,
       });
-      return { carbohydrateGrams: result.carbohydrateGrams, requiresManualPortion: false, servingMeasures };
+      return { carbohydrateGrams: result.carbohydrateGrams, requiresManualPortion: false, servingMeasures, assumedPortion: selectedMeasure.label };
     }
 
     if (component.quantityKind === "GRAMS") {
@@ -229,7 +270,7 @@ async function computeCarbohydrate(
         kind: "GRAMS",
         grams: quantity,
       });
-      return { carbohydrateGrams: result.carbohydrateGrams, requiresManualPortion: false, servingMeasures: [] };
+      return { carbohydrateGrams: result.carbohydrateGrams, requiresManualPortion: false, servingMeasures: [], assumedPortion: null };
     }
 
     if (component.quantityKind === "MILLILITRES") {
@@ -239,7 +280,7 @@ async function computeCarbohydrate(
         kind: "MILLILITRES",
         millilitres: quantity,
       });
-      return { carbohydrateGrams: result.carbohydrateGrams, requiresManualPortion: false, servingMeasures: [] };
+      return { carbohydrateGrams: result.carbohydrateGrams, requiresManualPortion: false, servingMeasures: [], assumedPortion: null };
     }
 
     if (component.quantityKind === "COUNT") {
@@ -247,7 +288,9 @@ async function computeCarbohydrate(
       const quantityOneMeasures = measures.filter(
         (measure) => measure.quantity === 1 && measure.gramAmount !== null && !DENSITY_MEASURE_PATTERN.test(measure.measureDescription),
       );
+      const unitHint = measureHintFor(component);
       const perUnitMeasure =
+        quantityOneMeasures.find((measure) => unitHint.test(measure.measureDescription)) ??
         quantityOneMeasures.find((measure) => COUNTABLE_MEASURE_HINT.test(measure.measureDescription)) ??
         quantityOneMeasures[0] ??
         null;
@@ -259,16 +302,21 @@ async function computeCarbohydrate(
           measureId: perUnitMeasure.measureId,
           measureMultiplier: quantity,
         });
-        return { carbohydrateGrams: result.carbohydrateGrams, requiresManualPortion: false, servingMeasures: [] };
+        return {
+          carbohydrateGrams: result.carbohydrateGrams,
+          requiresManualPortion: false,
+          servingMeasures: [],
+          assumedPortion: assumedPortionFromMeasure(perUnitMeasure.measureDescription, component),
+        };
       }
     }
 
-    return { carbohydrateGrams: null, requiresManualPortion: true, servingMeasures: [] };
+    return { carbohydrateGrams: null, requiresManualPortion: true, servingMeasures: [], assumedPortion: null };
   } catch {
     // Any calculation failure (e.g. no carbohydrate data for this food) falls
     // back to the existing manual portion-selection screen rather than
     // silently reporting zero or a guessed value.
-    return { carbohydrateGrams: null, requiresManualPortion: true, servingMeasures: [] };
+    return { carbohydrateGrams: null, requiresManualPortion: true, servingMeasures: [], assumedPortion: null };
   }
 }
 
@@ -289,7 +337,7 @@ export async function resolveFoodComponent(
   // This prevents phrases such as "some chipotle mayo" from turning into an
   // unrelated food-search failure and unnecessary review question.
   if (!component.quantityNeededForCalculation) {
-    return { component, matchStatus: "resolved", bestMatch: null, alternates: [], carbohydrateGrams: 0, servingMeasures: [], requiresManualPortion: false };
+    return { component, matchStatus: "resolved", bestMatch: null, alternates: [], carbohydrateGrams: 0, servingMeasures: [], requiresManualPortion: false, assumedPortion: component.assumptions[0] ?? "amount not quantified; treated as negligible carbohydrate" };
   }
 
   const [searchResponse, customFoodsResponse, savedRecipesResponse] = await Promise.all([
@@ -364,16 +412,19 @@ export async function resolveFoodComponent(
   const alternates = candidates.slice(1, 3);
 
   if (!bestMatch) {
-    return { component, matchStatus: "unmatched", bestMatch: null, alternates: [], carbohydrateGrams: null, servingMeasures: [], requiresManualPortion: true };
+    return { component, matchStatus: "unmatched", bestMatch: null, alternates: [], carbohydrateGrams: null, servingMeasures: [], requiresManualPortion: true, assumedPortion: null };
   }
 
-  const matchStatus: FoodMatchStatus = bestMatch.confidence >= AUTO_ACCEPT_CONFIDENCE ? "resolved" : "ambiguous";
+  const matchStatus: FoodMatchStatus =
+    bestMatch.confidence >= AUTO_ACCEPT_CONFIDENCE || isStrongIdentityMatch(component.phrase, bestMatch.label)
+      ? "resolved"
+      : "ambiguous";
 
   if (matchStatus !== "resolved") {
-    return { component, matchStatus, bestMatch, alternates, carbohydrateGrams: null, servingMeasures: [], requiresManualPortion: true };
+    return { component, matchStatus, bestMatch, alternates, carbohydrateGrams: null, servingMeasures: [], requiresManualPortion: true, assumedPortion: null };
   }
 
-  const { carbohydrateGrams, requiresManualPortion, servingMeasures } = await computeCarbohydrate(
+  const { carbohydrateGrams, requiresManualPortion, servingMeasures, assumedPortion } = await computeCarbohydrate(
     component,
     bestMatch,
     customFoodsResponse.foods,
@@ -381,5 +432,17 @@ export async function resolveFoodComponent(
     selectedServingMeasureId,
   );
 
-  return { component, matchStatus, bestMatch, alternates, carbohydrateGrams, servingMeasures, requiresManualPortion };
+  return { component, matchStatus, bestMatch, alternates, carbohydrateGrams, servingMeasures, requiresManualPortion, assumedPortion };
+}
+
+/**
+ * Resolve each parsed ingredient independently. Never search the original
+ * meal sentence as one food, and never let a strong match for one item
+ * erase the others.
+ */
+export async function resolveMealComponents(
+  components: readonly FoodComponentExtraction[],
+  deps: FoodMatchDependencies = defaultDependencies,
+): Promise<readonly ResolvedFoodComponent[]> {
+  return Promise.all(components.map((component) => resolveFoodComponent(component, deps)));
 }

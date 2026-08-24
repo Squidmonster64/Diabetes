@@ -402,7 +402,8 @@ button {
   background: color-mix(in srgb, var(--signal) 9%, var(--ink-900));
 }
 
-.question-panel h2 {
-  margin: 0 0 0.65rem;
-  font-size: 1rem;
-}
+.meal-breakdown h2 { margin: 0 0 0.65rem; }
+.meal-item { padding-bottom: 0.75rem; }
+.meal-item__carbs { margin: 0.15rem 0 0.4rem; font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.meal-item__edit { display: grid; gap: 0.35rem; margin: 0.5rem 0; }
+.meal-total { margin-top: 0.85rem; padding-top: 0.75rem; border-top: 1px solid var(--line); }
