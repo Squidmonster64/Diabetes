@@ -22,6 +22,7 @@ export function Screen({
           </button>
         ) : null}
         <h1>{title}</h1>
+        <span className="beta-chip">Beta</span>
       </header>
       <main className={`screen ${className}`.trim()}>{children}</main>
     </div>

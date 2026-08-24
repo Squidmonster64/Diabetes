@@ -87,6 +87,18 @@ textarea:focus-visible { outline: 3px solid var(--signal); outline-offset: 2px; 
   flex: 1;
 }
 
+.beta-chip {
+  flex: 0 0 auto;
+  padding: 0.15rem 0.5rem;
+  border: 1px solid var(--signal);
+  border-radius: 999px;
+  color: var(--signal);
+  font-size: 0.7rem;
+  font-weight: 750;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
 .back-button {
   min-width: 48px;
   min-height: 44px;

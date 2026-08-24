@@ -12,6 +12,9 @@ import { MemoryCustomFoodsRepository, type CustomFoodsRepository } from "./custo
 import { SupabaseCustomFoodsRepository } from "./customFoods/supabaseRepository.js";
 import { MemorySavedMealsRepository, type SavedMealsRepository } from "./meals/repository.js";
 import { SupabaseSavedMealsRepository } from "./meals/supabaseRepository.js";
+import type { CapturesRepository } from "./captures/types.js";
+import { MemoryCapturesRepository } from "./captures/repository.js";
+import { SupabaseCapturesRepository } from "./captures/supabaseRepository.js";
 
 export interface AppState {
   readonly config: AppConfig;
@@ -24,6 +27,7 @@ export interface AppState {
   readonly auditStore: AuditStore;
   readonly customFoodsRepository: CustomFoodsRepository;
   readonly savedMealsRepository: SavedMealsRepository;
+  readonly capturesRepository: CapturesRepository;
 }
 
 /**
@@ -44,6 +48,7 @@ export function createAppState(config: AppConfig, db: InstanceType<typeof Databa
       auditStore: new SupabaseAuditStore(client),
       customFoodsRepository: new SupabaseCustomFoodsRepository(client),
       savedMealsRepository: new SupabaseSavedMealsRepository(client),
+      capturesRepository: new SupabaseCapturesRepository(client),
     };
   }
 
@@ -56,5 +61,6 @@ export function createAppState(config: AppConfig, db: InstanceType<typeof Databa
     auditStore: new InMemoryAuditStore(),
     customFoodsRepository: new MemoryCustomFoodsRepository(),
     savedMealsRepository: new MemorySavedMealsRepository(),
+    capturesRepository: new MemoryCapturesRepository(),
   };
 }

@@ -7,3 +7,6 @@ export * from "./extract-foods.js";
 export * from "./detect-symptoms.js";
 export * from "./ambiguity.js";
 export * from "./segment-event.js";
+export * from "./capture-contract.js";
+export * from "./classify-intent.js";
+export * from "./interpret-capture.js";

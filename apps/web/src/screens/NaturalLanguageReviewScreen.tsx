@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   generateClarifications,
+  intentCopy,
   parseTimeExpression,
   type ClarificationQuestion,
   type ProvisionalEvent,
@@ -56,7 +57,7 @@ const ONLINE_LOOKUP_REVIEW_TIMEOUT_MS = 7_000;
 /** Every parsed value stays editable and remains a reviewable draft until the
  * explicit hand-off to glucose entry. This component never calculates a dose. */
 export function NaturalLanguageReviewScreen() {
-  const { provisionalEvent, resolvedComponents, setDraft } = useNaturalLanguageDraft();
+  const { captureId, captureCode, provisionalEvent, resolvedComponents, intent, proposedNextStep, setDraft } = useNaturalLanguageDraft();
   const { setCarbResult, setGlucoseEntry } = useWorkflow();
   const navigate = useNavigate();
   const [busyIndex, setBusyIndex] = useState<number | null>(null);
@@ -73,6 +74,8 @@ export function NaturalLanguageReviewScreen() {
   const onlineLookupByIndexRef = useRef(onlineLookupByIndex);
   const [onlineSaveErrorByIndex, setOnlineSaveErrorByIndex] = useState<Record<number, string | null>>({});
   const [onlineCustomFoodIdByIndex, setOnlineCustomFoodIdByIndex] = useState<Record<number, string>>({});
+  const [accepting, setAccepting] = useState(false);
+  const [acceptError, setAcceptError] = useState<string | null>(null);
 
   const referenceNowMs = provisionalEvent ? Date.parse(provisionalEvent.referenceNow) : Date.now();
 
@@ -561,9 +564,15 @@ export function NaturalLanguageReviewScreen() {
     );
   };
 
-  const handOffConfirmedDraft = () => {
-    if (blocked) return;
-    const officialSelection = resolvedComponents.find((component) => component.bestMatch?.source === "BRANDED_OFFICIAL")?.bestMatch ?? null;
+  const handOffConfirmedDraft = async () => {
+    if (blocked || !provisionalEvent) return;
+    setAcceptError(null);
+    setAccepting(true);
+    try {
+      if (captureId) {
+        await api.acceptCapture(captureId, provisionalEvent);
+      }
+      const officialSelection = resolvedComponents.find((component) => component.bestMatch?.source === "BRANDED_OFFICIAL")?.bestMatch ?? null;
     setCarbResult({
       sourceDataset: officialSelection ? "BRANDED_OFFICIAL" : "AUSNUT_2023",
       sourceFoodId: officialSelection ? `official-menu:${officialSelection.label}` : "natural-language-entry",
@@ -591,9 +600,66 @@ export function NaturalLanguageReviewScreen() {
       concentratedInsulinConfirmed: false,
       priorRapidActingDoses: recentInsulin && recentInsulin.amountUnits.value !== null && recentInsulin.takenAt.value !== null ? [{ units: String(recentInsulin.amountUnits.value), administeredAt: recentInsulin.takenAt.value }] : [],
       specialSituations: symptoms.specialSituations,
+      captureId,
     });
-    navigate("/glucose-entry");
+      navigate("/glucose-entry");
+    } catch (err) {
+      setAcceptError(err instanceof Error ? err.message : "This capture could not be accepted.");
+    } finally {
+      setAccepting(false);
+    }
   };
+
+  const handleSettingsRedirect = async () => {
+    if (!captureId || !provisionalEvent) {
+      navigate("/settings");
+      return;
+    }
+    setAcceptError(null);
+    setAccepting(true);
+    try {
+      await api.acceptCapture(captureId, provisionalEvent);
+      navigate("/settings");
+    } catch (err) {
+      setAcceptError(err instanceof Error ? err.message : "Could not save this capture before opening settings.");
+    } finally {
+      setAccepting(false);
+    }
+  };
+
+  const handleKeepLog = async () => {
+    if (blocked || !provisionalEvent) return;
+    if (!captureId) {
+      navigate("/captures");
+      return;
+    }
+    setAcceptError(null);
+    setAccepting(true);
+    try {
+      await api.acceptCapture(captureId, provisionalEvent);
+      navigate("/captures");
+    } catch (err) {
+      setAcceptError(err instanceof Error ? err.message : "This capture could not be saved.");
+    } finally {
+      setAccepting(false);
+    }
+  };
+
+  const handleRejectCapture = async () => {
+    if (captureId) {
+      try {
+        await api.rejectCapture(captureId);
+      } catch {
+        // The original words remain stored even if the reject action fails.
+      }
+    }
+    navigate("/");
+  };
+
+  const intentInfo = intent ? intentCopy(intent.intent) : null;
+  const excluded = intent?.intent === "EMERGENCY_OR_EXCLUDED";
+  const settingsOnly = intent?.intent === "SETTINGS_CHANGE_ATTEMPT" || proposedNextStep?.kind === "SETTINGS_SCREEN_ONLY";
+  const logOnly = proposedNextStep?.kind === "LOG_ONLY";
 
   return (
     <Screen title="Review details" className="screen--result">
@@ -615,13 +681,44 @@ export function NaturalLanguageReviewScreen() {
                 {blockingClarifications.map(renderClarification)}
               </section>
             ) : null}
+            {acceptError ? <div className="banner banner-danger">{acceptError}</div> : null}
             {blocked && !questionsOpen ? <p className="muted">{questionCount} specific question{questionCount === 1 ? " needs" : "s need"} your answer before you continue.</p> : null}
             {blocked ? <button className="btn-secondary" type="button" onClick={() => setQuestionsOpen((current) => !current)}>{questionsOpen ? "Hide questions" : `Answer ${questionCount} question${questionCount === 1 ? "" : "s"}`}</button> : null}
-            <button className="btn-primary" type="button" disabled={blocked} onClick={handOffConfirmedDraft}>Confirm these values</button>
+            {excluded ? (
+              <button className="btn-primary" type="button" onClick={() => void handleRejectCapture()}>Keep these words and return home</button>
+            ) : settingsOnly ? (
+              <button className="btn-primary" type="button" disabled={accepting} onClick={() => void handleSettingsRedirect()}>
+                {accepting ? "Saving…" : "Open clinician-report settings"}
+              </button>
+            ) : logOnly ? (
+              <button className="btn-primary" type="button" disabled={blocked || accepting} onClick={() => void handleKeepLog()}>
+                {accepting ? "Saving…" : "Keep this record"}
+              </button>
+            ) : (
+              <button className="btn-primary" type="button" disabled={blocked || accepting} onClick={() => void handOffConfirmedDraft()}>
+                {accepting ? "Saving confirmed values…" : "Confirm these values"}
+              </button>
+            )}
+            <button className="btn-secondary" type="button" disabled={accepting} onClick={() => void handleRejectCapture()}>
+              Discard this interpretation
+            </button>
           </>
         }
       >
         <div className="lifecycle-banner">Nothing has been calculated yet. No insulin dose is suggested on this screen.</div>
+        {captureCode ? <p className="muted">Saved as {captureCode}. Original words are kept even if you change the draft below.</p> : null}
+        {intentInfo ? (
+          <section className="card">
+            <p className="field-label">{intentInfo.title}</p>
+            <p>{intentInfo.body}</p>
+            {intent?.settingsLanguageDetected ? (
+              <p className="muted">Settings language was noticed and will not be applied from this capture.</p>
+            ) : null}
+            {intent?.doseRequestLanguageDetected ? (
+              <p className="muted">A dose was asked for. This screen still does not calculate one.</p>
+            ) : null}
+          </section>
+        ) : null}
         <section className="card">
           <ExtractedRow
             label="Glucose"

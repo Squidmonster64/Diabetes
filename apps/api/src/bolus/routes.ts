@@ -11,6 +11,7 @@ import {
 } from "@diabetes-companion/bolus";
 import type { AppState } from "../appState.js";
 import { HttpError } from "../httpError.js";
+import { linkCaptureAction, assertCaptureCanPreview } from "../captures/routes.js";
 
 /**
  * Serialises concurrent confirmation requests for one patient/preview within
@@ -54,6 +55,9 @@ export function registerBolusRoutes(app: FastifyInstance, state: AppState): void
       serverNow,
     };
 
+    const captureId = typeof body.captureId === "string" && body.captureId.trim() ? body.captureId.trim() : undefined;
+    if (captureId) await assertCaptureCanPreview(state, patientId, captureId);
+
     const result = await calculateBolusPreview(bolusRequest, context, {
       settingsRepository: state.settingsRepository,
       auditStore: state.auditStore,
@@ -61,7 +65,19 @@ export function registerBolusRoutes(app: FastifyInstance, state: AppState): void
       clock: systemClock,
       idGenerator: uuidGenerator,
     });
-    return { ...result, serverNow };
+    const linkedCalculationId =
+      result.status === "REFUSED"
+        ? (await state.calculationRepository.listByPatient(patientId)).find((record) => record.createdAt === result.timestamp)
+            ?.calculationId
+        : result.calculationId;
+    await linkCaptureAction(
+      state,
+      patientId,
+      captureId,
+      result.status === "REFUSED" ? "SAFETY_REFUSAL" : "BOLUS_PREVIEW",
+      linkedCalculationId,
+    );
+    return { ...result, serverNow, captureId: captureId ?? null };
   });
 
   app.post("/api/v1/bolus/previews/:previewId/confirm", { preHandler: app.requireAuth }, async (request) => {
@@ -94,6 +110,8 @@ export function registerBolusRoutes(app: FastifyInstance, state: AppState): void
         }
       }
       if (!response.ok) throw new HttpError(409, response.code, "The confirmation could not be completed.");
+      const captureId = typeof body.captureId === "string" && body.captureId.trim() ? body.captureId.trim() : undefined;
+      await linkCaptureAction(state, patientId, captureId, "BOLUS_CONFIRMED", previewId);
       return { ...response.record, status: response.record.state, record: response.record, confirmationRequestId, serverNow };
     })();
 
@@ -119,6 +137,8 @@ export function registerBolusRoutes(app: FastifyInstance, state: AppState): void
       { auditStore: state.auditStore, calculationRepository: state.calculationRepository },
     );
     if (!response.ok) throw new HttpError(409, response.code, "The rejection could not be completed.");
+    const captureId = typeof body.captureId === "string" && body.captureId.trim() ? body.captureId.trim() : undefined;
+    await linkCaptureAction(state, patientId, captureId, "BOLUS_REJECTED", previewId);
     return response.record;
   });
 
@@ -135,6 +155,8 @@ export function registerBolusRoutes(app: FastifyInstance, state: AppState): void
       { auditStore: state.auditStore, calculationRepository: state.calculationRepository },
     );
     if (!response.ok) throw new HttpError(409, response.code, "The administration could not be recorded.");
+    const captureId = typeof body.captureId === "string" && body.captureId.trim() ? body.captureId.trim() : undefined;
+    await linkCaptureAction(state, patientId, captureId, "ADMINISTRATION_RECORDED", String(body.calculationId ?? ""));
     return response.record;
   });
 }

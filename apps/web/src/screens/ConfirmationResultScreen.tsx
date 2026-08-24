@@ -5,6 +5,7 @@ import { ResultLayout } from "../components/ResultLayout.js";
 import { Screen } from "../components/Screen.js";
 import { api } from "../lib/apiClient.js";
 import { useWorkflow } from "../state/WorkflowContext.js";
+import { useNaturalLanguageDraft } from "../state/NaturalLanguageContext.js";
 
 interface ConfirmationState {
   calculationId: string;
@@ -15,6 +16,7 @@ interface ConfirmationState {
 
 export function ConfirmationResultScreen() {
   const { previewResult, setPreviewResult, reset } = useWorkflow();
+  const { captureId } = useNaturalLanguageDraft();
   const navigate = useNavigate();
   const result = previewResult as ConfirmationState | null;
   const [administeredUnits, setAdministeredUnits] = useState("");
@@ -68,7 +70,7 @@ export function ConfirmationResultScreen() {
     setBusy(true);
     setError(null);
     try {
-      const record = await api.recordAdministration({ calculationId, administeredUnits });
+      const record = await api.recordAdministration({ calculationId, administeredUnits, captureId: captureId ?? undefined });
       setPreviewResult({ ...result, lifecycleStatus: "ADMINISTRATION_RECORDED", administration: record });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Administration was not recorded.");

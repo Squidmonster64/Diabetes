@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { segmentEvent } from "@diabetes-companion/natural-language";
 import { resolveFoodComponent } from "../lib/foodMatch.js";
+import { api } from "../lib/apiClient.js";
 import {
   describeSpeechRecognitionError,
   getSpeechRecognitionConstructor,
@@ -16,12 +16,9 @@ const EXAMPLE_TEXT =
   "My blood glucose is 8.4 and I took 4 units of insulin two hours ago. I'm eating a ham sandwich with two slices of white bread and a little butter.";
 
 /**
- * The app's primary entry point: one free-text field describing a whole
- * diabetes event, typed or transcribed by the browser's optional in-app
- * speech-recognition service. The service only writes editable draft text
- * into this field. Submitting only extracts candidate values and searches
- * for possible food matches; nothing is calculated or confirmed until the
- * mandatory review screen.
+ * The app's primary entry point: original words are captured and stored
+ * first. Interpretation is a review-only draft. Nothing is calculated or
+ * confirmed until the mandatory review screen.
  */
 export function NaturalLanguageEntryScreen() {
   const [text, setText] = useState("");
@@ -30,6 +27,8 @@ export function NaturalLanguageEntryScreen() {
   const [voiceError, setVoiceError] = useState<string | null>(null);
   const [voiceStatus, setVoiceStatus] = useState("");
   const [listening, setListening] = useState(false);
+  const [usedVoice, setUsedVoice] = useState(false);
+  const [clientCaptureId] = useState(() => crypto.randomUUID());
   const recognitionRef = useRef<BrowserSpeechRecognition | null>(null);
   const transcriptPrefixRef = useRef("");
   const finalTranscriptRef = useRef("");
@@ -70,6 +69,7 @@ export function NaturalLanguageEntryScreen() {
     recognition.lang = typeof navigator === "undefined" ? "en-AU" : navigator.language || "en-AU";
     recognition.onstart = () => {
       setListening(true);
+      setUsedVoice(true);
       setVoiceStatus("Listening. Say what is happening, then push to finish.");
     };
     recognition.onresult = (event) => {
@@ -109,11 +109,21 @@ export function NaturalLanguageEntryScreen() {
     setError(null);
     setSubmitting(true);
     try {
-      const provisionalEvent = segmentEvent(text, Date.now());
+      const capture = await api.createCapture({
+        originalText: text,
+        sourceType: usedVoice ? "voice" : "typed",
+        clientCaptureId,
+        referenceNowMs: Date.now(),
+      });
+      const provisionalEvent = capture.interpretation.extraction;
       const resolvedComponents = provisionalEvent.meal
         ? await Promise.all(provisionalEvent.meal.components.map((component) => resolveFoodComponent(component)))
         : [];
-      setDraft(provisionalEvent, resolvedComponents);
+      setDraft(provisionalEvent, resolvedComponents, {
+        id: capture.id,
+        captureCode: capture.captureCode,
+        interpretation: capture.interpretation,
+      });
       navigate("/describe/review");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not process that description.");
@@ -125,8 +135,8 @@ export function NaturalLanguageEntryScreen() {
   return (
     <Screen title="Describe what's happening" showBack={false}>
       <p className="muted">
-        Describe your glucose reading, any recent insulin, and what you're eating or drinking - in your own words.
-        Use the in-app voice control below or type directly. Nothing in this entry is used until you review it on the next screen.
+        Speak or type naturally. Your original words are saved first. The next screen shows a reviewable draft only —
+        no insulin dose is calculated here.
       </p>
 
       <form onSubmit={handleSubmit}>
@@ -163,13 +173,13 @@ export function NaturalLanguageEntryScreen() {
         {error ? <div className="banner banner-danger">{error}</div> : null}
 
         <button className="btn-primary" type="submit" disabled={submitting || !text.trim()}>
-          {submitting ? "Reading…" : "Continue"}
+          {submitting ? "Saving your words…" : "Continue"}
         </button>
       </form>
 
       <p className="muted" style={{ marginTop: "1.5rem" }}>
-        Nothing is calculated yet - on the next screen you'll review and confirm every value before any
-        carbohydrate is calculated.
+        Your original words are stored before review. On the next screen you confirm every extracted value before any
+        carbohydrate or dose calculation.
       </p>
 
       <div className="field">

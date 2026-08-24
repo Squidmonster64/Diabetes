@@ -30,6 +30,7 @@ auth.users (Supabase-managed)
       │                 ├──0..n insulin_administrations     (0004)
       │                 └──< audit_events                   (0005)
       │
+      ├──< captures / capture_actions      (0012) source text + provenance
       └──< sync_metadata                   (0006) offline queue bookkeeping
 ```
 
@@ -48,6 +49,14 @@ field list and validation rules. Key invariants:
   confirmation of accurate transcription.
 - Rows are never updated once created, except for status transitions
   (`ACTIVE → SUPERSEDED/REVOKED/EXPIRED`) performed by the API.
+
+### `captures` / `capture_actions`
+
+Immutable natural-language source records and the review/action log that
+points at them. `original_text` cannot be updated. Interpretation JSON and
+accepted snapshots are stored separately. `capture_actions` may reference a
+`calculation_id` after a confirmed interpretation; `packages/bolus` does not
+read these tables. See [`CAPTURE_MODEL.md`](CAPTURE_MODEL.md).
 
 ### `calculations`
 

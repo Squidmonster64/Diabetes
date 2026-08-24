@@ -16,6 +16,19 @@ export function registerHistoryRoutes(app: FastifyInstance, state: AppState): vo
     if (!record || record.patientId !== patientId) {
       throw new HttpError(404, "NOT_FOUND", "The requested history event was not found.");
     }
-    return record;
+    const capture = await state.capturesRepository.findByCalculationId(eventId);
+    return {
+      ...record,
+      capture: capture && capture.patientId === patientId
+        ? {
+            id: capture.id,
+            captureCode: capture.captureCode,
+            originalText: capture.originalText,
+            intent: capture.intent,
+            interpretationStatus: capture.interpretationStatus,
+            createdAt: capture.createdAt,
+          }
+        : null,
+    };
   });
 }

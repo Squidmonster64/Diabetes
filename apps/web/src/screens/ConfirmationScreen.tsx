@@ -6,6 +6,7 @@ import { ResultLayout } from "../components/ResultLayout.js";
 import { Screen } from "../components/Screen.js";
 import { api, ApiError } from "../lib/apiClient.js";
 import { useWorkflow } from "../state/WorkflowContext.js";
+import { useNaturalLanguageDraft } from "../state/NaturalLanguageContext.js";
 
 interface PreviewSuccess {
   calculationId: string;
@@ -18,6 +19,7 @@ interface PreviewSuccess {
 
 export function ConfirmationScreen() {
   const { previewResult, setPreviewResult } = useWorkflow();
+  const { captureId } = useNaturalLanguageDraft();
   const navigate = useNavigate();
   const result = previewResult as PreviewSuccess | null;
   const [accepted, setAccepted] = useState(false);
@@ -38,6 +40,7 @@ export function ConfirmationScreen() {
       const confirmation = await api.confirmBolus(result.calculationId, {
         confirmationRequestId,
         expectedSnapshotHash: result.snapshotHash,
+        captureId: captureId ?? undefined,
       });
       setPreviewResult({ ...result, confirmation, lifecycleStatus: (confirmation as { status?: string }).status ?? "USER_CONFIRMED" });
       navigate("/confirm-result");
@@ -61,7 +64,7 @@ export function ConfirmationScreen() {
     setSubmitting(true);
     setError(null);
     try {
-      await api.rejectBolus(result.calculationId, { reason: "USER_REJECTED" });
+      await api.rejectBolus(result.calculationId, { reason: "USER_REJECTED", captureId: captureId ?? undefined });
       setPreviewResult({ status: "INVALIDATED" });
       navigate("/glucose-entry");
     } catch (err) {

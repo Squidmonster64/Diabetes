@@ -1,12 +1,14 @@
 # Diabetes Companion (Australian-first)
 
-A mobile-first, installable Progressive Web App that looks up Australian food
-carbohydrate values and runs a deterministic, rule-based bolus-calculator
-preview from patient-entered clinician-report settings.
+A mobile-first, installable Progressive Web App that captures natural-language
+diabetes events, looks up Australian food carbohydrate values, and runs a
+deterministic, rule-based bolus-calculator preview from patient-entered
+clinician-report settings.
 
-> **This is an engineering prototype. It is not approved for clinical
-> treatment use.** It requires clinician review before any real-world use.
-> See [`CLINICIAN_REVIEW.md`](CLINICIAN_REVIEW.md) and
+> **This is a standalone beta product. It is not approved for clinical
+> treatment use.** Natural language may interpret what you said. It must not
+> invent a treatment calculation. See [`CAPTURE_MODEL.md`](CAPTURE_MODEL.md),
+> [`CLINICIAN_REVIEW.md`](CLINICIAN_REVIEW.md) and
 > [`audit/KNOWN_LIMITATIONS.md`](audit/KNOWN_LIMITATIONS.md).
 
 **Live deployment**: https://diabetes-companion-app-production.up.railway.app
@@ -16,14 +18,19 @@ set to this URL - see `SUPABASE_SETUP.md`).
 
 ## What this is
 
-1. A patient searches for an Australian food (AUSNUT 2023 / AFCD Release 3).
-2. The app calculates carbohydrate grams from a selected portion.
-3. The patient enters current glucose and active-insulin declarations.
-4. A deterministic bolus module ([`packages/bolus`](packages/bolus)) runs every
+1. A patient speaks or types what is happening. The original words are saved
+   as an immutable capture ([`CAPTURE_MODEL.md`](CAPTURE_MODEL.md)).
+2. The system normalises, classifies intent, and extracts a reviewable draft.
+   Uncertain or clinically material gaps block progress.
+3. After the patient confirms the draft, Australian food data can supply a
+   carbohydrate figure, still as a confirmed number only.
+4. The patient confirms current glucose and active-insulin declarations.
+5. A deterministic bolus module ([`packages/bolus`](packages/bolus)) runs every
    safety gate from `BOLUS_CALCULATOR_IMPLEMENTATION_HANDOFF.md` and returns a
    preview or a refusal - never a hidden or capped dose.
-5. The patient explicitly reviews and confirms (or rejects) the preview.
-6. Only a confirmed result is recorded as a confirmed bolus event.
+6. The patient explicitly reviews and confirms (or rejects) the preview.
+7. Only a confirmed result is recorded as a confirmed bolus event, linked back
+   to the source capture.
 
 ## Repository layout
 
@@ -84,6 +91,7 @@ npm run audit              # regenerate the audit package under audit/
 - [`packages/bolus/FROZEN.md`](packages/bolus/FROZEN.md) - **audit map**: exactly which files hold the dose algorithm, the plain-language generation, and the food database, and what reviewing a change to any of them requires
 - [`docs/UPGRADE-bolus-calc.md`](docs/UPGRADE-bolus-calc.md) - engineering plan for extending the calculator, and the parity-harness/CI mechanics that protect it
 - [`SAFETY_MODEL.md`](SAFETY_MODEL.md) - safety gates and refusal behaviour
+- [`CAPTURE_MODEL.md`](CAPTURE_MODEL.md) - source preservation, intent, and provenance
 - [`PRIVACY_MODEL.md`](PRIVACY_MODEL.md) - logging and data minimisation
 - [`OFFLINE_BEHAVIOR.md`](OFFLINE_BEHAVIOR.md) - PWA offline behaviour
 - [`CLINICIAN_REVIEW.md`](CLINICIAN_REVIEW.md) - clinical review status

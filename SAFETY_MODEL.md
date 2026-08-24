@@ -66,16 +66,16 @@ figure would be - the bolus module has no model of "meals," "components," or
 
 ## Natural-language event entry did not touch the bolus module
 
-`packages/natural-language/` (the primary "describe what's happening" entry
-screen) is a text -> structured-draft transformer only. It performs
-deterministic, regex-based extraction of glucose, recent insulin, food/drink
-components, symptoms, and timing from typed or dictated text - Apple keyboard
-Dictation inserts recognised text into the same native `<textarea>` used for
-typed input, so it is indistinguishable from typing; there is no microphone
-API, audio recording, or speech-recognition service anywhere in the app.
+`packages/natural-language/` is a text -> structured-draft transformer only.
+It performs deterministic, regex-based extraction of glucose, recent insulin,
+food/drink components, symptoms, and timing from typed or in-app voice
+transcripts. Browser speech recognition may fill the editable transcript; it
+never calculates, confirms, or stores raw audio.
 
 This package **never calculates a bolus, never infers an insulin amount or
-active-insulin value, and never confirms a value on the user's behalf**:
+active-insulin value, and never confirms a value on the user's behalf**.
+Captures persist the original words first; interpretation is a separate
+reviewable draft. See [`CAPTURE_MODEL.md`](CAPTURE_MODEL.md).
 
 - Every extracted field carries `{rawSpan, value, confidence, status,
   requiresConfirmation}` and is rendered on `NaturalLanguageReviewScreen.tsx`

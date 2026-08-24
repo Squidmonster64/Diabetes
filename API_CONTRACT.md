@@ -30,6 +30,32 @@ outright when `NODE_ENV=production`).
 
 ## Routes
 
+### `POST /api/v1/captures` (auth required)
+
+Creates an immutable capture from `originalText`, `sourceType` (`typed` or
+`voice`), optional `clientCaptureId`, and optional `referenceNowMs`. The
+server preserves the original words, runs deterministic interpretation, and
+returns the capture plus a review-only draft. Replaying the same
+`clientCaptureId` returns the original capture and never replaces the source
+text. The interpretation never includes a dose.
+
+### `GET /api/v1/captures` / `GET /api/v1/captures/:id` (auth required)
+
+Lists or loads the authenticated patient's captures. `:id` also returns the
+append-only action log used for provenance.
+
+### `PATCH /api/v1/captures/:id/interpretation` (auth required)
+
+Stores a human-revised extraction against the same capture. `original_text`
+cannot change.
+
+### `POST /api/v1/captures/:id/accept` / `POST /api/v1/captures/:id/reject` (auth required)
+
+Accept requires every blocking clarification to be resolved and refuses
+excluded clinical context. Settings-change captures may be accepted only as
+a redirect to the settings screen; they never write treatment parameters.
+Reject keeps the original words.
+
 ### `GET /api/v1/health`
 
 Public. Returns `{ status, mode, databaseSha256, calculatorVersion }`.
@@ -74,7 +100,8 @@ Runs the full deterministic bolus calculation
 (`calculateBolusPreview` from `packages/bolus`). Returns either a
 `BolusSuccess` (status `CALCULATED`/`CALCULATED_ZERO`) or a `BolusRefusal`
 (status `REFUSED`) - see [`BOLUS_MODULE.md`](BOLUS_MODULE.md) and
-[`SAFETY_MODEL.md`](SAFETY_MODEL.md).
+[`SAFETY_MODEL.md`](SAFETY_MODEL.md). Optional `captureId` links provenance
+after the interpretation has been accepted; it is not an input to arithmetic.
 
 ### `POST /api/v1/bolus/previews/:previewId/confirm` (auth required)
 

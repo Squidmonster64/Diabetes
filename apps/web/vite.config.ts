@@ -15,7 +15,7 @@ export default defineConfig({
       manifest: {
         name: "Diabetes Companion",
         short_name: "DiaCompanion",
-        description: "Australian-first diabetes companion: food carbohydrate lookup and deterministic bolus calculator preview.",
+        description: "Standalone diabetes companion: capture original words, review a draft, then a deterministic bolus preview.",
         theme_color: "#12181C",
         background_color: "#12181C",
         display: "standalone",
@@ -35,6 +35,10 @@ export default defineConfig({
         runtimeCaching: [
           {
             urlPattern: /\/api\/v1\/foods\/search/,
+            handler: "NetworkOnly",
+          },
+          {
+            urlPattern: /\/api\/v1\/captures/,
             handler: "NetworkOnly",
           },
           {

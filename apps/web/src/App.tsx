@@ -24,6 +24,8 @@ import { SettingsConfirmationScreen } from "./screens/SettingsConfirmationScreen
 import { SettingsHistoryScreen } from "./screens/SettingsHistoryScreen.js";
 import { DataProvenanceScreen } from "./screens/DataProvenanceScreen.js";
 import { AboutScreen } from "./screens/AboutScreen.js";
+import { CapturesListScreen } from "./screens/CapturesListScreen.js";
+import { CaptureDetailScreen } from "./screens/CaptureDetailScreen.js";
 import { CustomFoodsListScreen } from "./screens/CustomFoodsListScreen.js";
 import { CustomFoodFormScreen } from "./screens/CustomFoodFormScreen.js";
 import { MealsListScreen } from "./screens/MealsListScreen.js";
@@ -32,10 +34,10 @@ import { MealEditScreen } from "./screens/MealEditScreen.js";
 import { MealUseScreen } from "./screens/MealUseScreen.js";
 
 export function App() {
-  const { session, loading } = useAuth();
+  const { session, loading, localDev } = useAuth();
 
   if (loading) return null;
-  if (!session) return <AuthScreen />;
+  if (!session && !localDev) return <AuthScreen />;
 
   return (
     <WorkflowProvider>
@@ -61,6 +63,8 @@ export function App() {
           <Route path="/settings/confirm" element={<SettingsConfirmationScreen />} />
           <Route path="/settings/history" element={<SettingsHistoryScreen />} />
           <Route path="/data-provenance" element={<DataProvenanceScreen />} />
+          <Route path="/captures" element={<CapturesListScreen />} />
+          <Route path="/captures/:captureId" element={<CaptureDetailScreen />} />
           <Route path="/about" element={<AboutScreen />} />
           <Route path="/custom-foods" element={<CustomFoodsListScreen />} />
           <Route path="/custom-foods/new" element={<CustomFoodFormScreen />} />
