@@ -12,13 +12,20 @@ export function HomeScreen() {
   };
   return (
     <Screen title="Home" showBack={false}>
+      <div className="banner banner-warning">
+        Beta. Not approved for clinical treatment use. Natural language can interpret what you said; only the deterministic calculator can produce a dose preview.
+      </div>
       <p className="muted">
-        This calculator performs arithmetic only. Review every calculation before confirming. It does not replace
-        clinical advice or your emergency/hypo plan.
+        Speak or type what is happening. Your original words are saved first. Review every extracted value before any carbohydrate or insulin arithmetic runs.
       </p>
       <div className="field">
         <Link to="/describe" onClick={resetAll}>
           <button className="btn-primary">Describe glucose, insulin and food</button>
+        </Link>
+      </div>
+      <div className="field">
+        <Link to="/captures">
+          <button className="btn-secondary">Review saved captures</button>
         </Link>
       </div>
       <div className="field">
@@ -33,7 +40,7 @@ export function HomeScreen() {
       </div>
       <div className="field">
         <Link to="/history">
-          <button className="btn-secondary">View history</button>
+          <button className="btn-secondary">View calculation ledger</button>
         </Link>
       </div>
       <div className="field">

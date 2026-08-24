@@ -143,16 +143,11 @@ not only the test suites.
 ## Natural-language event entry (`packages/natural-language`, `feature/natural-language-entry`)
 
 20. **Deterministic regex extraction, not a language model.** The parser
-    handles the phrasing patterns exercised by its acceptance tests (stated
-    number/word quantities, common relative and clock times, "with"/"and"/
-    comma-separated food lists, vague qualifiers like "a little"/"some", a
-    small set of hypoglycaemia/special-situation keywords). Phrasing outside
-    those patterns degrades to a "not stated" / missing clarification rather
-    than a wrong guess, but it also means less common phrasings simply
-    aren't extracted yet rather than being extracted incorrectly. No
-    language-model fallback is wired up (the spec permits one only as an
-    optional, schema-validated, never-auto-trusted extra path; none is
-    configured in this build).
+    handles the phrasing patterns exercised by its acceptance tests. Captures
+    now persist original text and classified intent before review
+    (`CAPTURE_MODEL.md`). Phrasing outside those patterns still degrades to
+    clarification rather than a wrong guess. No language-model fallback is
+    wired up.
 21. **Single-clause time attribution.** Relative/absolute time phrases are
     resolved per sentence-clause (split on `.`/`;`/"while", with decimal
     points protected from being read as clause breaks). A clause containing

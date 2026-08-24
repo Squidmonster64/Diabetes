@@ -5,6 +5,8 @@ import { supabase } from "../lib/supabase.js";
 interface AuthState {
   readonly session: Session | null;
   readonly loading: boolean;
+  /** Vite-dev only. Lets the PWA talk to the in-memory API without Supabase. */
+  readonly localDev: boolean;
   signInWithEmail(email: string): Promise<void>;
   signOut(): Promise<void>;
 }
@@ -14,8 +16,13 @@ const AuthContext = createContext<AuthState | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const localDev = Boolean(import.meta.env.DEV && import.meta.env.VITE_DEV_PATIENT_ID);
 
   useEffect(() => {
+    if (localDev) {
+      setLoading(false);
+      return;
+    }
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);
       setLoading(false);
@@ -24,7 +31,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(nextSession);
     });
     return () => subscription.subscription.unsubscribe();
-  }, []);
+  }, [localDev]);
 
   const signInWithEmail = async (email: string) => {
     const { error } = await supabase.auth.signInWithOtp({
@@ -39,7 +46,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ session, loading, signInWithEmail, signOut }}>{children}</AuthContext.Provider>
+    <AuthContext.Provider value={{ session, loading, localDev, signInWithEmail, signOut }}>{children}</AuthContext.Provider>
   );
 }
 

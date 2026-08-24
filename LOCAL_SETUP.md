@@ -47,10 +47,9 @@ This starts:
 - the web app on `http://localhost:5173` (Vite dev server, proxies `/api` to
   the API)
 
-Open `http://localhost:5173` in a browser. Without Supabase configured, the
-sign-in screen will attempt a real magic-link request and fail gracefully;
-to exercise the app end-to-end without Supabase, use the API directly (see
-below) or complete Supabase setup first.
+Open `http://localhost:5173` in a browser. For local UI work without Supabase,
+set `VITE_DEV_PATIENT_ID=demo-patient` in `.env`. The PWA then skips magic-link
+sign-in and the API accepts that patient id. Never set this in production.
 
 ### Exercising the API without a browser
 

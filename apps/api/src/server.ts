@@ -14,6 +14,7 @@ import { registerBolusRoutes } from "./bolus/routes.js";
 import { registerHistoryRoutes } from "./history/routes.js";
 import { registerCustomFoodRoutes } from "./customFoods/routes.js";
 import { registerMealRoutes } from "./meals/routes.js";
+import { registerCaptureRoutes } from "./captures/routes.js";
 import { HttpError } from "./httpError.js";
 import { FoodModuleError } from "./food/errors.js";
 import { redact } from "@diabetes-companion/bolus";
@@ -89,6 +90,7 @@ export async function buildServer() {
   registerHistoryRoutes(app, state);
   registerCustomFoodRoutes(app, state);
   registerMealRoutes(app, state);
+  registerCaptureRoutes(app, state);
 
   if (config.staticWebDir) {
     await registerStaticWebApp(app, config.staticWebDir);

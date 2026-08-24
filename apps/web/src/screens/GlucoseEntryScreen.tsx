@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api, ApiError } from "../lib/apiClient.js";
 import { useWorkflow, type PriorRapidActingDoseEntry } from "../state/WorkflowContext.js";
+import { useNaturalLanguageDraft } from "../state/NaturalLanguageContext.js";
 import { NumberPad } from "../components/ReviewPrimitives.js";
 import { Screen } from "../components/Screen.js";
 
@@ -36,6 +37,7 @@ function nowIso(): string {
 
 export function GlucoseEntryScreen() {
   const { carbResult, glucoseEntry, setPreviewResult } = useWorkflow();
+  const { captureId } = useNaturalLanguageDraft();
   const navigate = useNavigate();
 
   const [glucoseUnit, setGlucoseUnit] = useState<"MMOL_L" | "MG_DL">(glucoseEntry?.glucoseUnit ?? "MMOL_L");
@@ -97,11 +99,12 @@ export function GlucoseEntryScreen() {
     setSubmitting(true);
     try {
       const nowTs = nowIso();
+      const glucoseTimestamp = glucoseEntry?.glucoseTimestamp || nowTs;
       const body = {
         mode,
         currentGlucose,
         glucoseUnit,
-        glucoseTimestamp: nowTs,
+        glucoseTimestamp,
         glucoseSource: "MANUAL_TRANSCRIPTION",
         glucoseConfirmed,
         carbohydrateGrams: String(carbGrams),
@@ -114,6 +117,7 @@ export function GlucoseEntryScreen() {
         specialSituations: Array.from(situations),
         concentratedInsulinConfirmed,
         calculatedAt: nowTs,
+        captureId: captureId ?? glucoseEntry?.captureId ?? undefined,
       };
       const result = await api.previewBolus(body);
       setPreviewResult(result);
@@ -161,6 +165,11 @@ export function GlucoseEntryScreen() {
           <label>Current glucose</label>
           <NumberPad value={currentGlucose} onChange={setCurrentGlucose} unit={glucoseUnit === "MMOL_L" ? "mmol/L" : "mg/dL"} />
         </div>
+        {glucoseEntry?.glucoseTimestamp ? (
+          <p className="muted">
+            Reading time from the confirmed capture: {new Date(glucoseEntry.glucoseTimestamp).toLocaleString()}. Freshness is checked by the calculator, not guessed here.
+          </p>
+        ) : null}
 
         <label className="checkbox-row">
           <input type="checkbox" checked={glucoseConfirmed} onChange={(e) => setGlucoseConfirmed(e.target.checked)} />

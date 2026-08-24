@@ -8,6 +8,7 @@ import type {
   SavedMealRecord,
   OnlineFoodLookupCandidate,
 } from "@diabetes-companion/food-contracts";
+import type { CaptureInterpretation, CaptureIntent, InterpretationStatus, ProvisionalEvent } from "@diabetes-companion/natural-language";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "/api/v1";
 const FOOD_SEARCH_REQUEST_TIMEOUT_MS = 7_000;
@@ -20,9 +21,13 @@ export class ApiError extends Error {
 }
 
 async function authHeader(): Promise<Record<string, string>> {
+  const headers: Record<string, string> = {};
   const { data } = await supabase.auth.getSession();
   const token = data.session?.access_token;
-  return token ? { Authorization: `Bearer ${token}` } : {};
+  if (token) headers.Authorization = `Bearer ${token}`;
+  const devPatientId = import.meta.env.VITE_DEV_PATIENT_ID;
+  if (devPatientId) headers["X-Dev-Patient-Id"] = String(devPatientId);
+  return headers;
 }
 
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
@@ -137,4 +142,44 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ overrides }),
     }),
+
+  createCapture: (body: { originalText: string; sourceType: "typed" | "voice"; clientCaptureId?: string; referenceNowMs?: number }) =>
+    request<CaptureRecord>("/captures", { method: "POST", body: JSON.stringify(body) }),
+  listCaptures: () => request<{ captures: CaptureRecord[] }>("/captures"),
+  getCapture: (id: string) => request<CaptureRecord & { actions: CaptureActionRecord[] }>(`/captures/${id}`),
+  reviseCaptureInterpretation: (id: string, extraction: ProvisionalEvent) =>
+    request<CaptureRecord>(`/captures/${id}/interpretation`, { method: "PATCH", body: JSON.stringify({ extraction }) }),
+  acceptCapture: (id: string, extraction?: ProvisionalEvent) =>
+    request<CaptureRecord>(`/captures/${id}/accept`, { method: "POST", body: JSON.stringify({ extraction }) }),
+  rejectCapture: (id: string) => request<CaptureRecord>(`/captures/${id}/reject`, { method: "POST" }),
 };
+
+export interface CaptureRecord {
+  id: string;
+  captureCode: string;
+  clientCaptureId: string | null;
+  sourceType: "typed" | "voice";
+  originalText: string;
+  normalisedText: string;
+  interpretation: CaptureInterpretation;
+  acceptedSnapshot: CaptureInterpretation | null;
+  interpretationStatus: InterpretationStatus;
+  intent: CaptureIntent;
+  intentConfidence: string;
+  contractVersion: string;
+  referenceNow: string;
+  interpretedAt: string;
+  acceptedAt: string | null;
+  rejectedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CaptureActionRecord {
+  id: string;
+  captureId: string;
+  actionType: string;
+  calculationId: string | null;
+  createdAt: string;
+  payload: Record<string, unknown>;
+}

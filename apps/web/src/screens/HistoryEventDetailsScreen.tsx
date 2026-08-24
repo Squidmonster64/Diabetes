@@ -24,6 +24,14 @@ interface CalculationEvent {
     settingsId?: string;
     settingsVersion?: number;
   };
+  capture?: {
+    id: string;
+    captureCode: string;
+    originalText: string;
+    intent: string;
+    interpretationStatus: string;
+    createdAt: string;
+  } | null;
 }
 
 function lifecycleCopy(state: string): string {
@@ -59,6 +67,13 @@ export function HistoryEventDetailsScreen() {
       <section className="card">
         <p className="field-label">Recorded</p>
         <p>{new Date(event.createdAt).toLocaleString()}</p>
+        {event.capture ? (
+          <>
+            <p className="field-label">Source capture {event.capture.captureCode}</p>
+            <p>{event.capture.originalText}</p>
+            <p className="muted">Original words are preserved separately from this calculation.</p>
+          </>
+        ) : null}
         {refusal ? (
           <>
             <p className="field-label">Refusal</p>

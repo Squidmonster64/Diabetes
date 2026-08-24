@@ -23,6 +23,7 @@ export interface GlucoseEntry {
   /** Special-situation cues carried over from natural-language parsing, still just a
    * pre-fill - the user must still review and can add/remove before confirming. */
   readonly specialSituations?: readonly string[];
+  readonly captureId?: string | null;
 }
 
 interface WorkflowState {
