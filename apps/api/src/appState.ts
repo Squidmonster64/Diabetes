@@ -15,6 +15,9 @@ import { SupabaseSavedMealsRepository } from "./meals/supabaseRepository.js";
 import type { CapturesRepository } from "./captures/types.js";
 import { MemoryCapturesRepository } from "./captures/repository.js";
 import { SupabaseCapturesRepository } from "./captures/supabaseRepository.js";
+import type { NutritionRepository } from "./nutrition/types.js";
+import { MemoryNutritionRepository } from "./nutrition/repository.js";
+import { SupabaseNutritionRepository } from "./nutrition/supabaseRepository.js";
 
 export interface AppState {
   readonly config: AppConfig;
@@ -28,6 +31,7 @@ export interface AppState {
   readonly customFoodsRepository: CustomFoodsRepository;
   readonly savedMealsRepository: SavedMealsRepository;
   readonly capturesRepository: CapturesRepository;
+  readonly nutritionRepository: NutritionRepository;
 }
 
 /**
@@ -49,6 +53,7 @@ export function createAppState(config: AppConfig, db: InstanceType<typeof Databa
       customFoodsRepository: new SupabaseCustomFoodsRepository(client),
       savedMealsRepository: new SupabaseSavedMealsRepository(client),
       capturesRepository: new SupabaseCapturesRepository(client),
+      nutritionRepository: new SupabaseNutritionRepository(client),
     };
   }
 
@@ -62,5 +67,6 @@ export function createAppState(config: AppConfig, db: InstanceType<typeof Databa
     customFoodsRepository: new MemoryCustomFoodsRepository(),
     savedMealsRepository: new MemorySavedMealsRepository(),
     capturesRepository: new MemoryCapturesRepository(),
+    nutritionRepository: new MemoryNutritionRepository(),
   };
 }

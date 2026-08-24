@@ -113,6 +113,16 @@ describe("adversarial regression tests", () => {
     expect(findItem(parsed, (name) => name.includes("banana"))?.quantity).toBe(1);
   });
 
+  it("parses spoken two hundred mil as 200 ml of milk", () => {
+    const parsed = parseMeal("two weet bix with two hundred mil full cream milk and a banana");
+    expect(findItem(parsed, (name) => name.includes("weet"))?.quantity).toBe(2);
+    const milk = findItem(parsed, (name) => name.includes("milk"));
+    expect(milk?.quantity).toBe(200);
+    expect(milk?.unit).toBe("ml");
+    expect(milk?.foodName).toMatch(/full cream milk/);
+    expect(findItem(parsed, (name) => name.includes("banana"))?.quantity).toBe(1);
+  });
+
   it("treats ham cheese tomato and mayo sandwich as a composite with uncertainty", () => {
     const parsed = parseMeal("ham cheese tomato and mayo sandwich");
     expect(parsed.items.length).toBe(1);
