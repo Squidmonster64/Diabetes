@@ -13,7 +13,7 @@ import { useNaturalLanguageDraft } from "../state/NaturalLanguageContext.js";
 import { Screen } from "../components/Screen.js";
 
 const EXAMPLE_TEXT =
-  "My blood glucose is 8.4 and I took 4 units of insulin two hours ago. I'm eating a ham sandwich with two slices of white bread and a little butter.";
+  "My blood glucose is 8.4 mmol/L. I'm eating two Weet-Bix with a little milk.";
 
 /**
  * The app's primary entry point: original words are captured and stored

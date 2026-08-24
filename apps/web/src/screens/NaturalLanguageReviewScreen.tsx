@@ -65,7 +65,7 @@ export function NaturalLanguageReviewScreen() {
   const [manualGlucose, setManualGlucose] = useState("");
   const [detailsOpenIndex, setDetailsOpenIndex] = useState<number | null>(null);
   const [selectedRow, setSelectedRow] = useState<number | null>(null);
-  const [questionsOpen, setQuestionsOpen] = useState(false);
+  const [questionsOpen, setQuestionsOpen] = useState(true);
   const [savedGlucoseUnit, setSavedGlucoseUnit] = useState<"MMOL_L" | "MG_DL" | null>(null);
   const [unitPickerOpen, setUnitPickerOpen] = useState(false);
   const [subwaySizeByIndex, setSubwaySizeByIndex] = useState<Record<number, "SIX_INCH" | "FOOTLONG">>({});
@@ -376,7 +376,16 @@ export function NaturalLanguageReviewScreen() {
   );
   const nonBlockingClarifications = clarifications.filter((clarification) => !clarification.blocking);
   const questionCount = blockingClarifications.length + brandedQuestionIndexes.size + onlineQuestionIndexes.size;
+  const unresolvedPortionIndexes = resolvedComponents.flatMap((component, index) =>
+    component.carbohydrateGrams === null &&
+    component.requiresManualPortion &&
+    !brandedQuestionIndexes.has(index) &&
+    !onlineQuestionIndexes.has(index)
+      ? [index]
+      : [],
+  );
   const blocked = blockingClarifications.length > 0 || !allComponentsResolved;
+  const actionableQuestionCount = questionCount + unresolvedPortionIndexes.length;
   const rawSpans = useMemo(
     () =>
       spansForText(provisionalEvent.originalText, [
@@ -673,17 +682,60 @@ export function NaturalLanguageReviewScreen() {
         }
         footer={
           <>
-            {questionsOpen ? (
+            {questionsOpen && blocked ? (
               <section className="question-panel" aria-label="Questions needing your answer">
                 <h2>One quick question at a time</h2>
                 {[...brandedQuestionIndexes].map(renderSubwayQuestion)}
                 {[...onlineQuestionIndexes].map(renderOnlineQuestion)}
                 {blockingClarifications.map(renderClarification)}
+                {unresolvedPortionIndexes.map((index) => {
+                  const component = resolvedComponents[index];
+                  if (!component) return null;
+                  return (
+                    <ClarificationPrompt key={`portion-${index}`} question={`How much ${component.component.phrase} did you have? Choose the food match if needed, then enter grams.`}>
+                      <span className="muted">
+                        {component.bestMatch
+                          ? `Best database candidate: ${component.bestMatch.label}. Confirm or change it before a carbohydrate figure is calculated.`
+                          : "No confident database match yet. Enter grams from the packet or a measured portion."}
+                      </span>
+                      <label htmlFor={`question-grams-${index}`}>Portion grams</label>
+                      <input
+                        id={`question-grams-${index}`}
+                        type="number"
+                        inputMode="decimal"
+                        min="0"
+                        value={manualGrams[index] ?? ""}
+                        onChange={(event) => setManualGrams((current) => ({ ...current, [index]: event.target.value }))}
+                      />
+                      <button
+                        className="btn-primary"
+                        type="button"
+                        disabled={busyIndex === index}
+                        onClick={() => {
+                          const grams = Number(manualGrams[index]);
+                          if (Number.isFinite(grams) && grams > 0) void updateComponentAt(index, { value: grams, unit: "grams" });
+                        }}
+                      >
+                        Use this amount
+                      </button>
+                    </ClarificationPrompt>
+                  );
+                })}
               </section>
             ) : null}
             {acceptError ? <div className="banner banner-danger">{acceptError}</div> : null}
-            {blocked && !questionsOpen ? <p className="muted">{questionCount} specific question{questionCount === 1 ? " needs" : "s need"} your answer before you continue.</p> : null}
-            {blocked ? <button className="btn-secondary" type="button" onClick={() => setQuestionsOpen((current) => !current)}>{questionsOpen ? "Hide questions" : `Answer ${questionCount} question${questionCount === 1 ? "" : "s"}`}</button> : null}
+            {blocked && !questionsOpen ? (
+              <p className="muted">
+                {actionableQuestionCount === 0
+                  ? "A food match still needs a confirmed portion before anything can be calculated."
+                  : `${actionableQuestionCount} specific question${actionableQuestionCount === 1 ? " needs" : "s need"} your answer before you continue.`}
+              </p>
+            ) : null}
+            {blocked ? (
+              <button className="btn-secondary" type="button" onClick={() => setQuestionsOpen((current) => !current)}>
+                {questionsOpen ? "Hide questions" : actionableQuestionCount === 0 ? "Confirm the food portion" : `Answer ${actionableQuestionCount} question${actionableQuestionCount === 1 ? "" : "s"}`}
+              </button>
+            ) : null}
             {excluded ? (
               <button className="btn-primary" type="button" onClick={() => void handleRejectCapture()}>Keep these words and return home</button>
             ) : settingsOnly ? (
