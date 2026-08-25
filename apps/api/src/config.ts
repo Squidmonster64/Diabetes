@@ -1,6 +1,11 @@
 import path from "node:path";
 import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
+import {
+  DEFAULT_INTERPRETATION_MODEL,
+  DEFAULT_TRANSCRIPTION_MODEL,
+  DEFAULT_TRANSCRIPTION_PROVIDER,
+} from "./ai/versions.js";
 
 export interface AppConfig {
   readonly port: number;
@@ -16,6 +21,9 @@ export interface AppConfig {
   readonly staticWebDir: string | undefined;
   readonly nutritionStaticDir: string | undefined;
   readonly openaiApiKey: string | undefined;
+  readonly openaiInterpretationModel: string;
+  readonly openaiTranscriptionModel: string;
+  readonly transcriptionProvider: string;
 }
 
 /**
@@ -78,5 +86,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     staticWebDir: env.STATIC_WEB_DIR ? path.resolve(env.STATIC_WEB_DIR) : findDefaultStaticWebDir(),
     nutritionStaticDir: env.NUTRITION_STATIC_DIR ? path.resolve(env.NUTRITION_STATIC_DIR) : findDefaultNutritionStaticDir(),
     openaiApiKey: env.OPENAI_API_KEY || undefined,
+    openaiInterpretationModel: env.OPENAI_INTERPRETATION_MODEL?.trim() || DEFAULT_INTERPRETATION_MODEL,
+    openaiTranscriptionModel: env.OPENAI_TRANSCRIPTION_MODEL?.trim() || DEFAULT_TRANSCRIPTION_MODEL,
+    transcriptionProvider: env.TRANSCRIPTION_PROVIDER?.trim() || DEFAULT_TRANSCRIPTION_PROVIDER,
   };
 }

@@ -17,7 +17,7 @@ import {
   parseMeal,
   type ParsedMeal,
 } from "@diabetes-companion/natural-language";
-import { chooseMealParse, parseMealWithLanguageModel } from "../meals/parseMealLlm.js";
+import { chooseMealParse, parseMealWithLanguageModel, interpretationModelVersion } from "../ai/interpretLanguage.js";
 import type { AppState } from "../appState.js";
 import { loadResolveContext, resolveFoodComponent, type CandidateMatch } from "./resolve.js";
 
@@ -38,11 +38,13 @@ export interface InterpretedMeal {
   readonly candidatesByItem: readonly (readonly CandidateMatch[])[];
 }
 
-async function parseWithOptionalLlm(text: string, apiKey: string | undefined): Promise<ParsedMeal> {
+async function parseWithOptionalLlm(text: string, state: AppState): Promise<ParsedMeal> {
   const deterministic = parseMeal(text);
-  if (!apiKey) return deterministic;
+  if (!state.config.openaiApiKey) return deterministic;
   try {
-    const llm = await parseMealWithLanguageModel(text, apiKey);
+    const llm = await parseMealWithLanguageModel(text, state.config.openaiApiKey, {
+      interpretationModel: state.config.openaiInterpretationModel,
+    });
     return chooseMealParse(deterministic, llm);
   } catch {
     return deterministic;
@@ -61,7 +63,7 @@ export async function interpretMealText(
   },
 ): Promise<InterpretedMeal> {
   const originalText = input.text.trim();
-  const parsedMeal = await parseWithOptionalLlm(originalText, state.config.openaiApiKey);
+  const parsedMeal = await parseWithOptionalLlm(originalText, state);
   const extraction = extractFoodsFromParsedMeal(parsedMeal);
   const context = await loadResolveContext(userId, state.db, state.databaseSha256, state.nutritionRepository);
 
@@ -121,7 +123,7 @@ export async function interpretMealText(
     inferredMealType,
     parseVersion: PARSER_VERSION,
     promptVersion: PROMPT_VERSION,
-    modelVersion: parsedMeal.parseSource === "llm" ? "gpt-4o-mini" : null,
+    modelVersion: interpretationModelVersion(parsedMeal.parseSource, state.config.openaiInterpretationModel),
     engineVersion: FOOD_ENGINE_VERSION,
     duplicateOf: duplicate ? { id: duplicate.id, loggedAt: duplicate.loggedAt } : null,
     candidatesByItem,
