@@ -237,6 +237,11 @@ describe("acceptance test 13: no raw database records in extracted components", 
       "qualifier",
       "matchStatus",
       "quantityNeededForCalculation",
+      "assumptions",
+      "preparation",
+      "brand",
+      "canonicalUnit",
+      "modifiers",
     ]);
     for (const component of event.meal?.components ?? []) {
       for (const key of Object.keys(component)) {

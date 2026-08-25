@@ -4,6 +4,7 @@ export * from "./extract-times.js";
 export * from "./extract-glucose.js";
 export * from "./extract-insulin.js";
 export * from "./extract-foods.js";
+export * from "./parse-meal.js";
 export * from "./detect-symptoms.js";
 export * from "./ambiguity.js";
 export * from "./segment-event.js";
