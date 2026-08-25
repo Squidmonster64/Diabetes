@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@diabetes-companion/bolus": "0.6.0",
+    "@diabetes-companion/food-engine": "0.1.0",
     "@diabetes-companion/food-contracts": "0.1.0",
     "@diabetes-companion/natural-language": "0.1.0",
     "@diabetes-companion/shared-types": "0.1.0",

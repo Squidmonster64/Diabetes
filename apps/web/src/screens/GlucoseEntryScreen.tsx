@@ -37,7 +37,7 @@ function nowIso(): string {
 
 export function GlucoseEntryScreen() {
   const { carbResult, glucoseEntry, setPreviewResult } = useWorkflow();
-  const { captureId } = useNaturalLanguageDraft();
+  const { captureId, resolvedComponents } = useNaturalLanguageDraft();
   const navigate = useNavigate();
 
   const [glucoseUnit, setGlucoseUnit] = useState<"MMOL_L" | "MG_DL">(glucoseEntry?.glucoseUnit ?? "MMOL_L");
@@ -156,9 +156,32 @@ export function GlucoseEntryScreen() {
         {baselineStatus === "missing" ? <div className="banner banner-warning">Before the first preview, enter the values copied from your current clinician-approved plan. This one-time setup does not create, infer, or recommend any insulin settings.</div> : null}
         {baselineStatus === "unavailable" ? <div className="banner banner-danger">Baseline settings could not be checked. A preview will not be requested until that connection is restored.</div> : null}
 
-        <div className="card">
-          <div className="muted">Carbohydrate confirmed</div>
-          <div>{carbGrams} g ({mode === "MEAL" ? "meal" : "correction only"})</div>
+        <div className="card meal-breakdown">
+          <h2>Your meal</h2>
+          {resolvedComponents.length > 0 ? (
+            <>
+              {resolvedComponents.map((component, index) => (
+                <div key={`${component.component.phrase}-${index}`} className="meal-item">
+                  <div className="ledger-row">
+                    <span>
+                      {component.component.quantity.value ?? "?"} {component.component.unit.value ?? ""} {component.component.phrase}
+                      {component.assumedPortion ? ` — ${component.assumedPortion}` : ""}
+                    </span>
+                    <span>{component.carbohydrateGrams ?? "?"} g</span>
+                  </div>
+                </div>
+              ))}
+              <div className="muted">Carbohydrate confirmed</div>
+              <div>{carbGrams} g ({mode === "MEAL" ? "meal" : "correction only"})</div>
+              <p className="muted">This total is the sum of the ingredients above. It is not an insulin dose.</p>
+            </>
+          ) : (
+            <>
+              {carbResult?.portionDescription ? <p>{carbResult.portionDescription}</p> : null}
+              <div className="muted">Carbohydrate confirmed</div>
+              <div>{carbGrams} g ({mode === "MEAL" ? "meal" : "correction only"})</div>
+            </>
+          )}
         </div>
 
         <div className="field">

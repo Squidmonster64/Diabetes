@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 export interface AppConfig {
   readonly port: number;
   readonly appOrigin: string;
+  readonly corsOrigins: readonly string[];
   readonly nodeEnv: string;
   readonly databasePath: string;
   readonly supabaseUrl: string | undefined;
@@ -13,6 +14,8 @@ export interface AppConfig {
   readonly supabaseServiceRoleKey: string | undefined;
   readonly useSupabase: boolean;
   readonly staticWebDir: string | undefined;
+  readonly nutritionStaticDir: string | undefined;
+  readonly openaiApiKey: string | undefined;
 }
 
 /**
@@ -44,14 +47,27 @@ function findDefaultStaticWebDir(): string | undefined {
   return findFromModuleDir(path.join("apps", "web", "dist"));
 }
 
+function findDefaultNutritionStaticDir(): string | undefined {
+  return findFromModuleDir(path.join("apps", "nutrition", "dist"));
+}
+
+function parseOrigins(env: NodeJS.ProcessEnv): { appOrigin: string; corsOrigins: string[] } {
+  const appOrigin = env.APP_ORIGIN || "http://localhost:5173";
+  const nutritionOrigin = env.NUTRITION_APP_ORIGIN || "http://localhost:5174";
+  const corsOrigins = [...new Set([...appOrigin.split(",").map((value) => value.trim()).filter(Boolean), nutritionOrigin])];
+  return { appOrigin: corsOrigins[0] ?? appOrigin, corsOrigins };
+}
+
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   const supabaseUrl = env.SUPABASE_URL || undefined;
   const supabaseAnonKey = env.SUPABASE_ANON_KEY || undefined;
   const supabaseJwtSecret = env.SUPABASE_JWT_SECRET || undefined;
   const supabaseServiceRoleKey = env.SUPABASE_SERVICE_ROLE_KEY || undefined;
+  const origins = parseOrigins(env);
   return {
     port: Number(env.PORT) || 8080,
-    appOrigin: env.APP_ORIGIN || "http://localhost:5173",
+    appOrigin: origins.appOrigin,
+    corsOrigins: origins.corsOrigins,
     nodeEnv: env.NODE_ENV || "development",
     databasePath: env.DATABASE_PATH ? path.resolve(env.DATABASE_PATH) : findRepoRootDataPath(),
     supabaseUrl,
@@ -60,5 +76,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     supabaseServiceRoleKey,
     useSupabase: Boolean(supabaseUrl && supabaseAnonKey && supabaseJwtSecret && supabaseServiceRoleKey),
     staticWebDir: env.STATIC_WEB_DIR ? path.resolve(env.STATIC_WEB_DIR) : findDefaultStaticWebDir(),
+    nutritionStaticDir: env.NUTRITION_STATIC_DIR ? path.resolve(env.NUTRITION_STATIC_DIR) : findDefaultNutritionStaticDir(),
+    openaiApiKey: env.OPENAI_API_KEY || undefined,
   };
 }

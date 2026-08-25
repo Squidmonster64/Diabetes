@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { resolveFoodComponent } from "../lib/foodMatch.js";
+import { resolveMealComponents } from "../lib/foodMatch.js";
 import { api } from "../lib/apiClient.js";
 import {
   describeSpeechRecognitionError,
@@ -117,7 +117,7 @@ export function NaturalLanguageEntryScreen() {
       });
       const provisionalEvent = capture.interpretation.extraction;
       const resolvedComponents = provisionalEvent.meal
-        ? await Promise.all(provisionalEvent.meal.components.map((component) => resolveFoodComponent(component)))
+        ? await resolveMealComponents(provisionalEvent.meal.components)
         : [];
       setDraft(provisionalEvent, resolvedComponents, {
         id: capture.id,

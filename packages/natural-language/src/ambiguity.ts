@@ -17,6 +17,14 @@ function unitHintFor(phrase: string): string | null {
 function foodClarification(component: FoodComponentExtraction, index: number, containerContext: string | null): ClarificationQuestion | null {
   const field = `meal.components[${index}]`;
 
+  if (component.preparation === "composite sandwich" || component.assumptions.some((assumption) => /composite sandwich/i.test(assumption))) {
+    return {
+      field: `${field}.ingredients`,
+      question: `I understood a ${component.phrase} with ${component.modifiers.join(", ") || "named fillings"}, but I don't have amounts for those ingredients. Edit each one before a carbohydrate total is calculated.`,
+      blocking: true,
+    };
+  }
+
   if (component.matchStatus === "missing") {
     const unitHint = unitHintFor(component.phrase);
     const question =
@@ -160,5 +168,18 @@ export function applyCorrections(
     };
   });
 
-  return { meal: { ...meal, components }, correctionsApplied };
+  const parsedItems = meal.parsedMeal.items.map((item, index) => {
+    const component = components[index];
+    if (!component || component.quantity.value === item.quantity) return item;
+    return { ...item, quantity: component.quantity.value };
+  });
+
+  return {
+    meal: {
+      ...meal,
+      components,
+      parsedMeal: { ...meal.parsedMeal, items: parsedItems },
+    },
+    correctionsApplied,
+  };
 }
