@@ -9,7 +9,7 @@ import {
 import type { AppState } from "../appState.js";
 import { HttpError } from "../httpError.js";
 import type { CaptureRecord } from "./types.js";
-import { overlayLanguageModelMealParse } from "../meals/parseMealLlm.js";
+import { overlayLanguageModelMealParse } from "../ai/interpretLanguage.js";
 
 function parseSourceType(value: unknown): CaptureSourceType {
   return value === "voice" ? "voice" : "typed";
@@ -61,10 +61,17 @@ export function registerCaptureRoutes(app: FastifyInstance, state: AppState): vo
     }
     const referenceNowMs = typeof body.referenceNowMs === "number" && Number.isFinite(body.referenceNowMs) ? body.referenceNowMs : Date.now();
     let interpretation = interpretCapture(originalText, referenceNowMs);
-    interpretation = await overlayLanguageModelMealParse(interpretation, state.config.openaiApiKey);
+    interpretation = await overlayLanguageModelMealParse(interpretation, state.config.openaiApiKey, {
+      interpretationModel: state.config.openaiInterpretationModel,
+      transcriptionModel: state.config.openaiTranscriptionModel,
+      transcriptionProvider: state.config.transcriptionProvider,
+      logger: request.log,
+      nodeEnv: state.config.nodeEnv,
+    });
     if (state.config.nodeEnv !== "production" && interpretation.extraction.mealPipeline) {
       request.log.info(
         {
+          stage: "diabetes_language_interpretation",
           mealPipeline: {
             parseSource: interpretation.extraction.mealPipeline.parseSource,
             mealText: interpretation.extraction.mealPipeline.mealText,
@@ -80,7 +87,7 @@ export function registerCaptureRoutes(app: FastifyInstance, state: AppState): vo
             warnings: interpretation.extraction.mealPipeline.parsedMeal.warnings,
           },
         },
-        "meal parse pipeline",
+        "diabetes language interpretation pipeline",
       );
     }
     const now = new Date().toISOString();
