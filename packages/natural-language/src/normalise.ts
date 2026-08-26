@@ -121,8 +121,17 @@ export function parseQuantityToken(token: string): number | null {
 const TRANSCRIPTION_REWRITES: ReadonlyArray<readonly [RegExp, string]> = [
   // Restricted to unambiguous clinical cue words and never used to fabricate a value.
   [/\bgluc(?:os|osee|osse|os)\b/g, "glucose"],
+  [/\bsugur\b/g, "sugar"],
   [/\bsug(?:ar|er)s?\b/g, "sugar"],
+  [/\binslin\b/g, "insulin"],
   [/\binsul(?:in|ine|en)\b/g, "insulin"],
+  [/\bbanannas?\b/g, "bananas"],
+  [/\bslises\b/g, "slices"],
+  [/\bbuter\b/g, "butter"],
+  [/\bbreaky\b/g, "breakfast"],
+  [/\bhalf-ish\b/g, "half"],
+  [/\bforty-ish\b/g, "forty"],
+  [/\bbred\b/g, "bread"],
   [/\b(?:b\.?g\.?l|b\.?s\.?l)\b/g, "blood glucose"],
   [/\bunit(?:s|z|zs)\b/g, "units"],
   // Voice transcription commonly writes the homophone in a quantity + unit context.

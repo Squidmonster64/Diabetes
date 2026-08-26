@@ -105,7 +105,38 @@ export function parseAbsoluteClockTime(clause: string, referenceNowMs: number): 
   return confirmed(rawSpan, candidate.toISOString(), clockMatch ? 0.8 : 0.65);
 }
 
+function parseLastNightClock(clause: string, referenceNowMs: number): ExtractedValue<string> | null {
+  if (!/\blast night\b/i.test(clause)) return null;
+  const clockMatch = clause.match(/\bat\s+(\d{1,2})(?::(\d{2}))?\s*(am|pm)?\b/i);
+  if (!clockMatch) return requiresTimeReview("last night");
+  let hour = Number(clockMatch[1]);
+  const minute = clockMatch[2] ? Number(clockMatch[2]) : 0;
+  const meridiem = clockMatch[3]?.toLowerCase();
+  if (meridiem === "pm" && hour < 12) hour += 12;
+  else if (meridiem === "am" && hour === 12) hour = 0;
+  else if (!meridiem && hour > 0 && hour < 12) hour += 12;
+  const reference = new Date(referenceNowMs);
+  const candidate = new Date(reference);
+  candidate.setHours(hour, minute, 0, 0);
+  if (candidate.getTime() >= referenceNowMs) {
+    candidate.setDate(candidate.getDate() - 1);
+  }
+  return confirmed(clockMatch[0], candidate.toISOString(), 0.8);
+}
+
+function parseYesterdayMorning(clause: string): ExtractedValue<string> | null {
+  const match = clause.match(/\byesterday morning\b/i);
+  if (!match) return null;
+  return requiresTimeReview(match[0]);
+}
+
 /** Tries relative time first, then absolute clock time. Returns "missing" status if neither is found. */
 export function parseTimeExpression(clause: string, referenceNowMs: number): ExtractedValue<string> {
-  return parseRelativeTime(clause, referenceNowMs) ?? parseAbsoluteClockTime(clause, referenceNowMs) ?? missing();
+  return (
+    parseLastNightClock(clause, referenceNowMs) ??
+    parseYesterdayMorning(clause) ??
+    parseRelativeTime(clause, referenceNowMs) ??
+    parseAbsoluteClockTime(clause, referenceNowMs) ??
+    missing()
+  );
 }

@@ -54,6 +54,10 @@ export interface GlucoseExtraction {
   readonly unit: ExtractedValue<GlucoseUnit>;
   /** ISO 8601, or null if genuinely unstated (resolved to "now" by the caller, not invented here). */
   readonly timestamp: ExtractedValue<string>;
+  /** Meter/sensor qualitative token. Never converted into a numeric reading. */
+  readonly qualitativeFlag?: "HI" | "LO" | null;
+  /** Why a numeric glucose value was withheld (spoken digits, slash, conflicting meters). */
+  readonly ambiguousReason?: string | null;
 }
 
 export interface InsulinExtraction {
@@ -205,6 +209,12 @@ export interface ProvisionalEvent {
   readonly glucose: GlucoseExtraction | null;
   readonly recentInsulin: InsulinExtraction | null;
   readonly meal: MealExtraction | null;
+  /** Explicit user-stated carbohydrate amount, never a food-database total. */
+  readonly userStatedCarbs: ExtractedValue<number> | null;
+  /** Named meal/glucose window as stated (breakfast, lunch, dinner, bedtime). */
+  readonly statedContext: string | null;
+  /** Clock or relative time for the described event, distinct from capture time. */
+  readonly eventTime: ExtractedValue<string> | null;
   readonly symptoms: SymptomExtraction;
   readonly clarifications: readonly ClarificationQuestion[];
   readonly correctionsApplied: readonly CorrectionApplied[];
