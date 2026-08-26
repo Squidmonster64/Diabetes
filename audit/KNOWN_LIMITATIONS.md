@@ -4,7 +4,22 @@
 clinician, reviewer, or future engineer can see exactly what remains before
 any real-world use - see [`CLINICIAN_REVIEW_CHECKLIST.md`](CLINICIAN_REVIEW_CHECKLIST.md).
 
+Parser acceptance is two-layer. Never collapse them:
+
+```
+DETERMINISTIC SAFETY SUITE
+500 / 500 PASS
+
+SEMANTIC LANGUAGE SUITE
+150 / 150 PASS (deterministic overlay in CI; live model not run here)
+```
+
+Passing Layer A does not make the parser beta-ready. Live production must still
+understand the sandwich multi-event case through `POST /api/v1/captures` with
+the configured OpenAI model. See `audit/PARSER_RELEASE_REPORT.md`.
+
 ## Clinical / regulatory (release blockers - not closeable by engineering alone)
+
 
 1. **No clinician golden dataset.** No independently calculated reference
    dataset (routine, boundary, adverse, and misuse cases, including both

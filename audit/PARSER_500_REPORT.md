@@ -1,6 +1,6 @@
 # PARSER 500-PHRASE ACCEPTANCE REPORT
 
-Generated: 2026-08-26T22:17:39.559Z
+Generated: 2026-08-26T23:49:16.138Z
 Reference instant: 2026-08-26T04:00:00.000Z (12:00 Australia/Perth). Clock phrases resolve against the process timezone; relative times are timezone-independent.
 
 **500 / 500 PASS**, 0 FAIL.
@@ -147,16 +147,16 @@ Cross-cutting: 50 phrases were replayed with identical input and produced identi
 | 134 | Breakfast was 250 ml of orange juice. | LOG_MEAL |  |  | orange juice 250ml |  |  | no | preview after confirm | draft only; human confirm | PASS |
 | 135 | I ate 3 of Tim Tams. | LOG_MEAL |  |  | tim tam 3whole |  |  | no | preview after confirm | draft only; human confirm | PASS |
 | 136 | Breakfast was 3 of Tim Tams. | LOG_MEAL |  |  | tim tam 3whole |  |  | no | preview after confirm | draft only; human confirm | PASS |
-| 137 | I ate 45 grams of Smith's chips. | LOG_MEAL |  |  | smith's chips 45grams |  |  | no | preview after confirm | draft only; human confirm | PASS |
-| 138 | Breakfast was 45 grams of Smith's chips. | LOG_MEAL |  |  | smith's chips 45grams |  |  | no | preview after confirm | draft only; human confirm | PASS |
+| 137 | I ate 45 grams of Smith's chips. | LOG_MEAL |  |  | smiths chips 45grams |  |  | no | preview after confirm | draft only; human confirm | PASS |
+| 138 | Breakfast was 45 grams of Smith's chips. | LOG_MEAL |  |  | smiths chips 45grams |  |  | no | preview after confirm | draft only; human confirm | PASS |
 | 139 | I ate 1 of English muffin. | LOG_MEAL |  |  | english muffin 1whole |  |  | no | preview after confirm | draft only; human confirm | PASS |
 | 140 | Breakfast was 1 of English muffin. | LOG_MEAL |  |  | english muffin 1whole |  |  | no | preview after confirm | draft only; human confirm | PASS |
 | 141 | I ate 1 cup of quinoa. | LOG_MEAL |  |  | quinoa 1cup |  |  | no | preview after confirm | draft only; human confirm | PASS |
 | 142 | Breakfast was 1 cup of quinoa. | LOG_MEAL |  |  | quinoa 1cup |  |  | no | preview after confirm | draft only; human confirm | PASS |
 | 143 | I ate 1 of protein bar. | LOG_MEAL |  |  | protein bar 1whole |  |  | no | preview after confirm | draft only; human confirm | PASS |
 | 144 | Breakfast was 1 of protein bar. | LOG_MEAL |  |  | protein bar 1whole |  |  | no | preview after confirm | draft only; human confirm | PASS |
-| 145 | I ate 375 ml of Coke Zero. | LOG_MEAL |  |  | coke 375ml |  |  | no | preview after confirm | draft only; human confirm | PASS |
-| 146 | Breakfast was 375 ml of Coke Zero. | LOG_MEAL |  |  | coke 375ml |  |  | no | preview after confirm | draft only; human confirm | PASS |
+| 145 | I ate 375 ml of Coke Zero. | LOG_MEAL |  |  | coke zero 375ml |  |  | no | preview after confirm | draft only; human confirm | PASS |
+| 146 | Breakfast was 375 ml of Coke Zero. | LOG_MEAL |  |  | coke zero 375ml |  |  | no | preview after confirm | draft only; human confirm | PASS |
 | 147 | I ate 30 grams of almonds. | LOG_MEAL |  |  | almonds 30grams |  |  | no | preview after confirm | draft only; human confirm | PASS |
 | 148 | Breakfast was 30 grams of almonds. | LOG_MEAL |  |  | almonds 30grams |  |  | no | preview after confirm | draft only; human confirm | PASS |
 | 149 | I ate half a tin of baked beans. | LOG_MEAL |  |  | baked beans 0.5tin |  |  | no | preview after confirm | draft only; human confirm | PASS |
@@ -171,8 +171,8 @@ Cross-cutting: 50 phrases were replayed with identical input and produced identi
 | 158 | For lunch I had two slices toast with 20 grams peanut butter. | LOG_MEAL |  |  | toast 2slices, peanut butter 20grams |  |  | no | preview after confirm | draft only; human confirm | PASS |
 | 159 | I had three eggs and two slices toast. | LOG_MEAL |  |  | egg 3whole, toast 2slices |  |  | no | preview after confirm | draft only; human confirm | PASS |
 | 160 | For lunch I had three eggs and two slices toast. | LOG_MEAL |  |  | egg 3whole, toast 2slices |  |  | no | preview after confirm | draft only; human confirm | PASS |
-| 161 | I had one cup rice and chicken curry. | LOG_MEAL |  |  | rice 1cup, chicken curry |  |  | no | preview after confirm | draft only; human confirm | PASS |
-| 162 | For lunch I had one cup rice and chicken curry. | LOG_MEAL |  |  | rice 1cup, chicken curry |  |  | no | preview after confirm | draft only; human confirm | PASS |
+| 161 | I had one cup rice and chicken curry. | LOG_MEAL |  |  | rice 1cup, chicken curry |  | How much chicken curry did you have? | yes | preview after confirm | draft only; human confirm | PASS |
+| 162 | For lunch I had one cup rice and chicken curry. | LOG_MEAL |  |  | rice 1cup, chicken curry |  | How much chicken curry did you have? | yes | preview after confirm | draft only; human confirm | PASS |
 | 163 | I had one piece battered fish and 150 grams chips. | LOG_MEAL |  |  | battered fish 1piece, chips 150grams |  |  | no | preview after confirm | draft only; human confirm | PASS |
 | 164 | For lunch I had one piece battered fish and 150 grams chips. | LOG_MEAL |  |  | battered fish 1piece, chips 150grams |  |  | no | preview after confirm | draft only; human confirm | PASS |
 | 165 | I had one burger and medium chips. | LOG_MEAL |  |  | burger 1whole, chips 1 |  |  | no | preview after confirm | draft only; human confirm | PASS |
@@ -443,8 +443,8 @@ Cross-cutting: 50 phrases were replayed with identical input and produced identi
 | 430 | Sorry — i only ate half the sandwich. | REVIEW_EVENT |  |  | sandwich 0.5whole |  |  | no | preview after confirm | draft only; human confirm | PASS |
 | 431 | I didn't eat the chips. | REVIEW_EVENT |  |  | chips |  | How much chips did you have? | yes | preview after confirm | draft only; human confirm | PASS |
 | 432 | Sorry — i didn't eat the chips. | REVIEW_EVENT |  |  | chips |  | How much chips did you have? | yes | preview after confirm | draft only; human confirm | PASS |
-| 433 | Actually Coke Zero, not Coke. | REVIEW_EVENT |  |  | actually coke 0whole, not coke |  | How much not coke did you have? | yes | preview after confirm | draft only; human confirm | PASS |
-| 434 | Sorry — actually Coke Zero, not Coke. | REVIEW_EVENT |  |  | sorry — actually coke 0whole, not coke |  | How much not coke did you have? | yes | preview after confirm | draft only; human confirm | PASS |
+| 433 | Actually Coke Zero, not Coke. | REVIEW_EVENT |  |  | actually coke zero, not coke |  | How much actually coke zero did you have? How much not coke did you have? | yes | preview after confirm | draft only; human confirm | PASS |
+| 434 | Sorry — actually Coke Zero, not Coke. | REVIEW_EVENT |  |  | sorry — actually coke zero, not coke |  | How much sorry — actually coke zero did you have? How much not coke did you have | yes | preview after confirm | draft only; human confirm | PASS |
 | 435 | The label says 18 grams carbs, not 28. | REVIEW_EVENT |  |  | label says 18grams, carbs, not 28, carbs=18g |  | How much carbs did you have? | yes | preview after confirm | draft only; human confirm | PASS |
 | 436 | Sorry — the label says 18 grams carbs, not 28. | REVIEW_EVENT |  |  | sorry — the label says 18grams, carbs, not 28, carbs=18g |  | How much carbs did you have? | yes | preview after confirm | draft only; human confirm | PASS |
 | 437 | That meal was lunch, not dinner. | REVIEW_EVENT |  |  |  |  |  | no | no calculator | draft only; human confirm | PASS |

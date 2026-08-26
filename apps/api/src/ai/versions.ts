@@ -23,7 +23,7 @@ export const NUTRITION_MEAL_SCHEMA_NAME = "parsed_meal";
 export const NUTRITION_MEAL_PROMPT_VERSION = "meal-parse-v1";
 
 export const DIABETES_EVENT_SCHEMA_NAME = "diabetes_language_event";
-export const DIABETES_EVENT_PROMPT_VERSION = "diabetes-event-v1";
+export const DIABETES_EVENT_PROMPT_VERSION = "diabetes-event-v2";
 
 export const INTERPRETATION_TIMEOUT_MS = 30_000;
 export const TRANSCRIPTION_TIMEOUT_MS = 120_000;

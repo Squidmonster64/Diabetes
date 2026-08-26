@@ -4,6 +4,8 @@ import {
   generateClarifications,
   intentCopy,
   parseTimeExpression,
+  groupSemanticEvents,
+  describeSemanticEvent,
   type ClarificationQuestion,
   type ProvisionalEvent,
 } from "@diabetes-companion/natural-language";
@@ -776,6 +778,38 @@ export function NaturalLanguageReviewScreen() {
       >
         <div className="lifecycle-banner">Nothing has been calculated yet. No insulin dose is suggested on this screen.</div>
         {captureCode ? <p className="muted">Saved as {captureCode}. Original words are kept even if you change the draft below.</p> : null}
+        {provisionalEvent.completeness?.interpretationStatus === "INCOMPLETE" ? (
+          <section className="card">
+            <p className="field-label">We saved what you said.</p>
+            <p>We couldn't fully interpret every part of it. Review the timeline, then retry or edit manually. Unresolved food is not 0 g carbohydrate.</p>
+            {provisionalEvent.completeness.missingFragments.length > 0 ? (
+              <>
+                <p className="muted">I understood: {provisionalEvent.completeness.accountedFragments.join(", ") || "see events below"}</p>
+                <p className="muted">I could not confidently place: {provisionalEvent.completeness.missingFragments.join(", ")}</p>
+              </>
+            ) : null}
+          </section>
+        ) : null}
+        {provisionalEvent.semanticEvents?.length ? (
+          <section className="card" aria-label="Event timeline">
+            {groupSemanticEvents(provisionalEvent.semanticEvents).map((group) => (
+              <div key={group.heading} className="field">
+                <p className="field-label">{group.heading}</p>
+                {group.events.map((event) => {
+                  const described = describeSemanticEvent(event);
+                  return (
+                    <ExtractedRow
+                      key={event.id}
+                      label={described.label}
+                      value={described.value}
+                      detail={described.needsConfirmation ? "Needs portion/composition confirmation" : event.relativeTime ?? ""}
+                    />
+                  );
+                })}
+              </div>
+            ))}
+          </section>
+        ) : null}
         {intentInfo ? (
           <section className="card">
             <p className="field-label">{intentInfo.title}</p>

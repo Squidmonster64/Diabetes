@@ -5,9 +5,13 @@
 import {
   overlayLanguageEvent,
   overlayParsedMeal,
+  overlaySemanticEvents,
   parseMeal,
+  semanticEventsFromUnknown,
   validateParsedMeal,
+  SEMANTIC_PARSER_VERSION,
   type CaptureInterpretation,
+  type LanguageProvenance,
   type ParsedMeal,
 } from "@diabetes-companion/natural-language";
 import { completeJsonSchema, resolveOpenAiRuntime, type AiLogger } from "./openaiClient.js";
@@ -83,7 +87,21 @@ export async function overlayLanguageModelCapture(
 ): Promise<CaptureInterpretation> {
   const deterministic = interpretation.extraction.meal?.parsedMeal ?? parseMeal(interpretation.originalText);
   const runtime = runtimeFrom(options);
-  if (!runtime) return interpretation;
+  const interpretedAt = new Date().toISOString();
+  if (!runtime) {
+    return {
+      ...interpretation,
+      languageProvenance: {
+        parseSource: "deterministic",
+        model: null,
+        promptVersion: "deterministic-only",
+        schemaVersion: SEMANTIC_PARSER_VERSION,
+        parserVersion: SEMANTIC_PARSER_VERSION,
+        interpretedAt,
+        fallback: false,
+      },
+    };
+  }
   try {
     const completion = await completeJsonSchema({
       runtime,
@@ -92,7 +110,18 @@ export async function overlayLanguageModelCapture(
       systemPrompt: DIABETES_EVENT_SYSTEM_PROMPT,
       userText: interpretation.originalText,
     });
-    if (!completion || containsForbiddenCalculationKeys(completion.content)) return interpretation;
+    const provenance = (fallback: boolean, model: string | null): LanguageProvenance => ({
+      parseSource: fallback ? "deterministic" : "overlay",
+      model,
+      promptVersion: DIABETES_EVENT_PROMPT_VERSION,
+      schemaVersion: DIABETES_EVENT_SCHEMA_NAME,
+      parserVersion: SEMANTIC_PARSER_VERSION,
+      interpretedAt,
+      fallback,
+    });
+    if (!completion || containsForbiddenCalculationKeys(completion.content)) {
+      return { ...interpretation, languageProvenance: provenance(true, runtime.interpretationModel) };
+    }
     const raw = completion.content as Record<string, unknown>;
     const mealSource = { ...raw, items: raw.foods ?? raw.items };
     const llmMeal = validateParsedMeal(mealSource, interpretation.originalText);
@@ -101,12 +130,24 @@ export async function overlayLanguageModelCapture(
       llmMeal && chosenMeal === llmMeal
         ? overlayParsedMeal(interpretation, { ...chosenMeal, parseSource: "llm" })
         : interpretation;
-    return overlayLanguageEvent(withMeal, {
+    const withFields = overlayLanguageEvent(withMeal, {
       glucose: asOptionalReading(raw.glucose),
       recentInsulin: asOptionalInsulin(raw.recentInsulin),
     });
+    return overlaySemanticEvents(withFields, semanticEventsFromUnknown(raw), provenance(false, completion.model));
   } catch {
-    return interpretation;
+    return {
+      ...interpretation,
+      languageProvenance: {
+        parseSource: "deterministic",
+        model: runtime.interpretationModel,
+        promptVersion: DIABETES_EVENT_PROMPT_VERSION,
+        schemaVersion: DIABETES_EVENT_SCHEMA_NAME,
+        parserVersion: SEMANTIC_PARSER_VERSION,
+        interpretedAt,
+        fallback: true,
+      },
+    };
   }
 }
 

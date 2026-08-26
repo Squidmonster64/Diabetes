@@ -15,3 +15,8 @@ export * from "./classify-intent.js";
 export * from "./interpret-capture.js";
 export * from "./acceptance-intent.js";
 export * from "./score-acceptance.js";
+export * from "./semantic-events.js";
+export * from "./extract-semantic-events.js";
+export * from "./completeness.js";
+export * from "./score-semantic.js";
+export * from "./semantic-timeline.js";

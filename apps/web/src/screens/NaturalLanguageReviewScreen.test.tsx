@@ -54,4 +54,10 @@ describe("requiresOnlineFoodLookup", () => {
     } }))).toBe(false);
     expect(requiresOnlineFoodLookup(unresolvedComponent({ carbohydrateGrams: 12.3 }))).toBe(false);
   });
+
+  it("never treats a missing carbohydrate figure as zero grams", () => {
+    const unresolved = unresolvedComponent({ carbohydrateGrams: null });
+    expect(unresolved.carbohydrateGrams).toBeNull();
+    expect(unresolved.carbohydrateGrams === 0).toBe(false);
+  });
 });

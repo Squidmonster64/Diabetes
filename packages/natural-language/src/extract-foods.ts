@@ -36,7 +36,7 @@ const NEGLIGIBLE_CARB_FOODS = [
 export function isNegligibleCarb(phrase: string): boolean {
   const normalisedPhrase = phrase.trim().toLowerCase();
   return NEGLIGIBLE_CARB_FOODS.some(
-    (food) => normalisedPhrase === food || normalisedPhrase.endsWith(` ${food}`) || normalisedPhrase.startsWith(`${food} `),
+    (food) => normalisedPhrase === food || normalisedPhrase.endsWith(` ${food}`),
   );
 }
 

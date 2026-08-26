@@ -21,7 +21,7 @@ import type {
 const CORRECTION_PATTERN = /\bi meant\s+.+?,?\s*not\s+.+?(?:[.!]|$)/gi;
 
 const MEAL_TRIGGER_PATTERN =
-  /\b(?:i(?:'m| am)?\s+)?(?:now\s+|just\s+)?(?:eating|having|eat|ate|consumed|finished|drinking|drank|making|weighed)\b\s*|\b(?:i\s+)?(?:just\s+)?had(?=\s+(?:some|a|an|the|my|\d|one|two|three|four|five|six|seven|eight|nine|ten)\b)\s*|\b(?:breakfast|lunch|dinner)\s+was\s+/i;
+  /\b(?:i(?:'m| am)?\s+)?(?:now\s+|just\s+)?(?:eating|having|eat|ate|consumed|finished(?!\s+(?:a\s+)?(?:\d+\s*)?(?:km\s+)?(?:run|walk|ride|workout|gym))|drinking|drank|making|weighed)\b\s*|\b(?:i\s+)?(?:just\s+)?had(?=\s+(?:some|a|an|the|my|\d|one|two|three|four|five|six|seven|eight|nine|ten)\b)\s*|\b(?:breakfast|lunch|dinner)\s+was\s+/i;
 
 const CONTAINER_OF_PATTERN =
   /\b(?:i(?:'m| am)?\s+)?(?:making|having|eating)\s+(?:a\s+)?(sandwich|wrap|burger|roll)\s+of\b/i;
@@ -125,7 +125,23 @@ const FOOD_ALIASES: Record<string, string> = {
   "salmon nigiri": "salmon nigiri",
   "pepperoni pizza": "pepperoni pizza",
   "smith's chips": "smith's chips",
-  "smiths chips": "smith's chips",
+  "mcdonalds cheeseburger": "mcdonald's cheeseburger",
+  "mcdonald's cheeseburger": "mcdonald's cheeseburger",
+  cheeseburger: "cheeseburger",
+  "cheese sandwich": "cheese sandwich",
+  "ham sandwich": "ham sandwich",
+  "chicken sandwich": "chicken sandwich",
+  "chicken salad sandwich": "chicken salad sandwich",
+  "ham and cheese sandwich": "ham and cheese sandwich",
+  "peanut butter toast": "peanut butter toast",
+  "bacon and egg roll": "bacon and egg roll",
+  "fish and chips": "fish and chips",
+  "cereal with milk": "cereal with milk",
+  "yoghurt with berries": "yoghurt with berries",
+  "chicken curry and rice": "chicken curry and rice",
+  "curry and rice": "curry and rice",
+  "burger and chips": "burger and chips",
+  "toast and eggs": "toast and eggs",
 };
 
 const SINGULAR: Record<string, string> = {
@@ -331,7 +347,7 @@ function isUnitToken(token: string | undefined): boolean {
 }
 
 function tokenize(text: string): string[] {
-  return text
+  let working = text
     .toLowerCase()
     .replace(/[’']/g, "")
     .replace(/(\d)\s*[x×]\s*/gi, "$1 ")
@@ -342,9 +358,15 @@ function tokenize(text: string): string[] {
     .replace(/(\d+(?:\.\d+)?)(g|gm|gms|kg|ml|mls|mils|tbsp|tsp)\b/gi, "$1 $2")
     .replace(/[,;]/g, " , ")
     .replace(/[()] /g, " ")
-    .replace(/[.](?!\d)/g, " ")
+    .replace(/[.](?!\d)/g, " ");
+  const compounds = Object.keys(FOOD_ALIASES).filter((alias) => /\s/.test(alias)).sort((a, b) => b.length - a.length);
+  for (const phrase of compounds) {
+    working = working.replace(new RegExp(`\\b${phrase.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "gi"), phrase.replace(/\s+/g, "_"));
+  }
+  return working
     .split(/\s+/)
-    .filter((token) => token.length > 0);
+    .filter((token) => token.length > 0)
+    .map((token) => token.replace(/_/g, " "));
 }
 
 function joinFrom(tokens: readonly string[], start: number, count: number): string {
@@ -530,6 +552,13 @@ function splitContainerFilling(foodName: string): { filling: string; container: 
     "cooked pasta",
     "cooked rice",
     "banana sandwich",
+    "cheese sandwich",
+    "chicken salad sandwich",
+    "chicken sandwich",
+    "bacon and egg roll",
+    "peanut butter toast",
+    "fish and chips",
+    "ham and cheese sandwich",
   ]);
   if (keepCompound.has(foodName.toLowerCase())) return null;
   const match = foodName.match(/^([a-z][a-z'-]*)\s+(sandwich|wrap|burger|roll)$/i);
@@ -884,7 +913,7 @@ function looksLikeMeal(mealText: string, triggered: boolean): boolean {
   if (triggered) return true;
   if (extractLemmaHits(mealText).length > 0) return true;
   if (/\b(?:\d+(?:\.\d+)?|one|two|a|an)\s+(?:cups?|slices?|grams?|g|ml|tins?)\s+\w+/i.test(mealText)) return true;
-  return /\b(?:toast|bread|milk|coffee|rice|pasta|juice|yogurt|yoghurt|sandwich|banana|nana|egg|cereal|biscuit|cookie|weet|coke|chips|steak|avocado|peanut|flat\s+white|oats|apple|naan|muffin|quinoa|almonds|beans|curry|wrap|pie|bar|pizza|potato|nigiri|butter|strawberr|porridge|honey|pancake|taco|salsa|soup|syrup)\b/i.test(
+  return /\b(?:toast|bread|milk|coffee|rice|pasta|juice|yogurt|yoghurt|sandwich|banana|nana|egg|cereal|biscuit|cookie|weet|coke|chips|steak|avocado|peanut|flat\s+white|oats|apple|naan|muffin|quinoa|almonds|beans|curry|wrap|pie|bar|pizza|potato|nigiri|butter|strawberr|porridge|honey|pancake|taco|salsa|soup|syrup|cheeseburger|mcdonald)\b/i.test(
     mealText,
   );
 }

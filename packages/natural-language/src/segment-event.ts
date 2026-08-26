@@ -7,6 +7,8 @@ import { extractStatedContext } from "./extract-context.js";
 import { parseTimeExpression } from "./extract-times.js";
 import { detectSymptoms } from "./detect-symptoms.js";
 import { applyCorrections, generateClarifications } from "./ambiguity.js";
+import { extractSemanticEvents } from "./extract-semantic-events.js";
+import { validateSemanticCompleteness } from "./completeness.js";
 import type { ExtractedValue, GlucoseExtraction, InsulinExtraction, MealPipelineTrace, ProvisionalEvent } from "./types.js";
 
 function pipelineFromMeal(originalText: string, meal: ProvisionalEvent["meal"]): MealPipelineTrace | null {
@@ -26,7 +28,14 @@ function preferEventTime(
   glucose: GlucoseExtraction | null,
   insulin: InsulinExtraction | null,
   wholeUtterance: ExtractedValue<string>,
+  multiEventUtterance: boolean,
 ): ExtractedValue<string> | null {
+  // Independent event times live on semanticEvents. Do not copy one glucose
+  // "now" stamp onto a multi-event capture.
+  if (multiEventUtterance) {
+    if (wholeUtterance.status !== "missing") return wholeUtterance;
+    return null;
+  }
   if (glucose?.timestamp.status === "provisional" && glucose.timestamp.rawSpan) return glucose.timestamp;
   if (insulin?.takenAt.status === "provisional" && insulin.takenAt.rawSpan) return insulin.takenAt;
   if (glucose?.timestamp.status === "requires_review" && glucose.timestamp.rawSpan) return glucose.timestamp;
@@ -72,6 +81,8 @@ export function segmentEvent(originalText: string, referenceNowMs: number): Prov
   const { meal, correctionsApplied } = applyCorrections(normalisedText, extractedMeal);
 
   const clarifications = generateClarifications({ glucose, recentInsulin, meal, userStatedCarbs });
+  const semanticEvents = extractSemanticEvents(originalText, referenceNowMs);
+  const completeness = validateSemanticCompleteness(originalText, semanticEvents);
 
   return {
     originalText,
@@ -81,11 +92,13 @@ export function segmentEvent(originalText: string, referenceNowMs: number): Prov
     meal,
     userStatedCarbs,
     statedContext,
-    eventTime: preferEventTime(glucose, recentInsulin, wholeTime),
+    eventTime: preferEventTime(glucose, recentInsulin, wholeTime, meal !== null || semanticEvents.length > 1),
     symptoms,
     clarifications,
     correctionsApplied,
     referenceNow: new Date(referenceNowMs).toISOString(),
     mealPipeline: pipelineFromMeal(originalText, meal),
+    semanticEvents,
+    completeness,
   };
 }

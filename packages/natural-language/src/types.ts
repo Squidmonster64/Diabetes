@@ -15,6 +15,7 @@
  * clinical category the bolus module doesn't already recognise.
  */
 import type { SpecialSituation } from "@diabetes-companion/bolus";
+import type { CompletenessResult, SemanticEvent } from "./semantic-events.js";
 
 /**
  * `missing`: a value the handoff/gates require was not stated at all and
@@ -184,6 +185,8 @@ export interface SymptomExtraction {
    * this package never invents a new clinical category. */
   readonly specialSituations: readonly SpecialSituation[];
   readonly rawPhrases: readonly string[];
+  /** Explicit symptom words as stated. The parser does not diagnose. */
+  readonly statedSymptoms: readonly string[];
 }
 
 export interface ClarificationQuestion {
@@ -223,6 +226,9 @@ export interface ProvisionalEvent {
   readonly referenceNow: string;
   /** Stage-separated meal parse trace. Present whenever a meal was attempted. */
   readonly mealPipeline: MealPipelineTrace | null;
+  /** Ordered semantic events with independent times. */
+  readonly semanticEvents: readonly SemanticEvent[];
+  readonly completeness: CompletenessResult;
 }
 
 export function hasBlockingClarifications(event: ProvisionalEvent): boolean {

@@ -15,6 +15,10 @@ const KNOWN_INSULIN_TYPES = [
   "insulin aspart",
   "insulin lispro",
   "insulin glulisine",
+  "short acting",
+  "short-acting",
+  "fast acting",
+  "fast-acting",
   "rapid insulin",
   "long acting",
   "long-acting",
@@ -27,7 +31,7 @@ const ADMINISTRATION_VERB = "(?:took|had|taken|gave\\s+myself|given\\s+myself|in
 const UNIT_TOKEN = "(?:units?|u)";
 
 const PLANNED_OR_COMMANDED =
-  /\b(?:give me\s+\d+|i should take|i might take|i(?:'m| am) about to take|don't log the insulin yet|i didn't take\s+\d+)\b/i;
+  /\b(?:give me\s+\d+|i should take|should i take|i might take|i may take|i(?:'m| am) about to take|i was going to take|i need\s+\d+(?:\.\d+)?\s*units?|don't log the insulin yet|i didn't take\s+\d+)\b/i;
 
 /**
  * Matches an explicit stated dose after a natural insulin-administration verb.

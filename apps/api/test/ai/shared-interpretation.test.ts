@@ -52,6 +52,7 @@ describe("structured-output safety", () => {
     expect(mealProps.energyKcal).toBeUndefined();
     expect(eventProps.recommendedDose).toBeUndefined();
     expect(eventProps.foods).toBeDefined();
+    expect(eventProps.events).toBeDefined();
     expect(eventProps.glucose).toBeDefined();
   });
 });
@@ -86,6 +87,44 @@ describe("language overlay against the Diabetes regression suite", () => {
     const overlayed = await overlayLanguageModelCapture(interpretation, { apiKey: "sk-test" });
     expect(overlayed.extraction.glucose?.value.value).toBe(8.4);
     expect((overlayed as unknown as { recommendedDose?: number }).recommendedDose).toBeUndefined();
+  });
+
+  it("merges sandwich semantic events from schema-valid model output without inventing a dose", async () => {
+    globalThis.fetch = vi.fn(async () =>
+      new Response(
+        JSON.stringify({
+          model: "gpt-4o-mini",
+          choices: [
+            {
+              message: {
+                content: JSON.stringify({
+                  events: [
+                    { type: "GLUCOSE_READING", originalFragment: "My blood glucose is 17", eventTime: null, relativeTime: "now", relativeTimeMinutes: 0, confidence: 0.9, unresolvedFields: ["glucose.unit"], glucoseValue: 17, glucoseUnit: null, qualitativeValue: null, insulinAmountUnits: null, insulinType: null, actionStatus: null, mealDescription: null, foods: [], statedCarbohydrateGrams: null, symptom: null, activityDescription: null, activityStatus: null },
+                    { type: "SYMPTOM", originalFragment: "I feel nauseous", eventTime: null, relativeTime: "now", relativeTimeMinutes: 0, confidence: 0.9, unresolvedFields: [], glucoseValue: null, glucoseUnit: null, qualitativeValue: null, insulinAmountUnits: null, insulinType: null, actionStatus: null, mealDescription: null, foods: [], statedCarbohydrateGrams: null, symptom: "nauseous", activityDescription: null, activityStatus: null },
+                  ],
+                  foods: [{ foodName: "cheese sandwich", originalFragment: "cheese sandwich", brand: null, quantity: 1, unit: "whole", grams: null, preparation: null, modifiers: [], confidence: 0.9, assumptions: [], qualifier: null }],
+                  glucose: { value: 17, unit: null, rawSpan: "17" },
+                  recentInsulin: { amountUnits: 10, insulinType: "short acting", rawSpan: "10 units" },
+                  unresolvedFragments: [],
+                  warnings: [],
+                  settingsLanguageDetected: false,
+                  doseRequestLanguageDetected: false,
+                  emergencyLanguageDetected: false,
+                }),
+              },
+            },
+          ],
+        }),
+        { status: 200, headers: { "content-type": "application/json" } },
+      ),
+    ) as typeof fetch;
+    const sandwich = "My blood glucose is 17 and I feel nauseous. I took 10 units of short acting insulin ten minutes ago. I ate a cheese sandwich four hours ago.";
+    const interpretation = interpretCapture(sandwich, Date.parse("2026-08-26T04:00:00.000Z"));
+    const overlayed = await overlayLanguageModelCapture(interpretation, { apiKey: "sk-test" });
+    expect(overlayed.extraction.semanticEvents.some((event) => event.type === "SYMPTOM" && event.symptom === "nauseous")).toBe(true);
+    expect(overlayed.extraction.semanticEvents.some((event) => event.type === "MEAL" && /cheese sandwich/i.test(event.mealDescription ?? ""))).toBe(true);
+    expect((overlayed as unknown as { recommendedDose?: number }).recommendedDose).toBeUndefined();
+    expect(overlayed.languageProvenance?.promptVersion).toBe("diabetes-event-v2");
   });
 
   it("schema-validates a nutrition meal completion before it can replace the AST", async () => {

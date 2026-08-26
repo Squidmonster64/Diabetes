@@ -6,7 +6,7 @@ import type { ExtractedValue, GlucoseExtraction, GlucoseUnit } from "./types.js"
  * Clinical-reading cues only. A food mention such as "sugar in my coffee"
  * cannot match because every form below requires a neighbouring stated value.
  */
-const GLUCOSE_CUE = "(?:blood\\s+glucose|blood\\s+sugar|glucose|sugars?|bgl|bsl|bg|my\\s+(?:blood\\s+)?sugar|my\\s+(?:reading|level)|(?:blood\\s+)?level|(?:glucose\\s+)?reading)";
+const GLUCOSE_CUE = "(?:blood\\s+glucose|blood\\s+sugar|glucose|sugars?|bgl|bsl|bg|cgm|sensor|my\\s+(?:blood\\s+)?sugar|my\\s+(?:reading|level)|(?:blood\\s+)?level|(?:glucose\\s+)?reading)";
 const CUE_VALUE_PATTERN = new RegExp(
   `\\b${GLUCOSE_CUE}\\s*(?:is|was|reads?|reading|of|at|sitting\\s+at|currently)?\\s*(${QUANTITY_PATTERN})\\b`,
   "i",
@@ -29,7 +29,9 @@ const CORRECT_NUMBER_PATTERN = new RegExp(
 const FOR_GLUCOSE_PATTERN = new RegExp(`\\bfor\\s+(?:glucose|bg)\\s+(${QUANTITY_PATTERN})\\b`, "i");
 const NUMBER_THEN_GLUCOSE = new RegExp(`\\b(${QUANTITY_PATTERN})\\s+glucose\\b`, "i");
 const AND_GLUCOSE_PATTERN = new RegExp(`\\band\\s+(?:glucose|bg|bgl)\\s+(${QUANTITY_PATTERN})\\b`, "i");
-const METER_QUALITATIVE = /\b(?:the\s+)?(?:meter|sensor)\s+says\s+(hi|lo)\b/i;
+const METER_QUALITATIVE = /\b(?:(?:the\s+)?(?:meter|sensor)\s+says|glucose\s+reads)\s+(hi|lo)\b/i;
+const READING_LOW_ON_METER = /\breading\s+low\s+on\s+the\s+meter\b/i;
+const I_WAS_READING = new RegExp(`\\bi\\s+was\\s+(${QUANTITY_PATTERN})\\b`, "i");
 const SPOKEN_SIX_FIVE = /\bbg\s+six\s+five\b/i;
 const SLASH_AMBIGUOUS = /\bglucose\s+six\s+slash\s+eight\b/i;
 const CONFLICTING_METERS =
@@ -134,6 +136,15 @@ export function extractGlucose(clause: string, referenceNowMs: number): GlucoseE
     );
   }
 
+  if (READING_LOW_ON_METER.test(clause)) {
+    return withTimestamp(
+      clause,
+      referenceNowMs,
+      { rawSpan: clause.match(READING_LOW_ON_METER)![0], value: null, confidence: 0.4, status: "requires_review", requiresConfirmation: true },
+      { qualitativeFlag: "LO" },
+    );
+  }
+
   const oneTwenty = clause.match(ONE_TWENTY);
   if (oneTwenty) {
     const tens: Record<string, number> = {
@@ -175,9 +186,10 @@ export function extractGlucose(clause: string, referenceNowMs: number): GlucoseE
   const imNumber =
     !direct && !andGlucose && !forGlucose && !correctNumber && correctionOrDoseContext(clause) ? clause.match(IM_NUMBER_PATTERN) : null;
   const trailingGlucose = !direct && !andGlucose && !forGlucose && !correctNumber && !imNumber ? clause.match(NUMBER_THEN_GLUCOSE) : null;
+  const iWas = !direct && !trailingGlucose ? clause.match(I_WAS_READING) : null;
 
   const valueMatch =
-    direct ?? readingOf ?? sittingAt ?? lowOrHigh ?? pronounWithUnit ?? explicitUnit ?? andGlucose ?? forGlucose ?? correctNumber ?? imNumber ?? trailingGlucose;
+    direct ?? readingOf ?? sittingAt ?? lowOrHigh ?? pronounWithUnit ?? explicitUnit ?? andGlucose ?? forGlucose ?? correctNumber ?? imNumber ?? trailingGlucose ?? iWas;
 
   if (!valueMatch) return null;
 

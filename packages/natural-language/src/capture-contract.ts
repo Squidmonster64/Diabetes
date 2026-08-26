@@ -7,6 +7,7 @@
  * bolus module remains the only authority for dose arithmetic.
  */
 import { hasBlockingClarifications, type ProvisionalEvent } from "./types.js";
+import type { LanguageProvenance } from "./semantic-events.js";
 
 export const CAPTURE_CONTRACT_VERSION = "v1";
 export const ORIGINATING_APP = "diabetes-companion";
@@ -80,6 +81,7 @@ export interface CaptureInterpretation {
   readonly intent: IntentClassification;
   readonly extraction: ProvisionalEvent;
   readonly proposedNextStep: ProposedNextStep;
+  readonly languageProvenance?: LanguageProvenance;
 }
 
 export function interpretationStatusFor(interpretation: CaptureInterpretation): InterpretationStatus {

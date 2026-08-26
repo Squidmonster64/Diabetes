@@ -3,6 +3,9 @@ import { CAPTURE_CONTRACT_VERSION, ORIGINATING_APP, type CaptureInterpretation }
 import { generateClarifications, applyCorrections } from "./ambiguity.js";
 import { parsedMealToExtraction } from "./extract-foods.js";
 import { segmentEvent } from "./segment-event.js";
+import { mergeSemanticEvents } from "./extract-semantic-events.js";
+import { validateSemanticCompleteness } from "./completeness.js";
+import { SEMANTIC_PARSER_VERSION, type LanguageProvenance, type SemanticEvent } from "./semantic-events.js";
 import type {
   GlucoseExtraction,
   GlucoseUnit,
@@ -39,6 +42,15 @@ export function interpretCapture(originalText: string, referenceNowMs: number): 
     intent,
     extraction,
     proposedNextStep: proposedNextStepFor(intent, extraction),
+    languageProvenance: {
+      parseSource: "deterministic",
+      model: null,
+      promptVersion: "deterministic-only",
+      schemaVersion: SEMANTIC_PARSER_VERSION,
+      parserVersion: SEMANTIC_PARSER_VERSION,
+      interpretedAt: new Date(referenceNowMs).toISOString(),
+      fallback: false,
+    },
   };
   assertNoTreatmentInvention(interpretation);
   return interpretation;
@@ -249,6 +261,26 @@ export function overlayParsedMeal(interpretation: CaptureInterpretation, parsed:
     intent,
     extraction,
     proposedNextStep: proposedNextStepFor(intent, extraction),
+  };
+  assertNoTreatmentInvention(next);
+  return next;
+}
+
+export function overlaySemanticEvents(
+  interpretation: CaptureInterpretation,
+  overlayEvents: readonly SemanticEvent[],
+  provenance?: LanguageProvenance,
+): CaptureInterpretation {
+  const merged = mergeSemanticEvents(interpretation.extraction.semanticEvents, overlayEvents);
+  const extraction: ProvisionalEvent = {
+    ...interpretation.extraction,
+    semanticEvents: merged,
+    completeness: validateSemanticCompleteness(interpretation.originalText, merged),
+  };
+  const next: CaptureInterpretation = {
+    ...interpretation,
+    extraction,
+    languageProvenance: provenance ?? interpretation.languageProvenance,
   };
   assertNoTreatmentInvention(next);
   return next;

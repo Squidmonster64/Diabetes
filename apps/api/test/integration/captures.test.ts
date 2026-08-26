@@ -165,4 +165,66 @@ describe("capture provenance pipeline", () => {
     expect(accepted.statusCode).toBe(409);
     expect(accepted.json().error.code).toBe("EXCLUDED_CLINICAL_CONTEXT");
   });
+
+  it("POST /api/v1/captures binds sandwich multi-event times without inventing a dose", async () => {
+    const created = await app.inject({
+      method: "POST",
+      url: "/api/v1/captures",
+      headers: patient,
+      payload: {
+        originalText:
+          "My blood glucose is 17 and I feel nauseous. I took 10 units of short acting insulin ten minutes ago. I ate a cheese sandwich four hours ago.",
+        sourceType: "typed",
+        referenceNowMs: Date.parse("2026-08-26T04:00:00.000Z"),
+      },
+    });
+    expect(created.statusCode).toBe(201);
+    const capture = created.json();
+    const events = capture.interpretation.extraction.semanticEvents;
+    expect(events.find((event: { type: string; glucoseValue?: number }) => event.type === "GLUCOSE_READING")?.glucoseValue).toBe(17);
+    expect(events.find((event: { type: string; symptom?: string }) => event.type === "SYMPTOM")?.symptom).toMatch(/nauseous/i);
+    expect(events.find((event: { type: string; insulinAmountUnits?: number; relativeTimeMinutes?: number }) => event.type === "INSULIN_TAKEN")?.insulinAmountUnits).toBe(10);
+    expect(events.find((event: { type: string; insulinAmountUnits?: number; relativeTimeMinutes?: number }) => event.type === "INSULIN_TAKEN")?.relativeTimeMinutes).toBe(-10);
+    expect(events.find((event: { type: string; mealDescription?: string }) => event.type === "MEAL")?.mealDescription).toMatch(/cheese sandwich/i);
+    expect(events.find((event: { type: string; relativeTimeMinutes?: number }) => event.type === "MEAL")?.relativeTimeMinutes).toBe(-240);
+    expect(capture.interpretation.roundedTotalUnits).toBeUndefined();
+    expect(capture.originalText).toContain("cheese sandwich");
+  });
+
+  it("POST /api/v1/captures keeps banana, bread, and butter quantities", async () => {
+    const created = await app.inject({
+      method: "POST",
+      url: "/api/v1/captures",
+      headers: patient,
+      payload: {
+        originalText: "two bananas and two slices of white bread with 50 grams of butter",
+        sourceType: "typed",
+        referenceNowMs: Date.parse("2026-08-26T04:00:00.000Z"),
+      },
+    });
+    const foods = created.json().interpretation.extraction.semanticEvents.find((event: { type: string }) => event.type === "MEAL")?.foods ?? [];
+    expect(foods).toHaveLength(3);
+    expect(created.json().interpretation.extraction.bolusDose).toBeUndefined();
+  });
+
+  it("POST /api/v1/captures never records give-me units as taken insulin", async () => {
+    const created = await app.inject({
+      method: "POST",
+      url: "/api/v1/captures",
+      headers: patient,
+      payload: { originalText: "Give me 10 units for this meal.", sourceType: "typed" },
+    });
+    const events = created.json().interpretation.extraction.semanticEvents as Array<{ type: string; actionStatus?: string }>;
+    expect(events.some((event) => event.type === "INSULIN_TAKEN" && event.actionStatus === "TAKEN")).toBe(false);
+    expect(created.json().interpretation.roundedTotalUnits).toBeUndefined();
+  });
+
+  it("unauthenticated capture creation fails", async () => {
+    const created = await app.inject({
+      method: "POST",
+      url: "/api/v1/captures",
+      payload: { originalText: "My glucose is 7.4 mmol/L." },
+    });
+    expect(created.statusCode).toBeGreaterThanOrEqual(401);
+  });
 });

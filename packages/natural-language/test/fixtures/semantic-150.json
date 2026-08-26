@@ -1,0 +1,2632 @@
+[
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SEMANTIC",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "eventTypes": [
+        "GLUCOSE_READING"
+      ],
+      "events": [
+        {
+          "type": "GLUCOSE_READING",
+          "glucoseValue": 6.2
+        }
+      ]
+    },
+    "case_id": "SEM-001",
+    "category": "glucose-only",
+    "raw_text": "My glucose is 6.2."
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SEMANTIC",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "eventTypes": [
+        "GLUCOSE_READING"
+      ],
+      "events": [
+        {
+          "type": "GLUCOSE_READING",
+          "glucoseValue": 6.2
+        }
+      ]
+    },
+    "case_id": "SEM-002",
+    "category": "glucose-only",
+    "raw_text": "My glucose is 6.2 mmol/L."
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SEMANTIC",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "eventTypes": [
+        "GLUCOSE_READING"
+      ],
+      "events": [
+        {
+          "type": "GLUCOSE_READING",
+          "glucoseValue": 6.2
+        }
+      ]
+    },
+    "case_id": "SEM-003",
+    "category": "glucose-only",
+    "raw_text": "My glucose is 6.2 mmol."
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SEMANTIC",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "eventTypes": [
+        "GLUCOSE_READING"
+      ],
+      "events": [
+        {
+          "type": "GLUCOSE_READING",
+          "glucoseValue": 118
+        }
+      ]
+    },
+    "case_id": "SEM-004",
+    "category": "glucose-only",
+    "raw_text": "My glucose is 118."
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SEMANTIC",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "eventTypes": [
+        "GLUCOSE_READING"
+      ],
+      "events": [
+        {
+          "type": "GLUCOSE_READING",
+          "glucoseValue": 118
+        }
+      ]
+    },
+    "case_id": "SEM-005",
+    "category": "glucose-only",
+    "raw_text": "My glucose is 118 mg/dL."
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SEMANTIC",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "eventTypes": [
+        "GLUCOSE_READING"
+      ],
+      "events": [
+        {
+          "type": "GLUCOSE_READING",
+          "glucoseValue": 118
+        }
+      ]
+    },
+    "case_id": "SEM-006",
+    "category": "glucose-only",
+    "raw_text": "My glucose is 118 mg."
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SEMANTIC",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "eventTypes": [
+        "GLUCOSE_READING"
+      ],
+      "events": [
+        {
+          "type": "GLUCOSE_READING",
+          "glucoseValue": 8.2
+        }
+      ]
+    },
+    "case_id": "SEM-007",
+    "category": "glucose-only",
+    "raw_text": "BG 8.2"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SEMANTIC",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "eventTypes": [
+        "GLUCOSE_READING"
+      ],
+      "events": [
+        {
+          "type": "GLUCOSE_READING"
+        }
+      ]
+    },
+    "case_id": "SEM-008",
+    "category": "glucose-only",
+    "raw_text": "my sugar's eight point four"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SEMANTIC",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "eventTypes": [
+        "GLUCOSE_READING"
+      ],
+      "events": [
+        {
+          "type": "GLUCOSE_READING"
+        }
+      ]
+    },
+    "case_id": "SEM-009",
+    "category": "glucose-only",
+    "raw_text": "glucose 9 point 6"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SEMANTIC",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "eventTypes": [
+        "GLUCOSE_READING"
+      ],
+      "events": [
+        {
+          "type": "GLUCOSE_READING",
+          "glucoseValue": 7.4
+        }
+      ]
+    },
+    "case_id": "SEM-010",
+    "category": "glucose-only",
+    "raw_text": "my glucose is 7.4"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SEMANTIC",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "eventTypes": [
+        "GLUCOSE_READING"
+      ],
+      "events": [
+        {
+          "type": "GLUCOSE_READING",
+          "glucoseValue": 110
+        }
+      ]
+    },
+    "case_id": "SEM-011",
+    "category": "glucose-only",
+    "raw_text": "glucose 110 mg/dL"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SEMANTIC",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "eventTypes": [
+        "GLUCOSE_READING"
+      ],
+      "events": [
+        {
+          "type": "GLUCOSE_READING",
+          "glucoseValue": 6.1
+        }
+      ]
+    },
+    "case_id": "SEM-012",
+    "category": "glucose-only",
+    "raw_text": "glucose 6.1 mmol/L"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SAFETY_CRITICAL",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "eventTypes": [
+        "GLUCOSE_READING"
+      ],
+      "events": [
+        {
+          "type": "GLUCOSE_READING"
+        }
+      ]
+    },
+    "case_id": "SEM-013",
+    "category": "glucose-only",
+    "raw_text": "my meter says HI"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SAFETY_CRITICAL",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "eventTypes": [
+        "GLUCOSE_READING"
+      ],
+      "events": [
+        {
+          "type": "GLUCOSE_READING"
+        }
+      ]
+    },
+    "case_id": "SEM-014",
+    "category": "glucose-only",
+    "raw_text": "glucose reads HI"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SAFETY_CRITICAL",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "eventTypes": [
+        "GLUCOSE_READING"
+      ],
+      "events": [
+        {
+          "type": "GLUCOSE_READING"
+        }
+      ]
+    },
+    "case_id": "SEM-015",
+    "category": "glucose-only",
+    "raw_text": "meter says LO"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SEMANTIC",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "eventTypes": [
+        "GLUCOSE_READING"
+      ],
+      "events": [
+        {
+          "type": "GLUCOSE_READING"
+        }
+      ]
+    },
+    "case_id": "SEM-016",
+    "category": "glucose-only",
+    "raw_text": "I'm reading low on the meter"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SAFETY_CRITICAL",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "eventTypes": [
+        "GLUCOSE_READING"
+      ],
+      "events": [
+        {
+          "type": "GLUCOSE_READING",
+          "glucoseValue": 9.8
+        }
+      ]
+    },
+    "case_id": "SEM-017",
+    "category": "glucose-only",
+    "raw_text": "CGM is 9.8 with a double up arrow"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SAFETY_CRITICAL",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "eventTypes": [
+        "GLUCOSE_READING"
+      ],
+      "events": [
+        {
+          "type": "GLUCOSE_READING"
+        }
+      ]
+    },
+    "case_id": "SEM-018",
+    "category": "glucose-only",
+    "raw_text": "my glucose has been rising all afternoon"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SAFETY_CRITICAL",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "eventTypes": [
+        "GLUCOSE_READING"
+      ],
+      "events": [
+        {
+          "type": "GLUCOSE_READING"
+        }
+      ]
+    },
+    "case_id": "SEM-019",
+    "category": "glucose-only",
+    "raw_text": "my glucose has been between 8 and 10"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SAFETY_CRITICAL",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "eventTypes": [
+        "GLUCOSE_READING"
+      ],
+      "events": [
+        {
+          "type": "GLUCOSE_READING",
+          "glucoseValue": 7.1
+        }
+      ]
+    },
+    "case_id": "SEM-020",
+    "category": "glucose-only",
+    "raw_text": "on 24/8 my glucose was 7.1"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SEMANTIC",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "eventTypes": [
+        "INSULIN_TAKEN"
+      ]
+    },
+    "case_id": "SEM-021",
+    "category": "insulin-only",
+    "raw_text": "I took 8 units"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SEMANTIC",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "eventTypes": [
+        "INSULIN_TAKEN"
+      ]
+    },
+    "case_id": "SEM-022",
+    "category": "insulin-only",
+    "raw_text": "I injected 8 units"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SEMANTIC",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "eventTypes": [
+        "INSULIN_TAKEN"
+      ]
+    },
+    "case_id": "SEM-023",
+    "category": "insulin-only",
+    "raw_text": "I gave myself 8 units"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SEMANTIC",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "events": [
+        {
+          "type": "INSULIN_TAKEN",
+          "actionStatus": "DIALLED"
+        }
+      ]
+    },
+    "case_id": "SEM-024",
+    "category": "insulin-only",
+    "raw_text": "I dialled 8 units"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SEMANTIC",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "events": [
+        {
+          "type": "INSULIN_TAKEN",
+          "actionStatus": "PRIMED"
+        }
+      ]
+    },
+    "case_id": "SEM-025",
+    "category": "insulin-only",
+    "raw_text": "I primed 2 units"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SAFETY_CRITICAL",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "events": [
+        {
+          "type": "INSULIN_TAKEN",
+          "actionStatus": "PLANNED"
+        }
+      ]
+    },
+    "case_id": "SEM-026",
+    "category": "insulin-only",
+    "raw_text": "I was going to take 8 units"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SAFETY_CRITICAL",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "eventTypes": [
+        "MEAL_DOSE_REQUEST"
+      ],
+      "actionStatusNot": {
+        "type": "INSULIN_TAKEN",
+        "status": "TAKEN"
+      }
+    },
+    "case_id": "SEM-027",
+    "category": "insulin-only",
+    "raw_text": "I need 8 units"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SAFETY_CRITICAL",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "eventTypes": [
+        "MEAL_DOSE_REQUEST"
+      ],
+      "actionStatusNot": {
+        "type": "INSULIN_TAKEN",
+        "status": "TAKEN"
+      }
+    },
+    "case_id": "SEM-028",
+    "category": "insulin-only",
+    "raw_text": "give me 8 units"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SAFETY_CRITICAL",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "eventTypes": [
+        "MEAL_DOSE_REQUEST"
+      ],
+      "actionStatusNot": {
+        "type": "INSULIN_TAKEN",
+        "status": "TAKEN"
+      }
+    },
+    "case_id": "SEM-029",
+    "category": "insulin-only",
+    "raw_text": "should I take 8 units"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SEMANTIC",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "events": [
+        {
+          "type": "INSULIN_TAKEN",
+          "insulinAmountUnits": 4,
+          "relativeTimeMinutes": -20
+        }
+      ]
+    },
+    "case_id": "SEM-030",
+    "category": "insulin-only",
+    "raw_text": "I took 4 units of NovoRapid 20 minutes ago."
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SEMANTIC",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "eventTypes": [
+        "INSULIN_TAKEN"
+      ]
+    },
+    "case_id": "SEM-031",
+    "category": "insulin-only",
+    "raw_text": "took four units maybe fifteen twenty minutes ago"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SEMANTIC",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "eventTypes": [
+        "INSULIN_TAKEN"
+      ]
+    },
+    "case_id": "SEM-032",
+    "category": "insulin-only",
+    "raw_text": "6 units NovoRapid"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SEMANTIC",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "events": [
+        {
+          "type": "INSULIN_TAKEN",
+          "insulinAmountUnits": 10,
+          "insulinTypeIncludes": "short acting",
+          "relativeTimeMinutes": -10
+        }
+      ]
+    },
+    "case_id": "SEM-033",
+    "category": "insulin-only",
+    "raw_text": "I took 10 units of short acting insulin ten minutes ago."
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SAFETY_CRITICAL",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "actionStatusNot": {
+        "type": "INSULIN_TAKEN",
+        "status": "TAKEN"
+      }
+    },
+    "case_id": "SEM-034",
+    "category": "insulin-only",
+    "raw_text": "I think I took 6 units"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SAFETY_CRITICAL",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "actionStatusNot": {
+        "type": "INSULIN_TAKEN",
+        "status": "TAKEN"
+      }
+    },
+    "case_id": "SEM-035",
+    "category": "insulin-only",
+    "raw_text": "maybe 8 units"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SAFETY_CRITICAL",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "actionStatusNot": {
+        "type": "INSULIN_TAKEN",
+        "status": "TAKEN"
+      }
+    },
+    "case_id": "SEM-036",
+    "category": "insulin-only",
+    "raw_text": "I can't remember if I dosed"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SEMANTIC",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "events": [
+        {
+          "type": "INSULIN_TAKEN",
+          "insulinAmountUnits": 0.5
+        }
+      ]
+    },
+    "case_id": "SEM-037",
+    "category": "insulin-only",
+    "raw_text": "I took 0.5 units"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SEMANTIC",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "events": [
+        {
+          "type": "INSULIN_TAKEN",
+          "insulinAmountUnits": 1.5
+        }
+      ]
+    },
+    "case_id": "SEM-038",
+    "category": "insulin-only",
+    "raw_text": "I took 1.5 units"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SEMANTIC",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "events": [
+        {
+          "type": "INSULIN_TAKEN",
+          "insulinAmountUnits": 2.25
+        }
+      ]
+    },
+    "case_id": "SEM-039",
+    "category": "insulin-only",
+    "raw_text": "I took 2.25 units"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SEMANTIC",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "eventTypes": [
+        "INSULIN_TAKEN"
+      ]
+    },
+    "case_id": "SEM-040",
+    "category": "insulin-only",
+    "raw_text": "I had 6 units with lunch"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SAFETY_CRITICAL",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "events": [
+        {
+          "type": "MEAL",
+          "mealIncludes": "cheese sandwich"
+        }
+      ]
+    },
+    "case_id": "SEM-041",
+    "category": "meal-only",
+    "raw_text": "cheese sandwich"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SAFETY_CRITICAL",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "events": [
+        {
+          "type": "MEAL",
+          "mealIncludes": "cheese sandwich"
+        }
+      ]
+    },
+    "case_id": "SEM-042",
+    "category": "meal-only",
+    "raw_text": "ham and cheese sandwich"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SAFETY_CRITICAL",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "eventTypes": [
+        "MEAL"
+      ]
+    },
+    "case_id": "SEM-043",
+    "category": "meal-only",
+    "raw_text": "chicken salad sandwich"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SEMANTIC",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "eventTypes": [
+        "MEAL"
+      ]
+    },
+    "case_id": "SEM-044",
+    "category": "meal-only",
+    "raw_text": "peanut butter toast"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SEMANTIC",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "eventTypes": [
+        "MEAL"
+      ]
+    },
+    "case_id": "SEM-045",
+    "category": "meal-only",
+    "raw_text": "bacon and egg roll"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SAFETY_CRITICAL",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "events": [
+        {
+          "type": "MEAL",
+          "mealIncludes": "fish and chips"
+        }
+      ]
+    },
+    "case_id": "SEM-046",
+    "category": "meal-only",
+    "raw_text": "fish and chips"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SEMANTIC",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "eventTypes": [
+        "MEAL"
+      ]
+    },
+    "case_id": "SEM-047",
+    "category": "meal-only",
+    "raw_text": "cereal with milk"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SEMANTIC",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "eventTypes": [
+        "MEAL"
+      ]
+    },
+    "case_id": "SEM-048",
+    "category": "meal-only",
+    "raw_text": "yoghurt with berries"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SEMANTIC",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "eventTypes": [
+        "MEAL"
+      ]
+    },
+    "case_id": "SEM-049",
+    "category": "meal-only",
+    "raw_text": "chicken curry and rice"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SEMANTIC",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "eventTypes": [
+        "MEAL"
+      ]
+    },
+    "case_id": "SEM-050",
+    "category": "meal-only",
+    "raw_text": "burger and chips"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SAFETY_CRITICAL",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "eventTypes": [
+        "MEAL"
+      ],
+      "foods": [
+        {
+          "name": "banana",
+          "quantity": 2,
+          "unit": "whole"
+        },
+        {
+          "name": "white bread",
+          "quantity": 2,
+          "unit": "slice"
+        },
+        {
+          "name": "butter",
+          "quantity": 50,
+          "unit": "g"
+        }
+      ]
+    },
+    "case_id": "SEM-051",
+    "category": "meal-only",
+    "raw_text": "two bananas and two slices of white bread with 50 grams of butter"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SEMANTIC",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "eventTypes": [
+        "MEAL"
+      ]
+    },
+    "case_id": "SEM-052",
+    "category": "meal-only",
+    "raw_text": "I ate toast and eggs."
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SAFETY_CRITICAL",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "events": [
+        {
+          "type": "MEAL",
+          "mealIncludes": "cheese sandwich"
+        }
+      ]
+    },
+    "case_id": "SEM-053",
+    "category": "meal-only",
+    "raw_text": "a cheese sandwich"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SEMANTIC",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "eventTypes": [
+        "MEAL"
+      ]
+    },
+    "case_id": "SEM-054",
+    "category": "meal-only",
+    "raw_text": "two slices Burgen bread"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SEMANTIC",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "eventTypes": [
+        "MEAL"
+      ]
+    },
+    "case_id": "SEM-055",
+    "category": "meal-only",
+    "raw_text": "one can Coke Zero"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SEMANTIC",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "eventTypes": [
+        "MEAL"
+      ]
+    },
+    "case_id": "SEM-056",
+    "category": "meal-only",
+    "raw_text": "McDonald's cheeseburger"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SEMANTIC",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "eventTypes": [
+        "MEAL"
+      ]
+    },
+    "case_id": "SEM-057",
+    "category": "meal-only",
+    "raw_text": "Chobani Greek yoghurt"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SEMANTIC",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "eventTypes": [
+        "MEAL"
+      ]
+    },
+    "case_id": "SEM-058",
+    "category": "meal-only",
+    "raw_text": "flat white"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SEMANTIC",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "eventTypes": [
+        "MEAL"
+      ]
+    },
+    "case_id": "SEM-059",
+    "category": "meal-only",
+    "raw_text": "two bits of toast"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SEMANTIC",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "eventTypes": [
+        "MEAL"
+      ]
+    },
+    "case_id": "SEM-060",
+    "category": "meal-only",
+    "raw_text": "50 g butter"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SEMANTIC",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "eventTypes": [
+        "MEAL"
+      ]
+    },
+    "case_id": "SEM-061",
+    "category": "meal-only",
+    "raw_text": "200 ml milk"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SEMANTIC",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "eventTypes": [
+        "MEAL"
+      ]
+    },
+    "case_id": "SEM-062",
+    "category": "meal-only",
+    "raw_text": "one tablespoon honey"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SEMANTIC",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "eventTypes": [
+        "MEAL"
+      ]
+    },
+    "case_id": "SEM-063",
+    "category": "meal-only",
+    "raw_text": "fried egg"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SEMANTIC",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "eventTypes": [
+        "MEAL"
+      ]
+    },
+    "case_id": "SEM-064",
+    "category": "meal-only",
+    "raw_text": "small banana"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SEMANTIC",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "eventTypes": [
+        "MEAL"
+      ]
+    },
+    "case_id": "SEM-065",
+    "category": "meal-only",
+    "raw_text": "white bread"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SAFETY_CRITICAL",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "eventTypes": [
+        "GLUCOSE_READING",
+        "SYMPTOM",
+        "INSULIN_TAKEN",
+        "MEAL"
+      ],
+      "events": [
+        {
+          "type": "GLUCOSE_READING",
+          "glucoseValue": 17,
+          "relativeTimeMinutes": 0
+        },
+        {
+          "type": "SYMPTOM",
+          "symptomIncludes": "nauseous"
+        },
+        {
+          "type": "INSULIN_TAKEN",
+          "insulinAmountUnits": 10,
+          "relativeTimeMinutes": -10,
+          "insulinTypeIncludes": "short acting"
+        },
+        {
+          "type": "MEAL",
+          "mealIncludes": "cheese sandwich",
+          "relativeTimeMinutes": -240
+        }
+      ],
+      "completeness": "COMPLETE"
+    },
+    "case_id": "SEM-066",
+    "category": "multi-event",
+    "raw_text": "My blood glucose is 17 and I feel nauseous.\nI took 10 units of short acting insulin ten minutes ago.\nI ate a cheese sandwich four hours ago."
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SAFETY_CRITICAL",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "events": [
+        {
+          "type": "INSULIN_TAKEN",
+          "insulinAmountUnits": 10,
+          "relativeTimeMinutes": -10
+        },
+        {
+          "type": "MEAL",
+          "mealIncludes": "sandwich",
+          "relativeTimeMinutes": -240
+        }
+      ]
+    },
+    "case_id": "SEM-067",
+    "category": "multi-event",
+    "raw_text": "I took 10 units ten minutes ago and ate a sandwich four hours ago"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SAFETY_CRITICAL",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "events": [
+        {
+          "type": "MEAL",
+          "mealIncludes": "cheese sandwich",
+          "relativeTimeMinutes": -240
+        }
+      ]
+    },
+    "case_id": "SEM-068",
+    "category": "multi-event",
+    "raw_text": "I ate a cheese sandwich four hours ago"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SAFETY_CRITICAL",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "eventTypes": [
+        "MEAL",
+        "INSULIN_TAKEN",
+        "GLUCOSE_READING"
+      ]
+    },
+    "case_id": "SEM-069",
+    "category": "multi-event",
+    "raw_text": "I had pasta at 7, took 8 units with it, and my glucose was 9.4 beforehand"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SAFETY_CRITICAL",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "eventTypes": [
+        "MEAL",
+        "INSULIN_TAKEN",
+        "GLUCOSE_READING"
+      ]
+    },
+    "case_id": "SEM-070",
+    "category": "multi-event",
+    "raw_text": "I ate at 6, took insulin at 6:15, and checked glucose at 7."
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SAFETY_CRITICAL",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "minEventCount": 3,
+      "eventTypes": [
+        "MEAL"
+      ]
+    },
+    "case_id": "SEM-071",
+    "category": "multi-event",
+    "raw_text": "Breakfast was toast and eggs, lunch was a chicken sandwich, dinner was curry and rice."
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SAFETY_CRITICAL",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "minEventCount": 2
+    },
+    "case_id": "SEM-072",
+    "category": "multi-event",
+    "raw_text": "I took 4 units at breakfast and another 6 at lunch."
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SAFETY_CRITICAL",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "eventTypes": [
+        "GLUCOSE_READING"
+      ]
+    },
+    "case_id": "SEM-073",
+    "category": "multi-event",
+    "raw_text": "I was 7.2 before lunch and 10.4 two hours later."
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SAFETY_CRITICAL",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "eventTypes": [
+        "GLUCOSE_READING",
+        "INSULIN_TAKEN",
+        "MEAL"
+      ]
+    },
+    "case_id": "SEM-074",
+    "category": "multi-event",
+    "raw_text": "glucose 9 point 6 took 4 units ten mins ago ate toast and eggs"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SAFETY_CRITICAL",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "eventTypes": [
+        "GLUCOSE_READING",
+        "MEAL",
+        "INSULIN_TAKEN",
+        "SYMPTOM"
+      ]
+    },
+    "case_id": "SEM-075",
+    "category": "multi-event",
+    "raw_text": "my bg is 11 and I had cereal two hours ago and took 6 units with it and now I feel a bit shaky"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SAFETY_CRITICAL",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "eventTypes": [
+        "MEAL",
+        "INSULIN_TAKEN"
+      ]
+    },
+    "case_id": "SEM-076",
+    "category": "multi-event",
+    "raw_text": "I ate a sandwich and took 6 units with it"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SAFETY_CRITICAL",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "events": [
+        {
+          "type": "MEAL",
+          "mealIncludes": "pasta"
+        }
+      ]
+    },
+    "case_id": "SEM-077",
+    "category": "multi-event",
+    "raw_text": "I had pasta. It was about 70 grams carbs."
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SAFETY_CRITICAL",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "eventTypes": [
+        "MEAL",
+        "INSULIN_TAKEN"
+      ]
+    },
+    "case_id": "SEM-078",
+    "category": "multi-event",
+    "raw_text": "I had curry and rice and took 6 units with it; it was about 60 grams carbs."
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SAFETY_CRITICAL",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "eventTypes": [
+        "MEAL",
+        "INSULIN_TAKEN"
+      ]
+    },
+    "case_id": "SEM-079",
+    "category": "multi-event",
+    "raw_text": "I ate at noon and took 6 units with it."
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SAFETY_CRITICAL",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "events": [
+        {
+          "type": "GLUCOSE_READING",
+          "glucoseValue": 9.4
+        },
+        {
+          "type": "INSULIN_TAKEN",
+          "insulinAmountUnits": 6
+        }
+      ]
+    },
+    "case_id": "SEM-080",
+    "category": "multi-event",
+    "raw_text": "glucose 9.4, took 6 units"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SAFETY_CRITICAL",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "foods": [
+        {
+          "name": "banana",
+          "quantity": 2
+        }
+      ],
+      "events": [
+        {
+          "type": "GLUCOSE_READING",
+          "glucoseValue": 8
+        }
+      ]
+    },
+    "case_id": "SEM-081",
+    "category": "multi-event",
+    "raw_text": "I ate 2 bananas and my glucose is 8"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SAFETY_CRITICAL",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "minEventCount": 2
+    },
+    "case_id": "SEM-082",
+    "category": "multi-event",
+    "raw_text": "I took 6 units 20 minutes ago and another 4 units just now"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SAFETY_CRITICAL",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "minEventCount": 2
+    },
+    "case_id": "SEM-083",
+    "category": "multi-event",
+    "raw_text": "I took 6 units at 12 and 6 units again at 1"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SAFETY_CRITICAL",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "eventTypes": [
+        "GLUCOSE_READING",
+        "SYMPTOM",
+        "INSULIN_TAKEN",
+        "MEAL"
+      ]
+    },
+    "case_id": "SEM-084",
+    "category": "multi-event",
+    "raw_text": "bg seventeen feeling sick took ten units novorapid ten mins ago had a cheese sandwich about four hours ago"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SAFETY_CRITICAL",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "eventTypes": [
+        "GLUCOSE_READING",
+        "INSULIN_TAKEN"
+      ]
+    },
+    "case_id": "SEM-085",
+    "category": "multi-event",
+    "raw_text": "my sugar's eight point four I had six units with lunch"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SAFETY_CRITICAL",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "eventTypes": [
+        "ACTIVITY",
+        "INSULIN_TAKEN"
+      ]
+    },
+    "case_id": "SEM-086",
+    "category": "multi-event",
+    "raw_text": "I ran 5 km an hour ago and took 4 units before lunch."
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SAFETY_CRITICAL",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "eventTypes": [
+        "MEAL"
+      ]
+    },
+    "case_id": "SEM-087",
+    "category": "multi-event",
+    "raw_text": "after my ride I had a banana and a sports drink"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SAFETY_CRITICAL",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "events": [
+        {
+          "type": "GLUCOSE_READING",
+          "glucoseValue": 8.4
+        }
+      ]
+    },
+    "case_id": "SEM-088",
+    "category": "multi-event",
+    "raw_text": "My glucose is 8.4 and remind me to call Mum."
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SAFETY_CRITICAL",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "events": [
+        {
+          "type": "GLUCOSE_READING",
+          "glucoseValue": 7.2
+        }
+      ]
+    },
+    "case_id": "SEM-089",
+    "category": "multi-event",
+    "raw_text": "call 0412 345 678, glucose 7.2"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SAFETY_CRITICAL",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "events": [
+        {
+          "type": "INSULIN_TAKEN",
+          "insulinAmountUnits": 4
+        }
+      ]
+    },
+    "case_id": "SEM-090",
+    "category": "multi-event",
+    "raw_text": "at 7:30 I took 4 units"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SAFETY_CRITICAL",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "events": [
+        {
+          "type": "SYMPTOM",
+          "symptomIncludes": "nauseous"
+        }
+      ]
+    },
+    "case_id": "SEM-091",
+    "category": "symptom-inclusive",
+    "raw_text": "I feel nauseous"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SAFETY_CRITICAL",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "events": [
+        {
+          "type": "SYMPTOM",
+          "symptomIncludes": "nauseous"
+        }
+      ]
+    },
+    "case_id": "SEM-092",
+    "category": "symptom-inclusive",
+    "raw_text": "nauseous"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SAFETY_CRITICAL",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "eventTypes": [
+        "SYMPTOM"
+      ]
+    },
+    "case_id": "SEM-093",
+    "category": "symptom-inclusive",
+    "raw_text": "glucose 17 and I'm vomiting"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SAFETY_CRITICAL",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "minEventCount": 1
+    },
+    "case_id": "SEM-094",
+    "category": "symptom-inclusive",
+    "raw_text": "I am confused and can't stay awake"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SAFETY_CRITICAL",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "eventTypes": [
+        "SYMPTOM"
+      ]
+    },
+    "case_id": "SEM-095",
+    "category": "symptom-inclusive",
+    "raw_text": "I'm vomiting and my glucose is very high"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SAFETY_CRITICAL",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "minEventCount": 1
+    },
+    "case_id": "SEM-096",
+    "category": "symptom-inclusive",
+    "raw_text": "I think I'm having a severe hypo"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SEMANTIC",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "minEventCount": 1
+    },
+    "case_id": "SEM-097",
+    "category": "symptom-inclusive",
+    "raw_text": "I'm low"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SAFETY_CRITICAL",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "minEventCount": 1
+    },
+    "case_id": "SEM-098",
+    "category": "symptom-inclusive",
+    "raw_text": "I feel hypo"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SEMANTIC",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "minEventCount": 1
+    },
+    "case_id": "SEM-099",
+    "category": "symptom-inclusive",
+    "raw_text": "I'm shaky and sweaty"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SAFETY_CRITICAL",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "eventTypes": [
+        "SYMPTOM"
+      ]
+    },
+    "case_id": "SEM-100",
+    "category": "symptom-inclusive",
+    "raw_text": "I've been vomiting all morning"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SAFETY_CRITICAL",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "minEventCount": 1
+    },
+    "case_id": "SEM-101",
+    "category": "symptom-inclusive",
+    "raw_text": "I have ketones"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SEMANTIC",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "minEventCount": 1
+    },
+    "case_id": "SEM-102",
+    "category": "symptom-inclusive",
+    "raw_text": "I'm sick and can't keep food down"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SAFETY_CRITICAL",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "minEventCount": 1
+    },
+    "case_id": "SEM-103",
+    "category": "symptom-inclusive",
+    "raw_text": "ketones 1.2"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SEMANTIC",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "minEventCount": 1
+    },
+    "case_id": "SEM-104",
+    "category": "symptom-inclusive",
+    "raw_text": "felt weird after lunch"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SEMANTIC",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "minEventCount": 1
+    },
+    "case_id": "SEM-105",
+    "category": "symptom-inclusive",
+    "raw_text": "I feel a bit shaky"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SAFETY_CRITICAL",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "minEventCount": 2
+    },
+    "case_id": "SEM-106",
+    "category": "ambiguity-conflict",
+    "raw_text": "one meter says 6.8 and the other says 8.9"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SAFETY_CRITICAL",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "minEventCount": 2
+    },
+    "case_id": "SEM-107",
+    "category": "ambiguity-conflict",
+    "raw_text": "finger prick is 7.2 but sensor says 10.1"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SAFETY_CRITICAL",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "minEventCount": 2
+    },
+    "case_id": "SEM-108",
+    "category": "ambiguity-conflict",
+    "raw_text": "CGM says 11.2 but finger prick says 9.6"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SAFETY_CRITICAL",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "events": [
+        {
+          "type": "GLUCOSE_READING"
+        }
+      ]
+    },
+    "case_id": "SEM-109",
+    "category": "ambiguity-conflict",
+    "raw_text": "BG six five"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SAFETY_CRITICAL",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "events": [
+        {
+          "type": "GLUCOSE_READING"
+        }
+      ]
+    },
+    "case_id": "SEM-110",
+    "category": "ambiguity-conflict",
+    "raw_text": "sugar twelve slash eight"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SAFETY_CRITICAL",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "minEventCount": 1
+    },
+    "case_id": "SEM-111",
+    "category": "ambiguity-conflict",
+    "raw_text": "about 2 or 3 slices of bread"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SAFETY_CRITICAL",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "minEventCount": 1
+    },
+    "case_id": "SEM-112",
+    "category": "ambiguity-conflict",
+    "raw_text": "two bananas and apples"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SAFETY_CRITICAL",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "minEventCount": 1
+    },
+    "case_id": "SEM-113",
+    "category": "ambiguity-conflict",
+    "raw_text": "label says 45 grams carbs but I think it was 60"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SAFETY_CRITICAL",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "minEventCount": 1
+    },
+    "case_id": "SEM-114",
+    "category": "ambiguity-conflict",
+    "raw_text": "I took insulin ten minutes ago, four hours ago."
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SAFETY_CRITICAL",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "minEventCount": 1
+    },
+    "case_id": "SEM-115",
+    "category": "ambiguity-conflict",
+    "raw_text": "glucose abc123"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SAFETY_CRITICAL",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "minEventCount": 1
+    },
+    "case_id": "SEM-116",
+    "category": "ambiguity-conflict",
+    "raw_text": "I took insulin earlier"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SAFETY_CRITICAL",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "minEventCount": 1
+    },
+    "case_id": "SEM-117",
+    "category": "ambiguity-conflict",
+    "raw_text": "I took some insulin about an hour ago"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SAFETY_CRITICAL",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "minEventCount": 1
+    },
+    "case_id": "SEM-118",
+    "category": "ambiguity-conflict",
+    "raw_text": "I had toast with some spread"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SAFETY_CRITICAL",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "minEventCount": 1
+    },
+    "case_id": "SEM-119",
+    "category": "ambiguity-conflict",
+    "raw_text": "about 45 grams of carbs"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SAFETY_CRITICAL",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "minEventCount": 1
+    },
+    "case_id": "SEM-120",
+    "category": "ambiguity-conflict",
+    "raw_text": "between 40 and 50 grams carbs"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SEMANTIC",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "minEventCount": 1
+    },
+    "case_id": "SEM-121",
+    "category": "correction-review",
+    "raw_text": "that insulin was 6 units not 8"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SEMANTIC",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "minEventCount": 1
+    },
+    "case_id": "SEM-122",
+    "category": "correction-review",
+    "raw_text": "the glucose should be 7.2 not 9.2"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SEMANTIC",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "minEventCount": 1
+    },
+    "case_id": "SEM-123",
+    "category": "correction-review",
+    "raw_text": "I meant two slices, not three"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SEMANTIC",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "minEventCount": 1
+    },
+    "case_id": "SEM-124",
+    "category": "correction-review",
+    "raw_text": "I took 8 units — sorry, 6 units — ten minutes ago."
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SEMANTIC",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "minEventCount": 1
+    },
+    "case_id": "SEM-125",
+    "category": "correction-review",
+    "raw_text": "two slices of white bread, actually three slices"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SEMANTIC",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "minEventCount": 1
+    },
+    "case_id": "SEM-126",
+    "category": "correction-review",
+    "raw_text": "I took 8 units. Actually make that 6."
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SEMANTIC",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "minEventCount": 1
+    },
+    "case_id": "SEM-127",
+    "category": "correction-review",
+    "raw_text": "white bread — actually wholemeal"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SEMANTIC",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "minEventCount": 1
+    },
+    "case_id": "SEM-128",
+    "category": "correction-review",
+    "raw_text": "I took 6 units, yes 6 units, about 20 minutes ago."
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SAFETY_CRITICAL",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "actionStatusNot": {
+        "type": "INSULIN_TAKEN",
+        "status": "TAKEN"
+      }
+    },
+    "case_id": "SEM-129",
+    "category": "correction-review",
+    "raw_text": "did I take 6 units?"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SEMANTIC",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "events": [
+        {
+          "type": "INSULIN_TAKEN",
+          "insulinAmountUnits": 6
+        }
+      ]
+    },
+    "case_id": "SEM-130",
+    "category": "correction-review",
+    "raw_text": "I took 6 units."
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SEMANTIC",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "eventTypes": [
+        "ACTIVITY"
+      ]
+    },
+    "case_id": "SEM-131",
+    "category": "activity-context",
+    "raw_text": "I just finished a 5 km run"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SEMANTIC",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "eventTypes": [
+        "ACTIVITY"
+      ]
+    },
+    "case_id": "SEM-132",
+    "category": "activity-context",
+    "raw_text": "I walked for 45 minutes"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SEMANTIC",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "eventTypes": [
+        "ACTIVITY"
+      ]
+    },
+    "case_id": "SEM-133",
+    "category": "activity-context",
+    "raw_text": "I did a heavy gym session this morning"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SAFETY_CRITICAL",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "eventTypes": [
+        "ACTIVITY"
+      ]
+    },
+    "case_id": "SEM-134",
+    "category": "activity-context",
+    "raw_text": "I am about to exercise"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SAFETY_CRITICAL",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "eventTypes": [
+        "ACTIVITY"
+      ]
+    },
+    "case_id": "SEM-135",
+    "category": "activity-context",
+    "raw_text": "I'm going for a run in 20 minutes"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SAFETY_CRITICAL",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "eventTypes": [
+        "MEAL"
+      ]
+    },
+    "case_id": "SEM-136",
+    "category": "activity-context",
+    "raw_text": "I had coffee but no breakfast"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SAFETY_CRITICAL",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "minEventCount": 1
+    },
+    "case_id": "SEM-137",
+    "category": "activity-context",
+    "raw_text": "I haven't eaten since last night"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SAFETY_CRITICAL",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "minEventCount": 1
+    },
+    "case_id": "SEM-138",
+    "category": "activity-context",
+    "raw_text": "skipped breakfast"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SAFETY_CRITICAL",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "minEventCount": 1
+    },
+    "case_id": "SEM-139",
+    "category": "activity-context",
+    "raw_text": "nothing to eat"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SEMANTIC",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "minEventCount": 1
+    },
+    "case_id": "SEM-140",
+    "category": "activity-context",
+    "raw_text": "I'm going to eat lunch in 30 minutes"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SAFETY_CRITICAL",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "eventTypes": [
+        "MEAL_DOSE_REQUEST"
+      ],
+      "actionStatusNot": {
+        "type": "INSULIN_TAKEN",
+        "status": "TAKEN"
+      }
+    },
+    "case_id": "SEM-141",
+    "category": "dose-settings",
+    "raw_text": "how much insulin for this meal"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SAFETY_CRITICAL",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "eventTypes": [
+        "MEAL_DOSE_REQUEST"
+      ],
+      "actionStatusNot": {
+        "type": "INSULIN_TAKEN",
+        "status": "TAKEN"
+      }
+    },
+    "case_id": "SEM-142",
+    "category": "dose-settings",
+    "raw_text": "dose me for 60 grams carbs"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SAFETY_CRITICAL",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "eventTypes": [
+        "MEAL_DOSE_REQUEST"
+      ],
+      "actionStatusNot": {
+        "type": "INSULIN_TAKEN",
+        "status": "TAKEN"
+      }
+    },
+    "case_id": "SEM-143",
+    "category": "dose-settings",
+    "raw_text": "what should I take for this"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SAFETY_CRITICAL",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "eventTypes": [
+        "MEAL_DOSE_REQUEST"
+      ],
+      "actionStatusNot": {
+        "type": "INSULIN_TAKEN",
+        "status": "TAKEN"
+      }
+    },
+    "case_id": "SEM-144",
+    "category": "dose-settings",
+    "raw_text": "give me a bolus for dinner"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SAFETY_CRITICAL",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "eventTypes": [
+        "CORRECTION_REQUEST"
+      ],
+      "actionStatusNot": {
+        "type": "INSULIN_TAKEN",
+        "status": "TAKEN"
+      }
+    },
+    "case_id": "SEM-145",
+    "category": "dose-settings",
+    "raw_text": "my glucose is 14.2 what correction should I take"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SAFETY_CRITICAL",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "eventTypes": [
+        "CORRECTION_REQUEST"
+      ],
+      "actionStatusNot": {
+        "type": "INSULIN_TAKEN",
+        "status": "TAKEN"
+      }
+    },
+    "case_id": "SEM-146",
+    "category": "dose-settings",
+    "raw_text": "BG 16, need a correction"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SAFETY_CRITICAL",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "eventTypes": [
+        "SETTINGS_CHANGE_ATTEMPT"
+      ]
+    },
+    "case_id": "SEM-147",
+    "category": "dose-settings",
+    "raw_text": "change my carb ratio to 1:8"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SAFETY_CRITICAL",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "eventTypes": [
+        "SETTINGS_CHANGE_ATTEMPT"
+      ]
+    },
+    "case_id": "SEM-148",
+    "category": "dose-settings",
+    "raw_text": "my correction factor is now 2"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SAFETY_CRITICAL",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "eventTypes": [
+        "SETTINGS_CHANGE_ATTEMPT"
+      ]
+    },
+    "case_id": "SEM-149",
+    "category": "dose-settings",
+    "raw_text": "set target to 6"
+  },
+  {
+    "reference_now": "2026-08-26T04:00:00.000Z",
+    "severity": "SAFETY_CRITICAL",
+    "expected": {
+      "must_not_contain": [
+        "recommendedDose",
+        "roundedTotalUnits"
+      ],
+      "eventTypes": [
+        "SETTINGS_CHANGE_ATTEMPT"
+      ]
+    },
+    "case_id": "SEM-150",
+    "category": "dose-settings",
+    "raw_text": "use 3 hour insulin duration"
+  }
+]

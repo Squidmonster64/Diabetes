@@ -122,6 +122,7 @@ const TRANSCRIPTION_REWRITES: ReadonlyArray<readonly [RegExp, string]> = [
   // Restricted to unambiguous clinical cue words and never used to fabricate a value.
   [/\bgluc(?:os|osee|osse|os)\b/g, "glucose"],
   [/\bsugur\b/g, "sugar"],
+  [/\b(?:my\s+)?sugar's\b/g, "sugar is"],
   [/\bsug(?:ar|er)s?\b/g, "sugar"],
   [/\binslin\b/g, "insulin"],
   [/\binsul(?:in|ine|en)\b/g, "insulin"],

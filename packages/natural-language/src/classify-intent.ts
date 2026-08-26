@@ -7,9 +7,10 @@ import { hasBlockingClarifications, type ProvisionalEvent } from "./types.js";
  * never apply it. Changing ICR/ISF/target/DIA/max dose requires the
  * dedicated settings screen and an explicit confirmed new version.
  */
-const SETTINGS_LANGUAGE = /\b(?:change|update|set|adjust|edit|new)\b[\s\S]{0,48}\b(?:icr|isf|carb(?:ohydrate)?\s+ratio|insulin[- ]to[- ]carb(?:ohydrate)?(?:\s+ratio)?|sensitivity(?:\s+factor)?|target(?:\s+glucose)?|insulin\s+duration|dia\b|max(?:imum)?\s+dose|dose\s+increment|dose\s+cap)\b/i;
-const SETTINGS_VALUE_LANGUAGE = /\b(?:my|the)\s+(?:new\s+)?(?:ratio|icr|isf|target(?:\s+glucose)?|carb(?:ohydrate)?\s+ratio)\s+(?:is|to|should\s+be|needs\s+to\s+be)\b/i;
+const SETTINGS_LANGUAGE = /\b(?:change|update|set|adjust|edit|new)\b[\s\S]{0,48}\b(?:icr|isf|carb(?:ohydrate)?\s+ratio|insulin[- ]to[- ]carb(?:ohydrate)?(?:\s+ratio)?|sensitivity(?:\s+factor)?|correction\s+factor|target(?:\s+glucose)?|insulin\s+duration|dia\b|max(?:imum)?\s+dose|dose\s+increment|dose\s+cap)\b/i;
+const SETTINGS_VALUE_LANGUAGE = /\b(?:my|the)\s+(?:new\s+)?(?:ratio|icr|isf|target(?:\s+glucose)?|carb(?:ohydrate)?\s+ratio|correction\s+factor)\s+(?:is|to|is\s+now|should\s+be|needs\s+to\s+be)\b/i;
 const SETTINGS_ADVICE_LANGUAGE = /\bwhat should my (?:ratio|icr|isf|target|sensitivity|dose increment|max(?:imum)? dose)\b/i;
+const SETTINGS_DURATION_VALUE = /\b(?:use|set)\s+\d+(?:\.\d+)?\s*(?:hour|hr)s?\s+insulin\s+duration\b/i;
 
 /**
  * The user is asking for a dose. This package still does not answer with a
@@ -40,7 +41,12 @@ function hasInsulin(event: ProvisionalEvent): boolean {
 }
 
 export function settingsLanguageDetected(originalText: string): boolean {
-  return SETTINGS_LANGUAGE.test(originalText) || SETTINGS_VALUE_LANGUAGE.test(originalText) || SETTINGS_ADVICE_LANGUAGE.test(originalText);
+  return (
+    SETTINGS_LANGUAGE.test(originalText) ||
+    SETTINGS_VALUE_LANGUAGE.test(originalText) ||
+    SETTINGS_ADVICE_LANGUAGE.test(originalText) ||
+    SETTINGS_DURATION_VALUE.test(originalText)
+  );
 }
 
 export function doseRequestLanguageDetected(originalText: string): boolean {
