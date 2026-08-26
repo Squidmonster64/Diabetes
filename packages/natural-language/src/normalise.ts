@@ -73,11 +73,15 @@ export function wordToNumber(word: string): number | null {
     const oneValue = DIRECT_WORD_NUMBERS[ones]!;
     if (oneValue >= 1 && oneValue <= 9) return TENS_WORDS[tens]! + oneValue;
   }
+  if (rest.length === 0 && ones === "hundred" && tens && tens in DIRECT_WORD_NUMBERS) {
+    const scale = DIRECT_WORD_NUMBERS[tens]!;
+    if (scale >= 1 && scale <= 9) return scale * 100;
+  }
   return null;
 }
 
 /** Regex alternation of every recognised number phrase for embedding in extractor patterns. */
-export const NUMBER_WORD_PATTERN = `(?:one\\s+hundred|(?:${TENS_WORD_PATTERN})(?:[-\\s]+(?:${ONE_TO_NINE_WORD_PATTERN}))?|${DIRECT_NUMBER_WORD_PATTERN})`;
+export const NUMBER_WORD_PATTERN = `(?:(?:${ONE_TO_NINE_WORD_PATTERN}|one)\\s+hundred|one\\s+hundred|(?:${TENS_WORD_PATTERN})(?:[-\\s]+(?:${ONE_TO_NINE_WORD_PATTERN}))?|${DIRECT_NUMBER_WORD_PATTERN})`;
 
 /**
  * Common spoken fractions that can safely be represented as deterministic
@@ -117,8 +121,17 @@ export function parseQuantityToken(token: string): number | null {
 const TRANSCRIPTION_REWRITES: ReadonlyArray<readonly [RegExp, string]> = [
   // Restricted to unambiguous clinical cue words and never used to fabricate a value.
   [/\bgluc(?:os|osee|osse|os)\b/g, "glucose"],
+  [/\bsugur\b/g, "sugar"],
   [/\bsug(?:ar|er)s?\b/g, "sugar"],
+  [/\binslin\b/g, "insulin"],
   [/\binsul(?:in|ine|en)\b/g, "insulin"],
+  [/\bbanannas?\b/g, "bananas"],
+  [/\bslises\b/g, "slices"],
+  [/\bbuter\b/g, "butter"],
+  [/\bbreaky\b/g, "breakfast"],
+  [/\bhalf-ish\b/g, "half"],
+  [/\bforty-ish\b/g, "forty"],
+  [/\bbred\b/g, "bread"],
   [/\b(?:b\.?g\.?l|b\.?s\.?l)\b/g, "blood glucose"],
   [/\bunit(?:s|z|zs)\b/g, "units"],
   // Voice transcription commonly writes the homophone in a quantity + unit context.

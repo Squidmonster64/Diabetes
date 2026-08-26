@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { resolveFoodComponent, type FoodMatchDependencies } from "./foodMatch.js";
+import { resolveFoodComponent, resolveMealComponents, type FoodMatchDependencies } from "./foodMatch.js";
 import type { FoodComponentExtraction } from "@diabetes-companion/natural-language";
 
 function component(overrides: Partial<FoodComponentExtraction> = {}): FoodComponentExtraction {
@@ -13,6 +13,11 @@ function component(overrides: Partial<FoodComponentExtraction> = {}): FoodCompon
     qualifier: null,
     matchStatus: "provisional",
     quantityNeededForCalculation: true,
+    assumptions: [],
+    preparation: null,
+    brand: null,
+    canonicalUnit: "slice",
+    modifiers: [],
     ...overrides,
   };
 }
@@ -390,5 +395,102 @@ describe("spoken serving resolution", () => {
     expect(deps.calculateCarbohydrate).toHaveBeenCalledWith(
       expect.objectContaining({ kind: "MEASURE", measureId: "cup", measureMultiplier: 1 }),
     );
+  });
+});
+
+describe("per-item meal resolution", () => {
+  it("searches each parsed food independently and never the whole sentence", async () => {
+    const searchFoods = vi.fn().mockImplementation(async (query: string) => ({
+      results: [
+        {
+          sourceDataset: "AUSNUT_2023",
+          sourceFoodId: query.replace(/\s+/g, "-"),
+          publicFoodKey: query,
+          foodName: query,
+          foodDescription: null,
+          classification: null,
+          matchType: "EXACT",
+          rank: 1,
+          hasGramData: true,
+          hasMillilitreData: false,
+        },
+      ],
+      totalMatches: 1,
+    }));
+    const deps = baseDeps({
+      searchFoods,
+      calculateCarbohydrate: vi.fn().mockResolvedValue({ carbohydrateGrams: 10 }),
+    });
+
+    const banana = component({
+      phrase: "banana",
+      quantityKind: "COUNT",
+      canonicalUnit: "whole",
+      quantity: { rawSpan: "two", value: 2, confidence: 0.98, status: "provisional", requiresConfirmation: true },
+      unit: { rawSpan: "whole", value: "whole", confidence: 0.98, status: "provisional", requiresConfirmation: true },
+    });
+    const bread = component();
+    const butter = component({
+      phrase: "butter",
+      quantityKind: "GRAMS",
+      canonicalUnit: "g",
+      quantity: { rawSpan: "50 grams", value: 50, confidence: 0.99, status: "provisional", requiresConfirmation: true },
+      unit: { rawSpan: "grams", value: "g", confidence: 0.99, status: "provisional", requiresConfirmation: true },
+    });
+
+    const resolved = await resolveMealComponents([banana, bread, butter], deps);
+    expect(resolved).toHaveLength(3);
+    expect(searchFoods).toHaveBeenCalledTimes(3);
+    expect(searchFoods).toHaveBeenCalledWith("banana");
+    expect(searchFoods).toHaveBeenCalledWith("white bread");
+    expect(searchFoods).toHaveBeenCalledWith("butter");
+    expect(searchFoods.mock.calls.some((call) => String(call[0]).includes("and"))).toBe(false);
+  });
+
+  it("uses a medium fruit measure for whole bananas and exposes the assumption", async () => {
+    const deps = baseDeps({
+      searchFoods: vi.fn().mockResolvedValue({
+        results: [
+          {
+            sourceDataset: "AUSNUT_2023",
+            sourceFoodId: "16502001",
+            publicFoodKey: "16502001",
+            foodName: "Banana, cavendish, peeled, raw",
+            foodDescription: null,
+            classification: null,
+            matchType: "PREFIX",
+            rank: 1,
+            hasGramData: true,
+            hasMillilitreData: false,
+          },
+        ],
+        totalMatches: 1,
+      }),
+      getMeasures: vi.fn().mockResolvedValue({
+        measures: [
+          { measureId: "density", measureDescription: "1 density sliced", quantity: 1, gramAmount: 0.63, volumeMillilitres: null },
+          { measureId: "medium", measureDescription: "1 banana medium", quantity: 1, gramAmount: 127.4, volumeMillilitres: null },
+        ],
+      }),
+      calculateCarbohydrate: vi.fn().mockResolvedValue({ carbohydrateGrams: 46.4 }),
+    });
+
+    const result = await resolveFoodComponent(
+      component({
+        phrase: "banana",
+        quantityKind: "COUNT",
+        canonicalUnit: "whole",
+        quantity: { rawSpan: "two", value: 2, confidence: 0.98, status: "provisional", requiresConfirmation: true },
+        unit: { rawSpan: "whole", value: "whole", confidence: 0.98, status: "provisional", requiresConfirmation: true },
+      }),
+      deps,
+    );
+
+    expect(result.matchStatus).toBe("resolved");
+    expect(result.assumedPortion).toBe("assumed medium");
+    expect(deps.calculateCarbohydrate).toHaveBeenCalledWith(
+      expect.objectContaining({ kind: "MEASURE", measureId: "medium", measureMultiplier: 2 }),
+    );
+    expect(result.carbohydrateGrams).toBe(46.4);
   });
 });
