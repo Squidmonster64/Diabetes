@@ -2,9 +2,12 @@ import { normaliseText, splitClauses } from "./normalise.js";
 import { extractGlucose } from "./extract-glucose.js";
 import { extractInsulin } from "./extract-insulin.js";
 import { extractFoods } from "./extract-foods.js";
+import { extractStatedCarbs } from "./extract-stated-carbs.js";
+import { extractStatedContext } from "./extract-context.js";
+import { parseTimeExpression } from "./extract-times.js";
 import { detectSymptoms } from "./detect-symptoms.js";
 import { applyCorrections, generateClarifications } from "./ambiguity.js";
-import type { GlucoseExtraction, InsulinExtraction, MealPipelineTrace, ProvisionalEvent } from "./types.js";
+import type { ExtractedValue, GlucoseExtraction, InsulinExtraction, MealPipelineTrace, ProvisionalEvent } from "./types.js";
 
 function pipelineFromMeal(originalText: string, meal: ProvisionalEvent["meal"]): MealPipelineTrace | null {
   if (!meal) return null;
@@ -17,6 +20,19 @@ function pipelineFromMeal(originalText: string, meal: ProvisionalEvent["meal"]):
     completenessValid: parsed.completeness.valid,
     confidenceGate: parsed.confidenceGate,
   };
+}
+
+function preferEventTime(
+  glucose: GlucoseExtraction | null,
+  insulin: InsulinExtraction | null,
+  wholeUtterance: ExtractedValue<string>,
+): ExtractedValue<string> | null {
+  if (glucose?.timestamp.status === "provisional" && glucose.timestamp.rawSpan) return glucose.timestamp;
+  if (insulin?.takenAt.status === "provisional" && insulin.takenAt.rawSpan) return insulin.takenAt;
+  if (glucose?.timestamp.status === "requires_review" && glucose.timestamp.rawSpan) return glucose.timestamp;
+  if (insulin?.takenAt.status === "requires_review" && insulin.takenAt.rawSpan) return insulin.takenAt;
+  if (wholeUtterance.status !== "missing") return wholeUtterance;
+  return null;
 }
 
 /**
@@ -44,13 +60,18 @@ export function segmentEvent(originalText: string, referenceNowMs: number): Prov
     if (!glucose) glucose = extractGlucose(clause, referenceNowMs);
     if (!recentInsulin) recentInsulin = extractInsulin(clause, referenceNowMs);
   }
+  if (!glucose) glucose = extractGlucose(normalisedText, referenceNowMs);
+  if (!recentInsulin) recentInsulin = extractInsulin(normalisedText, referenceNowMs);
 
   const extractedMeal = extractFoods(normalisedText);
+  const userStatedCarbs = extractStatedCarbs(normalisedText);
+  const statedContext = extractStatedContext(normalisedText);
+  const wholeTime = parseTimeExpression(normalisedText, referenceNowMs);
   const symptoms = detectSymptoms(normalisedText);
 
   const { meal, correctionsApplied } = applyCorrections(normalisedText, extractedMeal);
 
-  const clarifications = generateClarifications({ glucose, recentInsulin, meal });
+  const clarifications = generateClarifications({ glucose, recentInsulin, meal, userStatedCarbs });
 
   return {
     originalText,
@@ -58,6 +79,9 @@ export function segmentEvent(originalText: string, referenceNowMs: number): Prov
     glucose,
     recentInsulin,
     meal,
+    userStatedCarbs,
+    statedContext,
+    eventTime: preferEventTime(glucose, recentInsulin, wholeTime),
     symptoms,
     clarifications,
     correctionsApplied,

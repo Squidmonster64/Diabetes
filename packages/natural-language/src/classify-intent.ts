@@ -1,4 +1,5 @@
 import type { CaptureIntent, IntentClassification, ProposedNextStep } from "./capture-contract.js";
+import { doseOrCorrectionRequestDetected } from "./acceptance-intent.js";
 import { hasBlockingClarifications, type ProvisionalEvent } from "./types.js";
 
 /**
@@ -27,7 +28,7 @@ const EXCLUDED_SITUATIONS = new Set([
 ]);
 
 function hasFood(event: ProvisionalEvent): boolean {
-  return (event.meal?.components.length ?? 0) > 0;
+  return (event.meal?.components.length ?? 0) > 0 || event.userStatedCarbs?.value != null;
 }
 
 function hasGlucose(event: ProvisionalEvent): boolean {
@@ -43,7 +44,8 @@ export function settingsLanguageDetected(originalText: string): boolean {
 }
 
 export function doseRequestLanguageDetected(originalText: string): boolean {
-  return DOSE_REQUEST_LANGUAGE.test(originalText);
+  const extra = doseOrCorrectionRequestDetected(originalText);
+  return extra.dose || extra.correction || DOSE_REQUEST_LANGUAGE.test(originalText);
 }
 
 /**
@@ -110,6 +112,18 @@ export function classifyIntent(originalText: string, event: ProvisionalEvent): I
       settingsLanguageDetected: settings,
       doseRequestLanguageDetected: doseRequest,
       mayRunDeterministicPreview: true,
+    };
+  }
+
+  if ((event.glucose?.qualitativeFlag || event.glucose?.ambiguousReason) && !food && !insulin) {
+    reasons.push("Glucose language is present but the numeric reading is unresolved.");
+    return {
+      intent: "GLUCOSE_LOG",
+      confidence: 0.55,
+      reasons,
+      settingsLanguageDetected: settings,
+      doseRequestLanguageDetected: doseRequest,
+      mayRunDeterministicPreview: false,
     };
   }
 

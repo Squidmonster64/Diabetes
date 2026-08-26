@@ -21,7 +21,7 @@ import type {
 const CORRECTION_PATTERN = /\bi meant\s+.+?,?\s*not\s+.+?(?:[.!]|$)/gi;
 
 const MEAL_TRIGGER_PATTERN =
-  /\b(?:i(?:'m| am)?\s+)?(?:now\s+|just\s+)?(?:eating|having|eat|ate|consumed|finished|drinking|drank|making)\b\s*|\b(?:i\s+)?(?:just\s+)?had(?=\s+(?:some|a|an|the|my|\d|one|two|three|four|five|six|seven|eight|nine|ten)\b)\s*/i;
+  /\b(?:i(?:'m| am)?\s+)?(?:now\s+|just\s+)?(?:eating|having|eat|ate|consumed|finished|drinking|drank|making|weighed)\b\s*|\b(?:i\s+)?(?:just\s+)?had(?=\s+(?:some|a|an|the|my|\d|one|two|three|four|five|six|seven|eight|nine|ten)\b)\s*|\b(?:breakfast|lunch|dinner)\s+was\s+/i;
 
 const CONTAINER_OF_PATTERN =
   /\b(?:i(?:'m| am)?\s+)?(?:making|having|eating)\s+(?:a\s+)?(sandwich|wrap|burger|roll)\s+of\b/i;
@@ -38,7 +38,7 @@ const INSULIN_NO_AMOUNT_PATTERN =
   /\b(?:i\s+)?(?:took|had|injected|bolused)\s+units?(?:\s+of)?(?:\s+insulin)?\b[^.;]*/gi;
 
 const CONNECTORS = new Set(["and", "with", "plus", ",", "&", "then"]);
-const FILLER_WORDS = new Set(["i", "im", "am", "just", "now", "of", "the", "my", "me"]);
+const FILLER_WORDS = new Set(["i", "im", "am", "just", "now", "of", "the", "my", "me", "had", "ate", "weighed", "breakfast", "lunch", "dinner"]);
 const SIZE_WORDS = new Set(["large", "medium", "small", "extra-large", "extralarge", "xl", "tall", "short"]);
 const KEEP_CONTAINER_BRANDS = new Set(["subway", "mcdonalds", "mcdonald's", "hungry", "jacks"]);
 
@@ -70,6 +70,7 @@ const UNIT_ENTRIES: Array<{ pattern: RegExp; canonical: CanonicalFoodUnit; origi
   { pattern: /^handfuls?$/, canonical: "handful", original: "handful" },
   { pattern: /^whole$/, canonical: "whole", original: "whole" },
   { pattern: /^(?:bowls?|glasses?)$/, canonical: "serving", original: "serving" },
+  { pattern: /^tins?$/, canonical: "can", original: "tin" },
 ];
 
 const COLLOQUIAL_COUNTS: Array<{ pattern: RegExp; value: number; label: string }> = [
@@ -98,10 +99,33 @@ const FOOD_ALIASES: Record<string, string> = {
   "weet bix": "weet-bix",
   "weet-bix": "weet-bix",
   coke: "coke",
+  "coke zero": "coke zero",
   pepsi: "pepsi",
   chips: "chips",
   "white toast": "white toast",
   toast: "toast",
+  "white bred": "white bread",
+  buter: "butter",
+  "tim tam": "tim tam",
+  "tim tams": "tim tam",
+  "chicken wrap": "chicken wrap",
+  "chicken curry": "chicken curry",
+  "butter chicken": "butter chicken",
+  "meat pie": "meat pie",
+  "english muffin": "english muffin",
+  "protein bar": "protein bar",
+  "peanut butter": "peanut butter",
+  "orange juice": "orange juice",
+  "baked beans": "baked beans",
+  "greek yoghurt": "greek yoghurt",
+  "greek yogurt": "greek yoghurt",
+  "cooked pasta": "cooked pasta",
+  "cooked rice": "cooked rice",
+  "roast potato": "roast potato",
+  "salmon nigiri": "salmon nigiri",
+  "pepperoni pizza": "pepperoni pizza",
+  "smith's chips": "smith's chips",
+  "smiths chips": "smith's chips",
 };
 
 const SINGULAR: Record<string, string> = {
@@ -114,6 +138,9 @@ const SINGULAR: Record<string, string> = {
   pretzels: "pretzels",
   cookies: "cookies",
   crackers: "crackers",
+  "tim tams": "tim tam",
+  almonds: "almonds",
+  strawberries: "strawberries",
 };
 
 const COUNTABLE_FOODS = new Set([
@@ -139,9 +166,21 @@ const COUNTABLE_FOODS = new Set([
   "yoghurt",
   "coke",
   "steak",
+  "apple",
+  "naan",
+  "muffin",
+  "english muffin",
+  "protein bar",
+  "meat pie",
+  "pie",
+  "tim tam",
+  "chicken wrap",
+  "taco",
+  "pancake",
+  "porridge",
 ]);
 
-const SLICE_FOODS = new Set(["toast", "bread", "white bread", "white toast", "sourdough"]);
+const SLICE_FOODS = new Set(["toast", "bread", "white bread", "white toast", "sourdough", "pizza", "pepperoni pizza"]);
 
 const NON_FOOD_TOKENS = new Set([
   "hours",
@@ -188,6 +227,9 @@ const NON_FOOD_TOKENS = new Set([
   "going",
   "sure",
   "what",
+  "had",
+  "ate",
+  "weighed",
 ]);
 
 const SIGNIFICANT_FOOD_LEMMAS = [
@@ -232,6 +274,30 @@ const SIGNIFICANT_FOOD_LEMMAS = [
   "sugars",
   "flat white",
   "sourdough",
+  "oats",
+  "apple",
+  "strawberries",
+  "pizza",
+  "potato",
+  "nigiri",
+  "naan",
+  "muffin",
+  "quinoa",
+  "almonds",
+  "beans",
+  "curry",
+  "wrap",
+  "pie",
+  "bar",
+  "porridge",
+  "honey",
+  "pancake",
+  "pancakes",
+  "taco",
+  "tacos",
+  "salsa",
+  "soup",
+  "syrup",
 ];
 
 export const PARSED_MEAL_SCHEMA_VERSION = 1;
@@ -402,6 +468,22 @@ function collectFoodName(
       index += 1;
       continue;
     }
+    if (token === "of" && words.length === 0) {
+      index += 1;
+      continue;
+    }
+    if (words.length > 0) {
+      const currentName = canonicalizeFoodName(words.join(" "));
+      const complete = Boolean(FOOD_ALIASES[currentName] || FOOD_ALIASES[words.join(" ")] || COUNTABLE_FOODS.has(currentName));
+      const nextIsOtherFood =
+        SIGNIFICANT_FOOD_LEMMAS.includes(token) &&
+        !currentName.includes(token) &&
+        token !== "butter" &&
+        !(words[words.length - 1] === "peanut" && token === "butter") &&
+        !(words[words.length - 1] === "maple" && token === "syrup") &&
+        !(words[words.length - 1] === "orange" && token === "juice");
+      if (complete && nextIsOtherFood) break;
+    }
     if ((token === "a" || token === "an") && words.length === 0) {
       index += 1;
       continue;
@@ -430,6 +512,26 @@ function isNonFoodPhrase(phrase: string): boolean {
 }
 
 function splitContainerFilling(foodName: string): { filling: string; container: string } | null {
+  const keepCompound = new Set([
+    "chicken wrap",
+    "chicken curry",
+    "butter chicken",
+    "meat pie",
+    "english muffin",
+    "protein bar",
+    "peanut butter",
+    "orange juice",
+    "baked beans",
+    "coke zero",
+    "greek yoghurt",
+    "salmon nigiri",
+    "pepperoni pizza",
+    "roast potato",
+    "cooked pasta",
+    "cooked rice",
+    "banana sandwich",
+  ]);
+  if (keepCompound.has(foodName.toLowerCase())) return null;
   const match = foodName.match(/^([a-z][a-z'-]*)\s+(sandwich|wrap|burger|roll)$/i);
   if (!match) return null;
   const descriptor = match[1]!.toLowerCase();
@@ -481,6 +583,10 @@ export function isolateMealText(text: string): {
   working = working.replace(/\b(?:log(?:ging)?|record(?:ing)?)\s+(?:my\s+)?(?:glucose|bgl|bsl|sugar)\b/gi, " ");
   working = working.replace(INSULIN_CLAUSE_PATTERN, " ");
   working = working.replace(INSULIN_NO_AMOUNT_PATTERN, " ");
+  working = working.replace(
+    /\b(?:how much insulin for|calculate (?:the |a |my )?meal dose for|what dose should i take for|work out insulin for|dose this meal:?|for lunch i had|for breakfast i had|for dinner i had)\s+/gi,
+    " ",
+  );
   working = working.replace(/\s+/g, " ").trim();
 
   let containerContext: string | null = null;
@@ -627,12 +733,35 @@ function parseItems(tokens: string[], containerContext: string | null): { items:
     }
     index = food.next;
 
+    if (quantity === null && !qualifier) {
+      const trailing = tryQuantity(tokens, index);
+      if (trailing) {
+        quantity = trailing.value;
+        unitMatch = trailing.unit;
+        index += trailing.length;
+        if (!unitMatch && isUnitToken(tokens[index])) {
+          unitMatch = matchUnit(tokens[index]!)!;
+          index += 1;
+        }
+        if (tokens[index] === "of") index += 1;
+      }
+    }
+
     const rawFood = food.words.join(" ");
     if (isNonFoodPhrase(rawFood)) continue;
 
     const fragment = tokens.slice(start, index).join(" ").replace(/\s+,/g, ",");
-    let foodName = rawFood;
+    let foodName = rawFood.replace(/\s+/g, " ");
     let preparation = containerContext ? `${containerContext} ingredient` : null;
+    const suffixPrep = foodName.match(/^(.*?)(?:\s+)(raw|cooked)$/i);
+    if (suffixPrep && suffixPrep[1]) {
+      foodName = suffixPrep[1]!;
+      preparation = suffixPrep[2]!.toLowerCase();
+    }
+    const prefixPrep = foodName.match(/^(cooked|raw|roast|homemade)\s+(.+)$/i);
+    if (prefixPrep && !/^(cooked pasta|cooked rice|roast potato)$/i.test(foodName)) {
+      preparation = prefixPrep[1]!.toLowerCase();
+    }
     let brand: string | null = null;
 
     const containerSplit = splitContainerFilling(foodName);
@@ -754,7 +883,8 @@ function averageConfidence(items: readonly ParsedFoodItem[], gate: MealParseConf
 function looksLikeMeal(mealText: string, triggered: boolean): boolean {
   if (triggered) return true;
   if (extractLemmaHits(mealText).length > 0) return true;
-  return /\b(?:toast|bread|milk|coffee|rice|pasta|juice|yogurt|yoghurt|sandwich|banana|nana|egg|cereal|biscuit|cookie|weet|coke|chips|steak|avocado|peanut|flat\s+white)\b/i.test(
+  if (/\b(?:\d+(?:\.\d+)?|one|two|a|an)\s+(?:cups?|slices?|grams?|g|ml|tins?)\s+\w+/i.test(mealText)) return true;
+  return /\b(?:toast|bread|milk|coffee|rice|pasta|juice|yogurt|yoghurt|sandwich|banana|nana|egg|cereal|biscuit|cookie|weet|coke|chips|steak|avocado|peanut|flat\s+white|oats|apple|naan|muffin|quinoa|almonds|beans|curry|wrap|pie|bar|pizza|potato|nigiri|butter|strawberr|porridge|honey|pancake|taco|salsa|soup|syrup)\b/i.test(
     mealText,
   );
 }

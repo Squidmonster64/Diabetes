@@ -65,6 +65,7 @@ export function reviseInterpretation(
       glucose: extraction.glucose,
       recentInsulin: extraction.recentInsulin,
       meal: correctedMeal,
+      userStatedCarbs: extraction.userStatedCarbs,
     }),
     referenceNow: new Date(referenceNowMs).toISOString(),
     mealPipeline: correctedMeal
@@ -201,6 +202,7 @@ export function overlayLanguageEvent(
       glucose: extraction.glucose,
       recentInsulin: extraction.recentInsulin,
       meal: extraction.meal,
+      userStatedCarbs: extraction.userStatedCarbs,
     }),
   };
   const intent = classifyIntent(interpretation.originalText, extraction);
@@ -228,6 +230,7 @@ export function overlayParsedMeal(interpretation: CaptureInterpretation, parsed:
       glucose: interpretation.extraction.glucose,
       recentInsulin: interpretation.extraction.recentInsulin,
       meal,
+      userStatedCarbs: interpretation.extraction.userStatedCarbs,
     }),
     mealPipeline: meal
       ? {
