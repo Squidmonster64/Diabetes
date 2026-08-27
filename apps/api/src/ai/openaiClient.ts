@@ -112,9 +112,27 @@ export function resolveOpenAiRuntime(input: {
   };
 }
 
+export interface TokenUsage {
+  readonly promptTokens: number;
+  readonly completionTokens: number;
+  readonly totalTokens: number;
+}
+
 export interface StructuredCompletion {
   readonly model: string;
   readonly content: unknown;
+  readonly usage: TokenUsage | null;
+  readonly latencyMs: number;
+}
+
+function parseTokenUsage(body: unknown): TokenUsage | null {
+  if (!body || typeof body !== "object") return null;
+  const usage = (body as { usage?: { prompt_tokens?: unknown; completion_tokens?: unknown; total_tokens?: unknown } }).usage;
+  if (!usage) return null;
+  const promptTokens = typeof usage.prompt_tokens === "number" ? usage.prompt_tokens : 0;
+  const completionTokens = typeof usage.completion_tokens === "number" ? usage.completion_tokens : 0;
+  const totalTokens = typeof usage.total_tokens === "number" ? usage.total_tokens : promptTokens + completionTokens;
+  return { promptTokens, completionTokens, totalTokens };
 }
 
 export async function completeJsonSchema(options: {
@@ -127,6 +145,7 @@ export async function completeJsonSchema(options: {
 }): Promise<StructuredCompletion | null> {
   const logger = options.runtime.logger ?? silentLogger();
   const model = options.model?.trim() || options.runtime.interpretationModel;
+  const started = Date.now();
   const response = await fetchWithTimeout(
     OPENAI_CHAT_COMPLETIONS_URL,
     {
@@ -150,6 +169,7 @@ export async function completeJsonSchema(options: {
     },
     INTERPRETATION_TIMEOUT_MS,
   );
+  const latencyMs = Date.now() - started;
 
   if (!response.ok) {
     let detail = "";
@@ -162,6 +182,7 @@ export async function completeJsonSchema(options: {
       {
         status: response.status,
         model,
+        latencyMs,
         detail: truncateDetail(detail) || "(no JSON error detail)",
         stage: "openai_chat_completions",
       },
@@ -170,11 +191,16 @@ export async function completeJsonSchema(options: {
     return null;
   }
 
-  const body = (await response.json()) as { choices?: Array<{ message?: { content?: string } }>; model?: string };
+  const body = (await response.json()) as { choices?: Array<{ message?: { content?: string } }>; model?: string; usage?: unknown };
   const content = body.choices?.[0]?.message?.content;
   if (!content) return null;
   try {
-    return { model: body.model ?? model, content: JSON.parse(content) as unknown };
+    return {
+      model: body.model ?? model,
+      content: JSON.parse(content) as unknown,
+      usage: parseTokenUsage(body),
+      latencyMs,
+    };
   } catch {
     return null;
   }

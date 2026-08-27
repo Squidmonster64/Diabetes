@@ -110,7 +110,7 @@ export async function overlayLanguageModelCapture(
       systemPrompt: DIABETES_EVENT_SYSTEM_PROMPT,
       userText: interpretation.originalText,
     });
-    const provenance = (fallback: boolean, model: string | null): LanguageProvenance => ({
+    const provenance = (fallback: boolean, model: string | null, extra: Pick<LanguageProvenance, "latencyMs" | "promptTokens" | "completionTokens"> = {}): LanguageProvenance => ({
       parseSource: fallback ? "deterministic" : "overlay",
       model,
       promptVersion: DIABETES_EVENT_PROMPT_VERSION,
@@ -118,9 +118,17 @@ export async function overlayLanguageModelCapture(
       parserVersion: SEMANTIC_PARSER_VERSION,
       interpretedAt,
       fallback,
+      ...extra,
     });
     if (!completion || containsForbiddenCalculationKeys(completion.content)) {
-      return { ...interpretation, languageProvenance: provenance(true, runtime.interpretationModel) };
+      return {
+        ...interpretation,
+        languageProvenance: provenance(true, runtime.interpretationModel, {
+          latencyMs: completion?.latencyMs,
+          promptTokens: completion?.usage?.promptTokens,
+          completionTokens: completion?.usage?.completionTokens,
+        }),
+      };
     }
     const raw = completion.content as Record<string, unknown>;
     const mealSource = { ...raw, items: raw.foods ?? raw.items };
@@ -134,7 +142,15 @@ export async function overlayLanguageModelCapture(
       glucose: asOptionalReading(raw.glucose),
       recentInsulin: asOptionalInsulin(raw.recentInsulin),
     });
-    return overlaySemanticEvents(withFields, semanticEventsFromUnknown(raw), provenance(false, completion.model));
+    return overlaySemanticEvents(
+      withFields,
+      semanticEventsFromUnknown(raw),
+      provenance(false, completion.model, {
+        latencyMs: completion.latencyMs,
+        promptTokens: completion.usage?.promptTokens,
+        completionTokens: completion.usage?.completionTokens,
+      }),
+    );
   } catch {
     return {
       ...interpretation,

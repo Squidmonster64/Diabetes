@@ -58,6 +58,9 @@ export interface LanguageProvenance {
   readonly parserVersion: string;
   readonly interpretedAt: string;
   readonly fallback: boolean;
+  readonly latencyMs?: number;
+  readonly promptTokens?: number;
+  readonly completionTokens?: number;
 }
 
 export function emptySemanticEvent(partial: Partial<SemanticEvent> & Pick<SemanticEvent, "id" | "type" | "originalFragment" | "sourceOrder">): SemanticEvent {

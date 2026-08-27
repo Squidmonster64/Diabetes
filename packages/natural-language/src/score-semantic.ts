@@ -163,7 +163,28 @@ export function scoreSemanticCase(testCase: SemanticCase, interpretation: Captur
   };
 }
 
-export function renderSemanticReport(scores: readonly SemanticScore[]): string {
+export interface SemanticLiveRunMeta {
+  readonly live: boolean;
+  readonly requestedModel: string | null;
+  readonly actualModels: readonly string[];
+  readonly promptVersion: string;
+  readonly schemaVersion: string;
+  readonly parserVersion: string;
+  readonly fallbackCount: number;
+  readonly overlayCalls: number;
+  readonly latencyMs: {
+    readonly min: number;
+    readonly median: number;
+    readonly p90: number;
+    readonly p95: number;
+    readonly max: number;
+    readonly mean: number;
+  } | null;
+  readonly tokens: { readonly prompt: number; readonly completion: number; readonly total: number } | null;
+  readonly estimatedUsd: number | null;
+}
+
+export function renderSemanticReport(scores: readonly SemanticScore[], live?: SemanticLiveRunMeta): string {
   const passed = scores.filter((row) => row.result === "PASS").length;
   const safetyFail = scores.filter((row) => row.severity === "SAFETY_CRITICAL" && row.result === "FAIL");
   const lines = [
@@ -175,10 +196,38 @@ export function renderSemanticReport(scores: readonly SemanticScore[]): string {
     "",
     `Safety-critical failures: ${safetyFail.length}`,
     "",
-    "| ID | Category | Severity | Result | Failures |",
-    "|---|---|---|---|---|",
-    ...scores.map((row) => `| ${row.caseId} | ${row.category} | ${row.severity} | ${row.result} | ${row.failures.join("; ").replace(/\|/g, "/")} |`),
-    "",
   ];
+  if (live) {
+    lines.push("## LIVE MODEL");
+    lines.push("");
+    lines.push(`enabled: ${live.live ? "yes" : "no"}`);
+    lines.push(`requested model: ${live.requestedModel ?? "none"}`);
+    lines.push(`actual model(s): ${live.actualModels.length ? live.actualModels.join(", ") : "none"}`);
+    lines.push(`prompt version: ${live.promptVersion}`);
+    lines.push(`schema version: ${live.schemaVersion}`);
+    lines.push(`parser version: ${live.parserVersion}`);
+    lines.push(`overlay calls: ${live.overlayCalls}`);
+    lines.push(`fallbacks: ${live.fallbackCount}`);
+    if (live.latencyMs) {
+      lines.push(
+        `latency ms: min ${live.latencyMs.min} / median ${live.latencyMs.median} / p90 ${live.latencyMs.p90} / p95 ${live.latencyMs.p95} / max ${live.latencyMs.max} / mean ${live.latencyMs.mean}`,
+      );
+    } else {
+      lines.push("latency ms: not measured (deterministic overlay)");
+    }
+    if (live.tokens) {
+      lines.push(`tokens: prompt ${live.tokens.prompt} / completion ${live.tokens.completion} / total ${live.tokens.total}`);
+    } else {
+      lines.push("tokens: n/a");
+    }
+    lines.push(`estimated USD: ${live.estimatedUsd == null ? "n/a" : live.estimatedUsd.toFixed(4)}`);
+    lines.push("");
+  }
+  lines.push("| ID | Category | Severity | Result | Failures |");
+  lines.push("|---|---|---|---|---|");
+  lines.push(
+    ...scores.map((row) => `| ${row.caseId} | ${row.category} | ${row.severity} | ${row.result} | ${row.failures.join("; ").replace(/\|/g, "/")} |`),
+  );
+  lines.push("");
   return lines.join("\n");
 }
