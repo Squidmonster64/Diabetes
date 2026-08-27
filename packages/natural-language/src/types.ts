@@ -15,6 +15,7 @@
  * clinical category the bolus module doesn't already recognise.
  */
 import type { SpecialSituation } from "@diabetes-companion/bolus";
+import type { CompletenessResult, SemanticEvent } from "./semantic-events.js";
 
 /**
  * `missing`: a value the handoff/gates require was not stated at all and
@@ -54,6 +55,10 @@ export interface GlucoseExtraction {
   readonly unit: ExtractedValue<GlucoseUnit>;
   /** ISO 8601, or null if genuinely unstated (resolved to "now" by the caller, not invented here). */
   readonly timestamp: ExtractedValue<string>;
+  /** Meter/sensor qualitative token. Never converted into a numeric reading. */
+  readonly qualitativeFlag?: "HI" | "LO" | null;
+  /** Why a numeric glucose value was withheld (spoken digits, slash, conflicting meters). */
+  readonly ambiguousReason?: string | null;
 }
 
 export interface InsulinExtraction {
@@ -66,6 +71,71 @@ export interface InsulinExtraction {
 }
 
 export type FoodComponentQuantityKind = "GRAMS" | "MILLILITRES" | "COUNT" | "SERVING" | "VAGUE" | "UNKNOWN";
+
+/** Canonical units after language parsing. Original wording is retained separately. */
+export type CanonicalFoodUnit =
+  | "g"
+  | "kg"
+  | "ml"
+  | "l"
+  | "slice"
+  | "piece"
+  | "cup"
+  | "tablespoon"
+  | "teaspoon"
+  | "serving"
+  | "packet"
+  | "can"
+  | "bottle"
+  | "handful"
+  | "whole"
+  | "item";
+
+export type MealParseConfidenceGate = "high" | "medium" | "low";
+
+/**
+ * One food identified by language parsing, before any database lookup.
+ * The language model (or deterministic parser) may fill this; it must never
+ * invent nutrition values.
+ */
+export interface ParsedFoodItem {
+  readonly originalFragment: string;
+  readonly foodName: string;
+  readonly brand: string | null;
+  readonly quantity: number | null;
+  readonly unit: CanonicalFoodUnit | null;
+  readonly originalUnit: string | null;
+  readonly grams: number | null;
+  readonly preparation: string | null;
+  readonly modifiers: readonly string[];
+  readonly confidence: number;
+  readonly assumptions: readonly string[];
+  readonly qualifier: string | null;
+}
+
+export interface MealCompleteness {
+  readonly valid: boolean;
+  readonly accountedFragments: readonly string[];
+  readonly missingFragments: readonly string[];
+}
+
+/**
+ * Inspectable meal AST produced by language parsing. Testable independently
+ * of nutrition lookup. Schema-validate before food resolution.
+ */
+export interface ParsedMeal {
+  readonly originalText: string;
+  readonly mealText: string;
+  readonly mealDescription: string | null;
+  readonly items: readonly ParsedFoodItem[];
+  readonly parseConfidence: number;
+  readonly confidenceGate: MealParseConfidenceGate;
+  readonly unresolvedFragments: readonly string[];
+  readonly warnings: readonly string[];
+  readonly completeness: MealCompleteness;
+  readonly containerContext: string | null;
+  readonly parseSource: "deterministic" | "llm";
+}
 
 export interface FoodComponentExtraction {
   /** The food-name phrase, exactly as it should be used as a search term - never altered. */
@@ -82,6 +152,11 @@ export interface FoodComponentExtraction {
   /** True for foods on the negligible-carbohydrate list with no stated quantity at all -
    * the app must not ask for a quantity that cannot materially affect the calculation. */
   readonly quantityNeededForCalculation: boolean;
+  readonly assumptions: readonly string[];
+  readonly preparation: string | null;
+  readonly brand: string | null;
+  readonly canonicalUnit: CanonicalFoodUnit | null;
+  readonly modifiers: readonly string[];
 }
 
 export interface MealExtraction {
@@ -90,6 +165,18 @@ export interface MealExtraction {
    * clarification question reference "the sandwich" instead of repeating
    * the food name awkwardly. Never used to infer a component's identity. */
   readonly containerContext: string | null;
+  /** Structured language parse. Inspectable independently of nutrition lookup. */
+  readonly parsedMeal: ParsedMeal;
+}
+
+/** Stage-separated meal pipeline record so parse/match/portion/aggregate failures do not conflate. */
+export interface MealPipelineTrace {
+  readonly rawInput: string;
+  readonly mealText: string;
+  readonly parsedMeal: ParsedMeal;
+  readonly parseSource: "deterministic" | "llm";
+  readonly completenessValid: boolean;
+  readonly confidenceGate: MealParseConfidenceGate;
 }
 
 export interface SymptomExtraction {
@@ -98,6 +185,8 @@ export interface SymptomExtraction {
    * this package never invents a new clinical category. */
   readonly specialSituations: readonly SpecialSituation[];
   readonly rawPhrases: readonly string[];
+  /** Explicit symptom words as stated. The parser does not diagnose. */
+  readonly statedSymptoms: readonly string[];
 }
 
 export interface ClarificationQuestion {
@@ -123,12 +212,23 @@ export interface ProvisionalEvent {
   readonly glucose: GlucoseExtraction | null;
   readonly recentInsulin: InsulinExtraction | null;
   readonly meal: MealExtraction | null;
+  /** Explicit user-stated carbohydrate amount, never a food-database total. */
+  readonly userStatedCarbs: ExtractedValue<number> | null;
+  /** Named meal/glucose window as stated (breakfast, lunch, dinner, bedtime). */
+  readonly statedContext: string | null;
+  /** Clock or relative time for the described event, distinct from capture time. */
+  readonly eventTime: ExtractedValue<string> | null;
   readonly symptoms: SymptomExtraction;
   readonly clarifications: readonly ClarificationQuestion[];
   readonly correctionsApplied: readonly CorrectionApplied[];
   /** ISO 8601 timestamp used as "now" for resolving relative times - supplied by the
    * caller (the device clock), never invented by the parser. */
   readonly referenceNow: string;
+  /** Stage-separated meal parse trace. Present whenever a meal was attempted. */
+  readonly mealPipeline: MealPipelineTrace | null;
+  /** Ordered semantic events with independent times. */
+  readonly semanticEvents: readonly SemanticEvent[];
+  readonly completeness: CompletenessResult;
 }
 
 export function hasBlockingClarifications(event: ProvisionalEvent): boolean {

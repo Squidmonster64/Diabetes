@@ -14,6 +14,11 @@ function unresolvedComponent(overrides: Partial<ResolvedFoodComponent> = {}): Re
       qualifier: null,
       matchStatus: "missing",
       quantityNeededForCalculation: true,
+      assumptions: [],
+      preparation: null,
+      brand: null,
+      canonicalUnit: null,
+      modifiers: [],
     },
     // The resolver’s status is deliberately not the condition under test.
     // The production defect occurred when a parser-side missing quantity and
@@ -24,6 +29,7 @@ function unresolvedComponent(overrides: Partial<ResolvedFoodComponent> = {}): Re
     carbohydrateGrams: null,
     servingMeasures: [],
     requiresManualPortion: true,
+    assumedPortion: null,
     ...overrides,
   };
 }
@@ -47,5 +53,11 @@ describe("requiresOnlineFoodLookup", () => {
       customFoodId: null,
     } }))).toBe(false);
     expect(requiresOnlineFoodLookup(unresolvedComponent({ carbohydrateGrams: 12.3 }))).toBe(false);
+  });
+
+  it("never treats a missing carbohydrate figure as zero grams", () => {
+    const unresolved = unresolvedComponent({ carbohydrateGrams: null });
+    expect(unresolved.carbohydrateGrams).toBeNull();
+    expect(unresolved.carbohydrateGrams === 0).toBe(false);
   });
 });

@@ -1,6 +1,11 @@
 import path from "node:path";
 import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
+import {
+  DEFAULT_INTERPRETATION_MODEL,
+  DEFAULT_TRANSCRIPTION_MODEL,
+  DEFAULT_TRANSCRIPTION_PROVIDER,
+} from "./ai/versions.js";
 
 export interface AppConfig {
   readonly port: number;
@@ -13,6 +18,10 @@ export interface AppConfig {
   readonly supabaseServiceRoleKey: string | undefined;
   readonly useSupabase: boolean;
   readonly staticWebDir: string | undefined;
+  readonly openaiApiKey: string | undefined;
+  readonly openaiInterpretationModel: string;
+  readonly openaiTranscriptionModel: string;
+  readonly transcriptionProvider: string;
 }
 
 /**
@@ -60,5 +69,9 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     supabaseServiceRoleKey,
     useSupabase: Boolean(supabaseUrl && supabaseAnonKey && supabaseJwtSecret && supabaseServiceRoleKey),
     staticWebDir: env.STATIC_WEB_DIR ? path.resolve(env.STATIC_WEB_DIR) : findDefaultStaticWebDir(),
+    openaiApiKey: env.OPENAI_API_KEY || undefined,
+    openaiInterpretationModel: env.OPENAI_INTERPRETATION_MODEL?.trim() || DEFAULT_INTERPRETATION_MODEL,
+    openaiTranscriptionModel: env.OPENAI_TRANSCRIPTION_MODEL?.trim() || DEFAULT_TRANSCRIPTION_MODEL,
+    transcriptionProvider: env.TRANSCRIPTION_PROVIDER?.trim() || DEFAULT_TRANSCRIPTION_PROVIDER,
   };
 }

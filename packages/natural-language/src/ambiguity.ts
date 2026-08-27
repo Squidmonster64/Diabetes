@@ -17,6 +17,14 @@ function unitHintFor(phrase: string): string | null {
 function foodClarification(component: FoodComponentExtraction, index: number, containerContext: string | null): ClarificationQuestion | null {
   const field = `meal.components[${index}]`;
 
+  if (component.preparation === "composite sandwich" || component.assumptions.some((assumption) => /composite sandwich/i.test(assumption))) {
+    return {
+      field: `${field}.ingredients`,
+      question: `I understood a ${component.phrase} with ${component.modifiers.join(", ") || "named fillings"}, but I don't have amounts for those ingredients. Edit each one before a carbohydrate total is calculated.`,
+      blocking: true,
+    };
+  }
+
   if (component.matchStatus === "missing") {
     const unitHint = unitHintFor(component.phrase);
     const question =
@@ -53,10 +61,26 @@ function foodClarification(component: FoodComponentExtraction, index: number, co
  * calculation actually need - it never asks for provenance-only detail
  * beyond what's already captured, and it never picks a value itself.
  */
-export function generateClarifications(event: Pick<ProvisionalEvent, "glucose" | "recentInsulin" | "meal">): ClarificationQuestion[] {
+export function generateClarifications(event: Pick<ProvisionalEvent, "glucose" | "recentInsulin" | "meal"> & { userStatedCarbs?: ProvisionalEvent["userStatedCarbs"] }): ClarificationQuestion[] {
   const clarifications: ClarificationQuestion[] = [];
 
-  if (event.glucose && event.glucose.unit.status === "missing") {
+  if (event.glucose?.ambiguousReason) {
+    clarifications.push({
+      field: "glucose.value",
+      question: event.glucose.ambiguousReason,
+      blocking: true,
+    });
+  }
+
+  if (event.glucose?.qualitativeFlag) {
+    clarifications.push({
+      field: "glucose.value",
+      question: `The meter reported ${event.glucose.qualitativeFlag}. Enter a numeric reading if you have one — the parser will not invent one.`,
+      blocking: true,
+    });
+  }
+
+  if (event.glucose && event.glucose.unit.status === "missing" && event.glucose.value.value != null) {
     clarifications.push({
       field: "glucose.unit",
       question: "What unit is your glucose reading in - mmol/L or mg/dL?",
@@ -64,7 +88,7 @@ export function generateClarifications(event: Pick<ProvisionalEvent, "glucose" |
     });
   }
 
-  if (event.glucose?.value.status === "requires_review") {
+  if (event.glucose?.value.status === "requires_review" && !event.glucose.ambiguousReason && !event.glucose.qualitativeFlag) {
     clarifications.push({
       field: "glucose.value",
       question: "Please verify or edit the glucose value we understood before continuing.",
@@ -114,6 +138,14 @@ export function generateClarifications(event: Pick<ProvisionalEvent, "glucose" |
     });
   }
 
+  if (event.userStatedCarbs?.status === "requires_review" && event.userStatedCarbs.value === null) {
+    clarifications.push({
+      field: "userStatedCarbs",
+      question: "Those carbohydrate amounts conflict. Which amount should be used? The parser will not pick one.",
+      blocking: true,
+    });
+  }
+
   return clarifications;
 }
 
@@ -160,5 +192,18 @@ export function applyCorrections(
     };
   });
 
-  return { meal: { ...meal, components }, correctionsApplied };
+  const parsedItems = meal.parsedMeal.items.map((item, index) => {
+    const component = components[index];
+    if (!component || component.quantity.value === item.quantity) return item;
+    return { ...item, quantity: component.quantity.value };
+  });
+
+  return {
+    meal: {
+      ...meal,
+      components,
+      parsedMeal: { ...meal.parsedMeal, items: parsedItems },
+    },
+    correctionsApplied,
+  };
 }

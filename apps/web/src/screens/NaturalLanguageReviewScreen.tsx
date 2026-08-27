@@ -4,6 +4,8 @@ import {
   generateClarifications,
   intentCopy,
   parseTimeExpression,
+  groupSemanticEvents,
+  describeSemanticEvent,
   type ClarificationQuestion,
   type ProvisionalEvent,
 } from "@diabetes-companion/natural-language";
@@ -178,20 +180,34 @@ export function NaturalLanguageReviewScreen() {
     applyEventChange({ glucose: nextGlucose });
   };
 
-  const updateComponentAt = async (index: number, patch: { value: number; unit?: string | null }) => {
+  const updateComponentAt = async (index: number, patch: { value?: number; unit?: string | null; phrase?: string }) => {
     if (!provisionalEvent?.meal) return;
-    const components = provisionalEvent.meal.components.map((component, i) =>
-      i === index
-        ? {
-            ...component,
-            quantity: { ...component.quantity, value: patch.value, status: "provisional" as const },
-            unit: patch.unit ? { ...component.unit, value: patch.unit, status: "provisional" as const } : component.unit,
-            quantityKind: patch.unit === "grams" ? "GRAMS" as const : patch.unit === "ml" ? "MILLILITRES" as const : component.quantityKind,
-            selectedServingMeasureId: patch.unit ? null : component.selectedServingMeasureId,
-            matchStatus: "provisional" as const,
-          }
-        : component,
-    );
+    const components = provisionalEvent.meal.components.map((component, i) => {
+      if (i !== index) return component;
+      const nextUnit = patch.unit ?? component.unit.value;
+      const quantityKind =
+        nextUnit === "grams" || nextUnit === "g"
+          ? "GRAMS" as const
+          : nextUnit === "ml"
+            ? "MILLILITRES" as const
+            : nextUnit === "serving"
+              ? "SERVING" as const
+              : component.quantityKind;
+      return {
+        ...component,
+        phrase: patch.phrase?.trim() || component.phrase,
+        quantity: patch.value !== undefined
+          ? { ...component.quantity, value: patch.value, status: "provisional" as const }
+          : component.quantity,
+        unit: patch.unit
+          ? { ...component.unit, value: patch.unit, status: "provisional" as const }
+          : component.unit,
+        quantityKind,
+        selectedServingMeasureId: patch.unit ? null : component.selectedServingMeasureId,
+        matchStatus: "provisional" as const,
+        quantityNeededForCalculation: true,
+      };
+    });
 
     setBusyIndex(index);
     try {
@@ -202,9 +218,10 @@ export function NaturalLanguageReviewScreen() {
             matchStatus: "resolved",
             bestMatch: resolvedComponents[index]?.bestMatch ?? null,
             alternates: [],
-            carbohydrateGrams: (await api.calculateCustomFoodCarbohydrate(confirmedOnlineFoodId, patch.value)).carbohydrateGrams,
+            carbohydrateGrams: (await api.calculateCustomFoodCarbohydrate(confirmedOnlineFoodId, patch.value ?? components[index]!.quantity.value ?? 0)).carbohydrateGrams,
             servingMeasures: [],
             requiresManualPortion: false,
+            assumedPortion: null,
           }
         : await resolveFoodComponent(components[index]!);
       const nextResolved = resolvedComponents.map((component, i) => (i === index ? updated : component));
@@ -251,6 +268,7 @@ export function NaturalLanguageReviewScreen() {
       carbohydrateGrams: option.carbohydrateGrams,
       servingMeasures: [],
       requiresManualPortion: false,
+      assumedPortion: null,
     };
     const nextResolved = resolvedComponents.map((component, componentIndex) => (componentIndex === index ? selectedComponent : component));
     const meal = { ...provisionalEvent.meal, components };
@@ -316,6 +334,7 @@ export function NaturalLanguageReviewScreen() {
         carbohydrateGrams,
         servingMeasures: [],
         requiresManualPortion: carbohydrateGrams === null,
+        assumedPortion: null,
       };
       const nextResolved = resolvedComponents.map((component, componentIndex) => (componentIndex === index ? selected : component));
       const meal = { ...provisionalEvent.meal, components };
@@ -759,6 +778,38 @@ export function NaturalLanguageReviewScreen() {
       >
         <div className="lifecycle-banner">Nothing has been calculated yet. No insulin dose is suggested on this screen.</div>
         {captureCode ? <p className="muted">Saved as {captureCode}. Original words are kept even if you change the draft below.</p> : null}
+        {provisionalEvent.completeness?.interpretationStatus === "INCOMPLETE" ? (
+          <section className="card">
+            <p className="field-label">We saved what you said.</p>
+            <p>We couldn't fully interpret every part of it. Review the timeline, then retry or edit manually. Unresolved food is not 0 g carbohydrate.</p>
+            {provisionalEvent.completeness.missingFragments.length > 0 ? (
+              <>
+                <p className="muted">I understood: {provisionalEvent.completeness.accountedFragments.join(", ") || "see events below"}</p>
+                <p className="muted">I could not confidently place: {provisionalEvent.completeness.missingFragments.join(", ")}</p>
+              </>
+            ) : null}
+          </section>
+        ) : null}
+        {provisionalEvent.semanticEvents?.length ? (
+          <section className="card" aria-label="Event timeline">
+            {groupSemanticEvents(provisionalEvent.semanticEvents).map((group) => (
+              <div key={group.heading} className="field">
+                <p className="field-label">{group.heading}</p>
+                {group.events.map((event) => {
+                  const described = describeSemanticEvent(event);
+                  return (
+                    <ExtractedRow
+                      key={event.id}
+                      label={described.label}
+                      value={described.value}
+                      detail={described.needsConfirmation ? "Needs portion/composition confirmation" : event.relativeTime ?? ""}
+                    />
+                  );
+                })}
+              </div>
+            ))}
+          </section>
+        ) : null}
         {intentInfo ? (
           <section className="card">
             <p className="field-label">{intentInfo.title}</p>
@@ -818,38 +869,114 @@ export function NaturalLanguageReviewScreen() {
           {recentInsulin ? <ExtractedRow label="Insulin already taken" value={`${recentInsulin.amountUnits.value ?? "?"} U`} detail={describeTimestamp(recentInsulin.takenAt.value, referenceNowMs)} selected={selectedRow === 1} onSelect={() => setSelectedRow(1)} /> : null}
         </section>
 
-        <section className="card">
-          <h2>Food</h2>
+        <section className="card meal-breakdown" aria-label="Your meal">
+          <h2>Your meal</h2>
           {resolvedComponents.length === 0 ? <p className="muted">No food or drink mentioned.</p> : null}
-          {resolvedComponents.map((component, index) => (
-            <div key={`${component.component.phrase}-${index}`}>
-              <ExtractedRow
-                label={describeFoodInterpretation(component)}
-                value={component.carbohydrateGrams === null ? "Carbohydrate amount pending" : `${component.carbohydrateGrams} g carb`}
-                detail={component.bestMatch ? `${component.bestMatch.label}${component.bestMatch.brand ? ` · ${component.bestMatch.brand}` : ""}` : "No match found"}
-                selected={selectedRow === index + 2}
-                onSelect={() => setSelectedRow(index + 2)}
-              />
-              {component.requiresManualPortion && !brandedQuestionIndexes.has(index) && !onlineQuestionIndexes.has(index) ? (
-                <div className="field">
-                  <label htmlFor={`grams-${index}`}>Portion grams</label>
-                  <input id={`grams-${index}`} type="number" inputMode="decimal" min="0" value={manualGrams[index] ?? ""} onChange={(event) => setManualGrams((current) => ({ ...current, [index]: event.target.value }))} />
-                  <button className="btn-secondary" type="button" disabled={busyIndex === index} onClick={() => {
-                    const grams = Number(manualGrams[index]);
-                    if (Number.isFinite(grams) && grams > 0) void updateComponentAt(index, { value: grams, unit: "grams" });
-                  }}>Use this amount</button>
-                </div>
-              ) : null}
-              <button className="btn-secondary" type="button" onClick={() => setDetailsOpenIndex(detailsOpenIndex === index ? null : index)}>{detailsOpenIndex === index ? "Hide match details" : "Change or inspect match"}</button>
-              {detailsOpenIndex === index ? (
-                <div className="muted">
-                  {component.bestMatch ? <p>Match reason: {component.bestMatch.matchReason}</p> : null}
-                  {component.bestMatch?.description ? <p>{component.bestMatch.description}</p> : null}
-                  {component.alternates.length > 0 ? <p>Other possible matches: {component.alternates.map((alternate) => alternate.label).join(", ")}</p> : null}
-                </div>
-              ) : null}
-            </div>
-          ))}
+          {resolvedComponents.length > 0 && !allComponentsResolved ? (
+            <p className="lifecycle-banner">I couldn't confidently interpret all of that meal. Check each ingredient before any carbohydrate total is shown.</p>
+          ) : null}
+          {resolvedComponents.map((component, index) => {
+            const understood = component.component.quantity.value !== null || Boolean(component.component.qualifier) || !component.component.quantityNeededForCalculation;
+            return (
+              <div key={`${component.component.phrase}-${index}`} className="meal-item">
+                <ExtractedRow
+                  label={`${understood ? "✓" : "?"} ${component.component.phrase}`}
+                  value={
+                    !understood
+                      ? "I couldn't determine the amount"
+                      : component.carbohydrateGrams === null
+                        ? describeFoodInterpretation(component)
+                        : describeFoodInterpretation(component)
+                  }
+                  detail={
+                    [
+                      component.assumedPortion,
+                      ...component.component.assumptions,
+                      component.bestMatch ? component.bestMatch.label : "No match found",
+                    ].filter(Boolean).join(" · ")
+                  }
+                  selected={selectedRow === index + 2}
+                  onSelect={() => setSelectedRow(index + 2)}
+                />
+                {component.carbohydrateGrams !== null && allComponentsResolved ? (
+                  <p className="meal-item__carbs">{component.carbohydrateGrams} g carbohydrate</p>
+                ) : component.carbohydrateGrams !== null ? (
+                  <p className="muted">Calculated only after every ingredient is confirmed.</p>
+                ) : null}
+                {selectedRow === index + 2 ? (
+                  <div className="meal-item__edit">
+                    <label htmlFor={`food-name-${index}`}>Food</label>
+                    <input
+                      id={`food-name-${index}`}
+                      defaultValue={component.component.phrase}
+                      onBlur={(event) => {
+                        const phrase = event.target.value.trim();
+                        if (phrase && phrase !== component.component.phrase) void updateComponentAt(index, { phrase });
+                      }}
+                    />
+                    <label htmlFor={`food-qty-${index}`}>Quantity</label>
+                    <input
+                      id={`food-qty-${index}`}
+                      type="number"
+                      inputMode="decimal"
+                      min="0"
+                      defaultValue={component.component.quantity.value ?? ""}
+                      onBlur={(event) => {
+                        const value = Number(event.target.value);
+                        if (Number.isFinite(value) && value > 0) void updateComponentAt(index, { value });
+                      }}
+                    />
+                    <label htmlFor={`food-unit-${index}`}>Unit</label>
+                    <select
+                      id={`food-unit-${index}`}
+                      defaultValue={component.component.unit.value ?? "whole"}
+                      onChange={(event) => void updateComponentAt(index, { value: component.component.quantity.value ?? 1, unit: event.target.value })}
+                    >
+                      <option value="whole">whole</option>
+                      <option value="slices">slices</option>
+                      <option value="grams">grams</option>
+                      <option value="ml">ml</option>
+                      <option value="tbsp">tablespoon</option>
+                      <option value="tsp">teaspoon</option>
+                      <option value="cup">cup</option>
+                      <option value="serving">serving</option>
+                    </select>
+                  </div>
+                ) : (
+                  <p className="muted">Tap the ingredient to edit food, quantity, unit, or portion.</p>
+                )}
+                {component.requiresManualPortion && !brandedQuestionIndexes.has(index) && !onlineQuestionIndexes.has(index) ? (
+                  <div className="field">
+                    <label htmlFor={`grams-${index}`}>Portion grams</label>
+                    <input id={`grams-${index}`} type="number" inputMode="decimal" min="0" value={manualGrams[index] ?? ""} onChange={(event) => setManualGrams((current) => ({ ...current, [index]: event.target.value }))} />
+                    <button className="btn-secondary" type="button" disabled={busyIndex === index} onClick={() => {
+                      const grams = Number(manualGrams[index]);
+                      if (Number.isFinite(grams) && grams > 0) void updateComponentAt(index, { value: grams, unit: "grams" });
+                    }}>Use this amount</button>
+                  </div>
+                ) : null}
+                <button className="btn-secondary" type="button" onClick={() => setDetailsOpenIndex(detailsOpenIndex === index ? null : index)}>{detailsOpenIndex === index ? "Hide match details" : "Change or inspect match"}</button>
+                {detailsOpenIndex === index ? (
+                  <div className="muted">
+                    {component.bestMatch ? <p>Match reason: {component.bestMatch.matchReason}</p> : null}
+                    {component.bestMatch?.description ? <p>{component.bestMatch.description}</p> : null}
+                    {component.alternates.length > 0 ? <p>Other possible matches: {component.alternates.map((alternate) => alternate.label).join(", ")}</p> : null}
+                  </div>
+                ) : null}
+              </div>
+            );
+          })}
+          {resolvedComponents.length > 0 ? (
+            allComponentsResolved ? (
+              <div className="meal-total">
+                <div className="muted">Meal carbohydrate</div>
+                <div className="dose-display">{Math.round(totalCarbohydrateGrams * 10) / 10} g</div>
+                <p className="muted">This total is the sum of the ingredients above. It is not an insulin dose.</p>
+              </div>
+            ) : (
+              <p className="lifecycle-banner lifecycle-banner--halt">No carbohydrate total is shown until every significant ingredient is resolved.</p>
+            )
+          ) : null}
         </section>
 
             {nonBlockingClarifications.length > 0 ? <section className="card"><h2>Optional review</h2>{nonBlockingClarifications.map(renderClarification)}</section> : null}

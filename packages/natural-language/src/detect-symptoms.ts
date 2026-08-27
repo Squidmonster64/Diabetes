@@ -24,7 +24,10 @@ const SITUATION_KEYWORDS: ReadonlyArray<readonly [SpecialSituation, RegExp]> = [
 ];
 
 const HYPO_SYMPTOM_PATTERN =
-  /\b(shaky|shaking|dizzy|dizziness|sweating|sweaty|confus(?:ed|ion)|hypo\b|hypoglyc(?:a?emi)?c?|feel(?:ing)?\s+low|light[\s-]?headed|trembl(?:ing|e))\b/i;
+  /\b(shaky|shaking|dizzy|dizziness|sweating|sweaty|confus(?:ed|ion)|hypo\b|hypoglyc(?:a?emi)?c?|feel(?:ing)?\s+low|light[\s-]?headed|trembl(?:ing|e)|nauseous|nausea|headache|vomiting|vomit(?:ing|ed)?|weak|sick)\b/i;
+
+const STATED_SYMPTOM_PATTERN =
+  /\b(nauseous|nausea|shaky|dizzy|sweaty|headache|vomiting|confused|weak|sick|hypo)\b/gi;
 
 /**
  * Detects hypoglycaemia symptom language and known special-situation
@@ -55,5 +58,15 @@ export function detectSymptoms(text: string): SymptomExtraction {
   // Every entry in SITUATION_KEYWORDS is already typed against the closed
   // SpecialSituation union, so this array can never contain a value the
   // bolus module doesn't recognise - no runtime re-validation needed.
-  return { hypoSymptoms, specialSituations, rawPhrases };
+  const statedSymptoms: string[] = [];
+  const seen = new Set<string>();
+  for (const match of text.matchAll(STATED_SYMPTOM_PATTERN)) {
+    const word = match[1]!.toLowerCase();
+    if (!seen.has(word)) {
+      seen.add(word);
+      statedSymptoms.push(word);
+    }
+  }
+
+  return { hypoSymptoms, specialSituations, rawPhrases, statedSymptoms };
 }

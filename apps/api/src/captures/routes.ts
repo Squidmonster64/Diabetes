@@ -9,6 +9,7 @@ import {
 import type { AppState } from "../appState.js";
 import { HttpError } from "../httpError.js";
 import type { CaptureRecord } from "./types.js";
+import { overlayLanguageModelMealParse } from "../ai/interpretLanguage.js";
 
 function parseSourceType(value: unknown): CaptureSourceType {
   return value === "voice" ? "voice" : "typed";
@@ -59,7 +60,36 @@ export function registerCaptureRoutes(app: FastifyInstance, state: AppState): vo
       if (existing) return publicCapture(existing);
     }
     const referenceNowMs = typeof body.referenceNowMs === "number" && Number.isFinite(body.referenceNowMs) ? body.referenceNowMs : Date.now();
-    const interpretation = interpretCapture(originalText, referenceNowMs);
+    let interpretation = interpretCapture(originalText, referenceNowMs);
+    interpretation = await overlayLanguageModelMealParse(interpretation, state.config.openaiApiKey, {
+      interpretationModel: state.config.openaiInterpretationModel,
+      transcriptionModel: state.config.openaiTranscriptionModel,
+      transcriptionProvider: state.config.transcriptionProvider,
+      logger: request.log,
+      nodeEnv: state.config.nodeEnv,
+    });
+    if (state.config.nodeEnv !== "production" && interpretation.extraction.mealPipeline) {
+      request.log.info(
+        {
+          stage: "diabetes_language_interpretation",
+          mealPipeline: {
+            parseSource: interpretation.extraction.mealPipeline.parseSource,
+            mealText: interpretation.extraction.mealPipeline.mealText,
+            items: interpretation.extraction.mealPipeline.parsedMeal.items.map((item) => ({
+              foodName: item.foodName,
+              quantity: item.quantity,
+              unit: item.unit,
+              confidence: item.confidence,
+            })),
+            completenessValid: interpretation.extraction.mealPipeline.completenessValid,
+            confidenceGate: interpretation.extraction.mealPipeline.confidenceGate,
+            unresolvedFragments: interpretation.extraction.mealPipeline.parsedMeal.unresolvedFragments,
+            warnings: interpretation.extraction.mealPipeline.parsedMeal.warnings,
+          },
+        },
+        "diabetes language interpretation pipeline",
+      );
+    }
     const now = new Date().toISOString();
     const record = await state.capturesRepository.create(
       {
