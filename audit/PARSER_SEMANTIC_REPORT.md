@@ -1,10 +1,24 @@
 # SEMANTIC LANGUAGE SUITE
 
-Generated: 2026-08-26T23:49:30.862Z
+Generated: 2026-08-27T01:24:24.390Z
 
 **150 / 150 PASS**
 
 Safety-critical failures: 0
+
+## LIVE MODEL
+
+enabled: no
+requested model: none
+actual model(s): none
+prompt version: deterministic-only
+schema version: semantic-events-v1
+parser version: semantic-events-v1
+overlay calls: 150
+fallbacks: 0
+latency ms: not measured (deterministic overlay)
+tokens: n/a
+estimated USD: n/a
 
 | ID | Category | Severity | Result | Failures |
 |---|---|---|---|---|
