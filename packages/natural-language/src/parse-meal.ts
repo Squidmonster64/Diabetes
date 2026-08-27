@@ -56,7 +56,7 @@ const VAGUE_PHRASES: Array<{ pattern: RegExp; label: string }> = [
 const UNIT_ENTRIES: Array<{ pattern: RegExp; canonical: CanonicalFoodUnit; original: string }> = [
   { pattern: /^(?:tablespoons?|tbsp)$/, canonical: "tablespoon", original: "tbsp" },
   { pattern: /^(?:teaspoons?|tsp)$/, canonical: "teaspoon", original: "tsp" },
-  { pattern: /^(?:millilitres?|milliliters?|mls|mils|ml)$/, canonical: "ml", original: "ml" },
+  { pattern: /^(?:millilitres?|milliliters?|mils?|mls?)$/, canonical: "ml", original: "ml" },
   { pattern: /^(?:grams?|grammes?|gms|gm|g)$/, canonical: "g", original: "g" },
   { pattern: /^(?:kilograms?|kgs|kg)$/, canonical: "kg", original: "kg" },
   { pattern: /^(?:litres?|liters?|l)$/, canonical: "l", original: "l" },

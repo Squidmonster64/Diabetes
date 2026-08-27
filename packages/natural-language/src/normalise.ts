@@ -73,11 +73,15 @@ export function wordToNumber(word: string): number | null {
     const oneValue = DIRECT_WORD_NUMBERS[ones]!;
     if (oneValue >= 1 && oneValue <= 9) return TENS_WORDS[tens]! + oneValue;
   }
+  if (rest.length === 0 && ones === "hundred" && tens && tens in DIRECT_WORD_NUMBERS) {
+    const scale = DIRECT_WORD_NUMBERS[tens]!;
+    if (scale >= 1 && scale <= 9) return scale * 100;
+  }
   return null;
 }
 
 /** Regex alternation of every recognised number phrase for embedding in extractor patterns. */
-export const NUMBER_WORD_PATTERN = `(?:one\\s+hundred|(?:${TENS_WORD_PATTERN})(?:[-\\s]+(?:${ONE_TO_NINE_WORD_PATTERN}))?|${DIRECT_NUMBER_WORD_PATTERN})`;
+export const NUMBER_WORD_PATTERN = `(?:(?:${ONE_TO_NINE_WORD_PATTERN}|one)\\s+hundred|one\\s+hundred|(?:${TENS_WORD_PATTERN})(?:[-\\s]+(?:${ONE_TO_NINE_WORD_PATTERN}))?|${DIRECT_NUMBER_WORD_PATTERN})`;
 
 /**
  * Common spoken fractions that can safely be represented as deterministic
