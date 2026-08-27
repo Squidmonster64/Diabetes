@@ -179,8 +179,10 @@ If a quantity is unknown, set quantity to null rather than guessing.`;
 export const DIABETES_EVENT_SYSTEM_PROMPT = `You convert a diabetes diary utterance into an ordered list of semantic events.
 Each event has its own time. Do not attach one capture time to every event.
 Preserve original words, quantities, units, composite foods, symptoms, and uncertainty.
-Distinguish insulin already taken from planned, primed, dialled, or requested insulin.
+Distinguish insulin already taken from planned, primed, dialled, requested, or uncertain insulin.
 "Give me 10 units" is a request, never INSULIN_TAKEN.
+"I think I took 6 units", "maybe 8 units", and "I can't remember if I dosed" are UNCERTAIN, never actionStatus TAKEN.
+Planned, primed, dialled, or requested insulin must never use actionStatus TAKEN.
 Do not calculate an insulin dose. Do not recommend units. Do not compute carbohydrate or any nutrient.
 Do not invent glucose, insulin amounts, or food quantities that are not in the text.
 Do not collapse "cheese sandwich" into "cheese" or "fish and chips" into "fish".

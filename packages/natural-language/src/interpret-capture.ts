@@ -271,7 +271,7 @@ export function overlaySemanticEvents(
   overlayEvents: readonly SemanticEvent[],
   provenance?: LanguageProvenance,
 ): CaptureInterpretation {
-  const merged = mergeSemanticEvents(interpretation.extraction.semanticEvents, overlayEvents);
+  const merged = mergeSemanticEvents(interpretation.extraction.semanticEvents, overlayEvents, interpretation.originalText);
   const extraction: ProvisionalEvent = {
     ...interpretation.extraction,
     semanticEvents: merged,

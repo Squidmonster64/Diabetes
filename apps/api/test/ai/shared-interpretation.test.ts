@@ -124,7 +124,7 @@ describe("language overlay against the Diabetes regression suite", () => {
     expect(overlayed.extraction.semanticEvents.some((event) => event.type === "SYMPTOM" && event.symptom === "nauseous")).toBe(true);
     expect(overlayed.extraction.semanticEvents.some((event) => event.type === "MEAL" && /cheese sandwich/i.test(event.mealDescription ?? ""))).toBe(true);
     expect((overlayed as unknown as { recommendedDose?: number }).recommendedDose).toBeUndefined();
-    expect(overlayed.languageProvenance?.promptVersion).toBe("diabetes-event-v2");
+    expect(overlayed.languageProvenance?.promptVersion).toBe("diabetes-event-v3");
   });
 
   it("schema-validates a nutrition meal completion before it can replace the AST", async () => {

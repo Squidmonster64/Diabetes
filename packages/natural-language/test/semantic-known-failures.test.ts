@@ -1,9 +1,10 @@
 process.env.TZ = "Australia/Perth";
 
 import { describe, expect, it } from "vitest";
-import { interpretCapture } from "../src/interpret-capture.js";
+import { interpretCapture, overlaySemanticEvents } from "../src/interpret-capture.js";
 import { groupSemanticEvents } from "../src/semantic-timeline.js";
 import { parserInventedDose } from "../src/acceptance-intent.js";
+import { emptySemanticEvent } from "../src/semantic-events.js";
 
 /** Noon Australia/Perth on 26 Aug 2026. */
 const REFERENCE_NOW = Date.parse("2026-08-26T04:00:00.000Z");
@@ -83,6 +84,40 @@ describe("known production failures — never remove", () => {
     expect(interpretation.extraction.semanticEvents.some((event) => event.type === "INSULIN_TAKEN" && event.actionStatus === "TAKEN")).toBe(false);
     expect(parserInventedDose(interpretation)).toBe(false);
     expect(interpretation.intent.doseRequestLanguageDetected || interpretation.extraction.semanticEvents.some((event) => event.type === "MEAL_DOSE_REQUEST")).toBe(true);
+  });
+
+  it("overlay cannot mark uncertain insulin as taken", () => {
+    const interpretation = interpretCapture("I think I took 6 units", REFERENCE_NOW);
+    expect(interpretation.extraction.semanticEvents.some((event) => event.type === "INSULIN_TAKEN" && event.actionStatus === "TAKEN")).toBe(false);
+    const overlayed = overlaySemanticEvents(interpretation, [
+      emptySemanticEvent({
+        id: "llm_1",
+        type: "INSULIN_TAKEN",
+        originalFragment: "I took 6 units",
+        sourceOrder: 1,
+        insulinAmountUnits: 6,
+        actionStatus: "TAKEN",
+        confidence: 0.9,
+      }),
+    ]);
+    expect(overlayed.extraction.semanticEvents.some((event) => event.type === "INSULIN_TAKEN" && event.actionStatus === "TAKEN")).toBe(false);
+    expect(overlayed.extraction.semanticEvents.some((event) => event.type === "INSULIN_TAKEN" && event.actionStatus === "UNCERTAIN" && event.insulinAmountUnits === 6)).toBe(true);
+  });
+
+  it("overlay cannot record a dose request as insulin taken", () => {
+    const interpretation = interpretCapture("Give me 10 units", REFERENCE_NOW);
+    const overlayed = overlaySemanticEvents(interpretation, [
+      emptySemanticEvent({
+        id: "llm_1",
+        type: "INSULIN_TAKEN",
+        originalFragment: "Give me 10 units",
+        sourceOrder: 1,
+        insulinAmountUnits: 10,
+        actionStatus: "TAKEN",
+        confidence: 0.9,
+      }),
+    ]);
+    expect(overlayed.extraction.semanticEvents.some((event) => event.type === "INSULIN_TAKEN" && event.actionStatus === "TAKEN")).toBe(false);
   });
 
   it("settings language does not mutate configuration", () => {

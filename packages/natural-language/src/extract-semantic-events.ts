@@ -16,6 +16,9 @@ const ACTIVITY_PATTERN =
 const DOSE_REQUEST_CLAUSE =
   /\b(?:give me(?:\s+a)?(?:\s+\d+(?:\.\d+)?)?\s*(?:units?|bolus|correction|dose)|how much insulin|what should i take|need a correction|dose me|dose this|calculate(?:\s+a)?\s+(?:bolus|dose)|i need\s+\d+(?:\.\d+)?\s*units?|should i take)\b/i;
 
+const UNCERTAIN_INSULIN_LANGUAGE =
+  /\b(?:i think i (?:took|injected|dosed)|think i took|maybe (?:i took )?\d|i can't remember if i dosed|cannot remember if i dosed|not sure (?:if |whether )?i (?:took|dosed|injected)|can't remember how much|do not remember if i (?:took|dosed))\b/i;
+
 function splitEventClauses(text: string): string[] {
   const sentences = text
     .split(/(?:\.(?!\d)|[?!\n]+)/)
@@ -413,14 +416,45 @@ export function extractSemanticEvents(originalText: string, referenceNowMs: numb
 
 const SAFETY_TYPES = new Set(["MEAL", "GLUCOSE_READING", "INSULIN_TAKEN", "SYMPTOM"]);
 
-export function mergeSemanticEvents(deterministic: readonly SemanticEvent[], overlay: readonly SemanticEvent[]): SemanticEvent[] {
+function constrainOverlayInsulin(
+  deterministic: readonly SemanticEvent[],
+  overlay: readonly SemanticEvent[],
+  originalText: string,
+): SemanticEvent[] {
+  const detInsulin = deterministic.filter((event) => event.type === "INSULIN_TAKEN");
+  const doseRequestOnly = DOSE_REQUEST_CLAUSE.test(originalText) && !/\b(?:took|injected|gave myself)\b/i.test(originalText);
+  const utteranceUncertain = UNCERTAIN_INSULIN_LANGUAGE.test(originalText);
+  return overlay.map((event) => {
+    if (event.type !== "INSULIN_TAKEN") return event;
+    if (doseRequestOnly) {
+      return { ...event, type: "MEAL_DOSE_REQUEST", actionStatus: "REQUESTED", insulinAmountUnits: null };
+    }
+    const matching =
+      detInsulin.find((det) => det.insulinAmountUnits != null && det.insulinAmountUnits === event.insulinAmountUnits) ??
+      (detInsulin.length === 1 ? detInsulin[0] : undefined);
+    if (event.actionStatus === "TAKEN" && matching?.actionStatus && matching.actionStatus !== "TAKEN") {
+      return { ...event, actionStatus: matching.actionStatus };
+    }
+    if (event.actionStatus === "TAKEN" && (utteranceUncertain || UNCERTAIN_INSULIN_LANGUAGE.test(event.originalFragment))) {
+      return { ...event, actionStatus: "UNCERTAIN" };
+    }
+    return event;
+  });
+}
+
+export function mergeSemanticEvents(
+  deterministic: readonly SemanticEvent[],
+  overlay: readonly SemanticEvent[],
+  originalText = "",
+): SemanticEvent[] {
   if (overlay.length === 0) return [...deterministic];
-  const overlaySafety = overlay.filter((event) => SAFETY_TYPES.has(event.type)).length;
+  const constrained = constrainOverlayInsulin(deterministic, overlay, originalText);
+  const overlaySafety = constrained.filter((event) => SAFETY_TYPES.has(event.type)).length;
   const deterministicSafety = deterministic.filter((event) => SAFETY_TYPES.has(event.type)).length;
   if (overlaySafety < deterministicSafety) return [...deterministic];
 
   const merged = [...deterministic];
-  for (const extra of overlay) {
+  for (const extra of constrained) {
     const same = merged.some((event) => eventsEquivalent(event, extra));
     if (!same) {
       merged.push({ ...extra, id: `event_${merged.length + 1}`, sourceOrder: merged.length + 1 });
@@ -432,7 +466,12 @@ export function mergeSemanticEvents(deterministic: readonly SemanticEvent[], ove
 function eventsEquivalent(left: SemanticEvent, right: SemanticEvent): boolean {
   if (left.type !== right.type) return false;
   if (left.type === "GLUCOSE_READING") return left.glucoseValue === right.glucoseValue && left.qualitativeValue === right.qualitativeValue;
-  if (left.type === "INSULIN_TAKEN") return left.insulinAmountUnits === right.insulinAmountUnits && left.actionStatus === right.actionStatus;
+  if (left.type === "INSULIN_TAKEN") {
+    if (left.insulinAmountUnits != null && right.insulinAmountUnits != null) {
+      return left.insulinAmountUnits === right.insulinAmountUnits;
+    }
+    return left.actionStatus === right.actionStatus && left.originalFragment === right.originalFragment;
+  }
   if (left.type === "SYMPTOM") return left.symptom === right.symptom;
   if (left.type === "MEAL") {
     const leftName = (left.mealDescription ?? "").toLowerCase();
