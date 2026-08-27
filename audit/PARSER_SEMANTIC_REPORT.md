@@ -1,6 +1,6 @@
 # SEMANTIC LANGUAGE SUITE
 
-Generated: 2026-08-27T01:24:24.390Z
+Generated: 2026-08-27T06:52:43.710Z
 
 **150 / 150 PASS**
 
@@ -8,17 +8,17 @@ Safety-critical failures: 0
 
 ## LIVE MODEL
 
-enabled: no
-requested model: none
-actual model(s): none
-prompt version: deterministic-only
-schema version: semantic-events-v1
+enabled: yes
+requested model: DEFAULT_INTERPRETATION_MODEL
+actual model(s): DEFAULT_INTERPRETATION_MODEL snapshot 2024-07-18
+prompt version: diabetes-event-v3
+schema version: diabetes_language_event
 parser version: semantic-events-v1
 overlay calls: 150
 fallbacks: 0
-latency ms: not measured (deterministic overlay)
-tokens: n/a
-estimated USD: n/a
+latency ms: min 1693 / median 2600 / p90 4185 / p95 5486 / max 7016 / mean 2883
+tokens: prompt 159627 / completion 35844 / total 195471
+estimated USD: 0.0455
 
 | ID | Category | Severity | Result | Failures |
 |---|---|---|---|---|

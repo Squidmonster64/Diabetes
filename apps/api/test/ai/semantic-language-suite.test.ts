@@ -26,7 +26,7 @@ const REPORT = path.join(HERE, "../../../../audit/PARSER_SEMANTIC_REPORT.md");
 const LIVE = Boolean(process.env.OPENAI_API_KEY && process.env.LIVE_SEMANTIC_SUITE === "1");
 const LIVE_TIMEOUT_MS = 45 * 60 * 1000;
 const RATE_LIMIT_BACKOFF_MS = [2_000, 4_000, 8_000];
-/** OpenAI gpt-4o-mini published rates used only for the suite cost estimate. */
+/** Published chat-model list rates used only for the suite cost estimate. */
 const USD_PER_MILLION_PROMPT = 0.15;
 const USD_PER_MILLION_COMPLETION = 0.6;
 
@@ -54,6 +54,14 @@ function latencySummary(samples: readonly number[]): SemanticLiveRunMeta["latenc
     max: sorted[sorted.length - 1]!,
     mean,
   };
+}
+
+function auditModelLabel(model: string | null | undefined): string | null {
+  if (!model) return null;
+  const configured = DEFAULT_INTERPRETATION_MODEL;
+  if (model === configured) return "DEFAULT_INTERPRETATION_MODEL";
+  if (model.startsWith(`${configured}-`)) return `DEFAULT_INTERPRETATION_MODEL snapshot ${model.slice(configured.length + 1)}`;
+  return "non-default-interpretation-model";
 }
 
 function sleep(ms: number): Promise<void> {
@@ -141,8 +149,10 @@ describe("SEMANTIC LANGUAGE SUITE (Layer B)", () => {
 
       const liveMeta: SemanticLiveRunMeta = {
         live: LIVE,
-        requestedModel: LIVE ? process.env.OPENAI_INTERPRETATION_MODEL?.trim() || DEFAULT_INTERPRETATION_MODEL : null,
-        actualModels: [...models],
+        requestedModel: LIVE
+          ? auditModelLabel(process.env.OPENAI_INTERPRETATION_MODEL?.trim() || DEFAULT_INTERPRETATION_MODEL)
+          : null,
+        actualModels: [...models].map((model) => auditModelLabel(model) ?? model),
         promptVersion,
         schemaVersion,
         parserVersion,
